@@ -76,7 +76,7 @@ function process(data) {
 		var result = "";
 		var width = document.getElementById("lcol").offsetWidth;
 
-		var npl = Math.floor(width / 20);
+		var npl = Math.floor(width / 13);
 		var nl = Math.ceil(genome.length / npl);
 
 		for (i = 0; i < nl; ++ i) {

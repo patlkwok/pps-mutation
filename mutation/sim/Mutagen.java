@@ -58,6 +58,7 @@ public class Mutagen {
                             c = str.charAt(pos + c - '0');
                         mutable[(start + pos + j) % len] = c;
                     }
+                    break;
                 }
             }
             if (!matched) return String.valueOf(mutable);

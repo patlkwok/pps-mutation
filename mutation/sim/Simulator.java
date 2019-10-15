@@ -138,12 +138,17 @@ public class Simulator {
                         player = loadPlayer(name);
                     } else if (args[i].equals("-m")) {
                         if (++i == args.length) {
-                            throw new IllegalArgumentException("Missing maximum number of trials");
+                            throw new IllegalArgumentException("Missing number of mutations per experiments");
                         }
                         m = Integer.parseInt(args[i]);
+                    } else if (args[i].equals("-c") || args[i].equals("--cfgpath")) {
+                        if (++i == args.length) {
+                            throw new IllegalArgumentException("Missing config file.");
+                        }
+                        cfgPath = args[i];
                     } else if (args[i].equals("-t") || args[i].equals("--trials")) {
                         if (++i == args.length) {
-                            throw new IllegalArgumentException("Missing maximum number of trials");
+                            throw new IllegalArgumentException("Missing maximum number of experiments");
                         }
                         trials = Integer.parseInt(args[i]);
                     } else if (args[i].equals("-s") || args[i].equals("--seed")) {
