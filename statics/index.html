@@ -3,7 +3,7 @@
   <head>
     <title>PPS 2019 - Mutation</title>
     <style>
-      p {
+      #center p {
         display: inline;
         padding: 0 20px;
       }
@@ -11,13 +11,30 @@
       #lcol {
         display: inline-block;
         width: 70%;
-        margin-top: 0px;
-        font-family: monospace;
+        margin-top: 20px;
+        font-family: "Courier New", Courier, monospace;
+        word-break: break-all;
+        vertical-align: top;
+        font-size: 20px;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .p1 {
+        margin-top: 2px;
+      }
+
+      .hfont {
+        background-color: #DDDDDD;
       }
 
       #rcol {
+        margin-top: 20px;
         display: inline-block;
         width: 25%;
+        vertical-align: top;
       }
 
       #rcol table {
@@ -26,7 +43,7 @@
       }
       #rcol table td {
         border: 1px solid black;
-        width: 10%;
+        width: 250px;
         padding: 2px 5px;
       }
 
@@ -38,11 +55,11 @@
   </head>
   <body>
 	<h2 style="text-align: center;">PPS 2019 - Mutation</h2>
-	<center>
+	<center id="center">
     <p id="player">Player: g0</p>
     <p id="nexp">Number of experiments: 0 </p>
     <p id="nguess">Number of guesses: 0</p>
-    <p id="sim">Jaccard's similarity: 0/0</p>
+    <p id="score">Correct!</p>
   </center>
 
   <div id="lcol">
@@ -51,22 +68,10 @@
   <div id="rcol">
     Target:
     <table id="target">
-      <tr>
-        <td class="highlighted">a;c;g;t</td>
-        <td class="highlighted">aaaa</td>
-      </tr>
-      <tr>
-        <td>a;c;g;t</td>
-        <td>aaaa</td>
-      </tr>
     </table>
 
     Player's guess:
     <table id="guess">
-      <tr>
-        <td>a;c;g;t</td>
-        <td>aaaa</td>
-      </tr>
     </table>
   </div>
 

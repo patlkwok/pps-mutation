@@ -8,28 +8,48 @@ import java.awt.Desktop;
 // This class wraps the Mutagen with limited usage
 public class Console {
 
-    public Console(int limit, int m, Mutagen mutagen, boolean gui, HTTPServer server) {
+    public Console(int limit, int m, Mutagen mutagen, boolean gui, HTTPServer server, String playerName, double refresh) {
         this.mutagen = mutagen;
         this.limit = limit;
         this.m = m;
         this.gui = gui;
         this.server = server;
+        this.playerName = playerName;
+        this.refresh = refresh;
+
+        if (gui) {
+            sendGUI(server, state("", "", String.join("@", mutagen.getPatterns()), String.join("@", mutagen.getActions()), "", "", ""));
+        }
     }
 
     public String Mutate(String genome) {
-        if (counter >= limit || genome.length() != 1000)
+        if (numExps >= limit || genome.length() != 1000)
             return "";
-        ++ counter;
-        return mutagen.Mutate(genome, m);
+        ++numExps;
+        String mutated = mutagen.Mutate(genome, m);
+        if (gui) {
+            sendGUI(server, state(genome, mutated, "", "", "", "", ""));
+        }
+        return mutated;
     }
 
     public boolean Guess(Mutagen other) {
+        ++ numGuesses;
         correct = mutagen.equals(other);
+        if (gui) {
+            String score = "";
+            if (correct) score = "Correct!";
+            sendGUI(server, state("", "", "", "", String.join("@", other.getPatterns()), String.join("@", other.getActions()), score));
+        }
         return correct;
     }
 
-    public int getCounter() {
-        return counter;
+    public int getNumGuesses() {
+        return numGuesses;
+    }
+
+    public int getNumExps() {
+        return numExps;
     }
 
     public boolean isCorrect() {
@@ -40,10 +60,15 @@ public class Console {
         return mutagen.getNumberOfMutations();
     }
 
-    private int getNumberOfExperiments() {
-        return counter;
+    public void reportScore(String patterns, String actions, String score) {
+        if (gui)
+            sendGUI(server, state("", "", "", "", patterns, actions, score));
     }
 
+    private String state(String genome, String mutated, String tPatterns, String tActions, String patterns, String actions, String score) {
+        return playerName + "," + refresh + "," + numExps + "," + numGuesses + "," + score + ","
+                + genome + "," + mutated + "," + tPatterns + "," + tActions + "," + patterns + "," + actions;
+    }
 
     private void sendGUI(HTTPServer server, String content) {
         if (server == null) return;
@@ -65,7 +90,7 @@ public class Console {
                 }
                 return;
             }
-            if (path.equals("")) path = "webpage.html";
+            if (path.equals("")) path = "index.html";
             else if (!Character.isLetter(path.charAt(0))) {
                 Log.record("Potentially malicious HTTP request \"" + path + "\"");
                 break;
@@ -84,8 +109,10 @@ public class Console {
         }
     }
 
-    private int counter = 0, limit, m = 1;
+    private int numExps = 0, limit, m = 1, numGuesses = 1;
     private boolean correct = false, gui = false;
     private Mutagen mutagen;
     private HTTPServer server;
+    private String playerName;
+    private double refresh;
 }

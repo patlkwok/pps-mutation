@@ -1,62 +1,100 @@
-// var radius = 18;
-// var xgap = 120;
-// var ygap = 50;
-
-// function drawPlayer(ctx, id, x, y) {
-// 	// drawing circle
-// 	ctx.beginPath();
-// 	ctx.arc(x, y, radius, 0, 2*Math.PI);
-// 	ctx.stroke();
-// 	// console.log(id + " " + String(id).length);
-// 	// displaying id
-// 	if (String(id).length == 1)
-// 		ctx.fillText(id, x - 5, y + 7);
-// 	else if (String(id).length == 2)
-// 		ctx.fillText(id, x - 10, y + 7);
-// 	else
-// 		ctx.fillText(id, x - 15, y + 7);
-// }
+var patterns = [];
+var actions = [];
+var colorScheme = {
+	'a' : "red",
+	'c' : "blue",
+	'g' : "green",
+	't' : "#D100FF"
+};
 
 function process(data) {
+	// console.log(data);
 	var terms = data.split(",");
-	var refresh = Number(terms[0]);
-	var turn = Number(terms[1]);
-	var n = Number(terms[2]);
-	var handles = new Array(n);
-	var names = new Array(n);
-	var playerMove = new Array(n);
-	var i, j = 3, k, len;
-	var infoContent = "";
+	var name = terms[0];
+	var refresh = Number(terms[1]);
+	var nexp = Number(terms[2]);
+	var nguess = Number(terms[3]);
+	var score = terms[4];
+	var genome = terms[5];
+	var mutated = terms[6];
+	var tpats = terms[7];
+	var tacts = terms[8];
+	var gpats = terms[9];
+	var gacts = terms[10];
 
-	for (i = 0; i < n; ++ i) {
-		names[i] = terms[j];
-		++ j;
+	document.getElementById("player").innerHTML = "Player: " + name;
+	document.getElementById("nexp").innerHTML = "Number of experiments: " + nexp;
+	document.getElementById("nguess").innerHTML = "Number of guesses: " + nguess;
+	document.getElementById("score").innerHTML = score;
+
+	if (score.length > 0) {
+		if (score == "Score pending") refresh = 1000;
+		else refresh = -1;
 	}
-	for (i = 0; i < n; ++ i) {
-		len = Number(terms[j]);
-		++ j;
-		handles[i] = new Array(len);
-		for (k = 0; k < len; ++ k) {
-			handles[i][k] = Number(terms[j]);
-			playerMove[Number(terms[j])] = i;
-			++ j;
+
+	var i, j;
+
+// Show tPatterns
+	if (tpats.length > 0) {
+		patterns = tpats.split("@");
+		actions = tacts.split("@");
+		var table = document.getElementById("target");
+		table.innerHTML = "";
+		for (i = 0; i < patterns.length; ++ i) {
+			var row = table.insertRow(-1);
+			var c1 = row.insertCell(0);
+			var c2 = row.insertCell(1);
+			c1.innerHTML = patterns[i];
+			c2.innerHTML = actions[i];
+		}
+	}
+	if (gpats.length > 0) {
+		var tp = gpats.split("@");
+		var ta = gacts.split("@");
+		var table = document.getElementById("guess");
+		table.innerHTML = "";
+		for (i = 0; i < tp.length; ++ i) {
+			var highlighted = false;
+			for (j = 0; j < patterns.length; ++ j)
+				if (tp[i] == patterns[j] && ta[i] == actions[j]) {
+					highlighted = true;
+					break;
+				}
+			var row = table.insertRow(-1);
+			var c1 = row.insertCell(0);
+			var c2 = row.insertCell(1);
+			if (highlighted) {
+				c1.classList.add("highlighted");
+				c2.classList.add("highlighted");
+			}
+			c1.innerHTML = tp[i];
+			c2.innerHTML = ta[i];
 		}
 	}
 
-	for (i = 0; i < n; ++ i) {
-		infoContent += "<p><span class='circled'>p" + (i + 1) + "</span> (" + names[i] + ") grabs handle <span class='rect'>H" + (playerMove[i] + 1) + "</span></p>";
-	}
-	document.getElementById("info").innerHTML = infoContent;
+	if (genome.length > 0) {
+		var result = "";
+		var width = document.getElementById("lcol").offsetWidth;
 
-	var binContent = "";
-	for (i = 0; i < n; ++ i) {
-		binContent += "<p>Handle <span class='rect'>H" + (i + 1) + "</span>:";
-		for (j = 0; j < handles[i].length; ++ j)
-			binContent += " <span class='circled'>p" + (handles[i][j] + 1) + "</span>";
-		binContent += "</p>";
+		var npl = Math.floor(width / 20);
+		var nl = Math.ceil(genome.length / npl);
+
+		for (i = 0; i < nl; ++ i) {
+			var p1 = "", p2="";
+			for (j = i * npl; j < (i + 1) * npl && j < genome.length; ++ j) {
+				if (genome[j] == mutated[j]) {
+					p2 += "&nbsp";
+					p1 += genome[j].fontcolor(colorScheme[genome[j]]);
+				} else {
+					p1 += '<font class="hfont" color="' + colorScheme[genome[j]] + '">' + genome[j] + '</font>';
+					p2 += '<font class="hfont" color="' + colorScheme[mutated[j]] + '">' + mutated[j] + '</font>';
+				}
+			}
+			result += '<p>' + p2 + '</p>' + '<p class="p1">' + p1 + '</p>';
+		}
+		document.getElementById("lcol").innerHTML = result;
 	}
-	document.getElementById("bin").innerHTML = binContent;
-	document.getElementById("turn").innerHTML = "Turn: " + turn;
+
 	return refresh;
 }
 
@@ -102,8 +140,4 @@ function ajax(version, retries, timeout) {
 	xhttp.send();
 }
 
-// ajax(1, 10, 100)
-
-//var data = "12,1,0,2,1,11,0,3,2,3,4,0,0,0,0,0,4,9,10,8,7,1,5,1,6,0";
-
-//process(data);
+ajax(1, 10, 100)

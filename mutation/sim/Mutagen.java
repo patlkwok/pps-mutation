@@ -93,32 +93,38 @@ public class Mutagen {
 
     public Set<Long> jaccardSet(String s) {
         Set<Long> result = new HashSet<Long>();
+        int counter = 0;
         for (int k = 0; k < patterns.size(); ++ k) {
             String[] l = patterns.get(k).split(";");
             boolean[][] chk = new boolean[l.length][4];
-            for (int i = 0; i < l.length; ++i) {
+            for (int i = 0; i < l.length; ++ i) {
                 Arrays.fill(chk[i], false);
                 for (int j = 0; j < l[i].length(); ++j)
                     chk[i][translate(l[i].charAt(j))] = true;
             }
-            for (int i = 0; i < s.length(); ++i) {
+            for (int i = 0; i < s.length(); ++ i) {
                 boolean matched = true;
-                for (int j = 0; j < l.length; ++j)
+                for (int j = 0; j < l.length; ++ j)
                     if (!chk[j][translate(s.charAt((i + j) % s.length()))]) {
                         matched = false;
                         break;
                     }
                 if (matched) {
+                    ++ counter;
                     // Perform action & insert
                     Long entry = 0l;
                     String action = actions.get(k);
                     for (int j = 0; j < action.length(); ++ j) {
                         char c = action.charAt(j);
                         if (c >= '0' && c <= '9')
-                            c = s.charAt(i + c - '0');
-                        entry = entry * 4 + translate(c);
+                            c = s.charAt((i + c - '0') % s.length());
+                        entry = entry * 4l + translate(c);
                     }
-                    entry += i << 20;
+                    for (int j = action.length(); j < 10; ++ j) {
+                        char c = s.charAt((i + j) % s.length());
+                        entry = entry * 4l + translate(c);
+                    }
+                    entry += ((long)i) << 20l;
                     result.add(entry);
                 }
             }

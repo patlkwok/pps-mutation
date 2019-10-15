@@ -35,6 +35,7 @@ public class Simulator {
 
         HTTPServer server = null;
         if (gui) {
+            timeLimit *= 1000;
             server = new HTTPServer();
             Log.record("Hosting HTTP Server on " + server.addr());
             if (!Desktop.isDesktopSupported())
@@ -56,11 +57,12 @@ public class Simulator {
 
         // Loading mutagen
         target = loadMutagenConfig(cfgPath);
-        Console console = new Console(trials, m, target, gui, server);
+        Console console = new Console(trials, m, target, gui, server, name, 1000.0 / fps);
 
         Timer thread = new Timer();
         thread.start();
 
+        Log.record("Player " + name + " starts!");
         thread.call_start(() -> {
             return player.Play(console);
         });
@@ -77,9 +79,10 @@ public class Simulator {
         }
         long elapsedTime = thread.getElapsedTime();
         Log.record("Player finished in " + elapsedTime + "ms.");
+        console.reportScore("", "", "Score pending");
 
         if (console.isCorrect()) {
-            System.out.println("Correct! Player made " + console.getCounter() + " guesses.");
+            System.out.println("Correct! Player made " + console.getNumGuesses() + " guesses and " + console.getNumExps() + " experiments");
         } else {
             System.out.println("Failed, calculating Jaccard score.");
             char[] pool = {'a', 'c', 'g', 't'};
@@ -99,7 +102,7 @@ public class Simulator {
             }
             int union = l1.size() + l2.size() - intersection;
             System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union);
         }
 
         System.exit(0);
