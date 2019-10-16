@@ -38,30 +38,31 @@ public class Mutagen {
         int len = genome.length();
         char[] mutable = genome.toCharArray();
         for (numberOfMutations = 0; numberOfMutations < m; ++ numberOfMutations) {
-            int offset = Math.abs(random.nextInt() % actions.size());
             int start = Math.abs(random.nextInt() % len);
             String str = String.valueOf(mutable);
             while (str.length() < start + len + 10)
                 str += str;
             str = str.substring(start, start + len + 10);
-            boolean matched = false;
+            int idx = -1, pos = -1, cnt = 0;
             for (int i = 0; i < patterns.size(); ++ i) {
-                int idx = (offset + i) % actions.size();
-                int pos = match(str, patterns.get(idx));
-                if (pos != -1) {
-                    matched = true;
-                    // Modification
-                    String action = actions.get(idx);
-                    for (int j = 0; j < action.length(); ++ j) {
-                        char c = action.charAt(j);
-                        if (c >= '0' && c <= '9')
-                            c = str.charAt(pos + c - '0');
-                        mutable[(start + pos + j) % len] = c;
+                int k = match(str, patterns.get(i));
+                if (k != -1) {
+                    ++ cnt;
+                    if (Math.abs(random.nextInt()) % cnt == 0) {
+                        idx = i;
+                        pos = k;
                     }
                     break;
                 }
             }
-            if (!matched) return String.valueOf(mutable);
+            if (cnt == 0) return String.valueOf(mutable);
+            String action = actions.get(idx);
+            for (int j = 0; j < action.length(); ++ j) {
+                char c = action.charAt(j);
+                if (c >= '0' && c <= '9')
+                    c = str.charAt(pos + c - '0');
+                mutable[(start + pos + j) % len] = c;
+            }
         }
         return String.valueOf(mutable);
     }
