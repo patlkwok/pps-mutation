@@ -64,7 +64,7 @@ public class Simulator {
 
         Log.record("Player " + name + " starts!");
         thread.call_start(() -> {
-            return player.Play(console);
+            return player.Play(console, m);
         });
         try {
             result = thread.call_wait(timeLimit);
@@ -81,8 +81,9 @@ public class Simulator {
         Log.record("Player finished in " + elapsedTime + "ms.");
         console.reportScore("", "", "Score pending");
 
+        System.out.println("Player " + name + " made " + console.getNumGuesses() + " guesses and " + console.getNumExps() + " experiments");
         if (console.isCorrect()) {
-            System.out.println("Correct! Player made " + console.getNumGuesses() + " guesses and " + console.getNumExps() + " experiments");
+            System.out.println("Correct!");
         } else {
             System.out.println("Failed, calculating Jaccard score.");
             char[] pool = {'a', 'c', 'g', 't'};

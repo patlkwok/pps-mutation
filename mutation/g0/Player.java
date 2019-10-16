@@ -20,10 +20,11 @@ public class Player extends mutation.sim.Player {
     }
 
     @Override
-    public Mutagen Play(Console console) {
+    public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
         result.add("a;c;c", "att");
-        for (int i = 0; i < 100; ++ i) {
+        result.add("g;c;c", "gtt");
+        for (int i = 0; i < 10; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             console.Guess(result);
