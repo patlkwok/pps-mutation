@@ -23,7 +23,7 @@ public class Console {
     }
 
     public String Mutate(String genome) {
-        if (numExps >= limit || genome.length() != 1000)
+        if (correct || numExps >= limit || genome.length() != 1000)
             return "";
         ++numExps;
         String mutated = mutagen.Mutate(genome, m);
@@ -34,6 +34,7 @@ public class Console {
     }
 
     public boolean Guess(Mutagen other) {
+        if (correct) return correct;
         ++ numGuesses;
         correct = mutagen.equals(other);
         if (gui) {
@@ -109,7 +110,7 @@ public class Console {
         }
     }
 
-    private int numExps = 0, limit, m = 1, numGuesses = 1;
+    private int numExps = 0, limit, m = 1, numGuesses = 0;
     private boolean correct = false, gui = false;
     private Mutagen mutagen;
     private HTTPServer server;
