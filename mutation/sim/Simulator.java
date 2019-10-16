@@ -118,8 +118,8 @@ public class Simulator {
             String[] strs = line.split("@");
             if (strs.length != 2)
                 throw new IOException("Bad config file syntax");
-            if (strs[0].split(";").length != strs[1].length())
-                throw new IOException("Bad config file syntax");
+            // if (strs[0].split(";").length != strs[1].length())
+            //     throw new IOException("Bad config file syntax");
             result.add(strs[0], strs[1]);
         }
         return result;
