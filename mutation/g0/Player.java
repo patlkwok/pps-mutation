@@ -22,7 +22,7 @@ public class Player extends mutation.sim.Player {
     @Override
     public Mutagen Play(Console console) {
         Mutagen result = new Mutagen();
-        result.add("a", "c");
+        result.add("a;c;c", "att");
         for (int i = 0; i < 100; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);

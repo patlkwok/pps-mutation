@@ -98,7 +98,7 @@ public class Simulator {
             int ptr = 0, intersection = 0;
             for (Long entry : l1) {
                 while (ptr < l2.size() && l2.get(ptr) < entry) ++ ptr;
-                if (ptr < l2.size() && l2.get(ptr) == entry) ++ intersection;
+                if (ptr < l2.size() && l2.get(ptr).equals(entry)) ++ intersection;
             }
             int union = l1.size() + l2.size() - intersection;
             System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
