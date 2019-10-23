@@ -121,7 +121,7 @@ public class Simulator {
         BufferedReader br = new BufferedReader(new FileReader(path));
         String line;
         while ((line = br.readLine()) != null) {
-            if (line.charAt(0) == '#' || line.length() == 0) continue;
+            if (line.length() == 0 || line.charAt(0) == '#') continue;
             String[] strs = line.split("@");
             if (strs.length != 2)
                 throw new IOException("Bad config file syntax");
