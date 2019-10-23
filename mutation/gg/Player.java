@@ -1,4 +1,4 @@
-package mutation.g5;
+package mutation.gg;
 
 import java.util.*;
 import mutation.sim.Console;
