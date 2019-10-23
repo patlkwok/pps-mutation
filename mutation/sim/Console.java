@@ -57,7 +57,7 @@ public class Console {
         return correct;
     }
 
-    private int getNumberOfMutations() {
+    public int getNumberOfMutations() {
         return mutagen.getNumberOfMutations();
     }
 
