@@ -52,7 +52,6 @@ public class Mutagen {
                         idx = i;
                         pos = k;
                     }
-                    break;
                 }
             }
             if (cnt == 0) return String.valueOf(mutable);
