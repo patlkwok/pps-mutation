@@ -8,22 +8,22 @@ import mutation.sim.Mutagen;
 public class PAPair {
 	// A class for (pattern, action) pair
 	public PAPair() {
-        this.pattern = new String();
-        this.action = new String();
-    }
-
-    public PAPair(String pattern, String action) {
-        this.pattern = new String(pattern);
-        this.action = new String(action);
-    }
+		this.pattern = new String();
+		this.action = new String();
+	}
+	
+	public PAPair(String pattern, String action) {
+		this.pattern = new String(pattern);
+		this.action = new String(action);
+	}
 
 	public String getPattern() {
-        return pattern;
-    }
-
-    public String getAction() {
-        return action;
-    }
+		return pattern;
+	}
+	
+	public String getAction() {
+		return action;
+	}
 
 	public double patternScore() {
 		return 1.0;  // should be changed based on length of pattern
@@ -40,7 +40,7 @@ public static HashMap<PAPair, Double> sortScores(HashMap<PAPair, Double> scores)
 			return (o2.getValue()).compareTo(o1.getValue());
 		}
 	});
-    // Step 3: Put data from sorted list to hash map
+	// Step 3: Put data from sorted list to hash map
 	HashMap<PAPair, Double> newScores = new LinkedHashMap<PAPair, Double>(); 
 	for (Map.Entry<PAPair, Double> s: list) { 
 		newScores.put(s.getKey(), s.getValue()); 
@@ -49,30 +49,30 @@ public static HashMap<PAPair, Double> sortScores(HashMap<PAPair, Double> scores)
 } 
 
 public class Player extends mutation.sim.Player {
-    private Random random;
+	private Random random;
 	private int windowSize = 2;
+	
+	public Player() {
+		random = new Random();
+	}
+	
+	private String randomString() {
+		char[] pool = {'a', 'c', 'g', 't'};
+		String result = "";
+		for (int i = 0; i < 1000; ++ i)
+			result += pool[Math.abs(random.nextInt() % 4)];
+		return result;
+	}
 
-    public Player() {
-        random = new Random();
-    }
-
-    private String randomString() {
-        char[] pool = {'a', 'c', 'g', 't'};
-        String result = "";
-        for (int i = 0; i < 1000; ++ i)
-            result += pool[Math.abs(random.nextInt() % 4)];
-        return result;
-    }
-
-    @Override
-    public Mutagen Play(Console console, int m) {
+	@Override
+	public Mutagen Play(Console console, int m) {
 		HashMap<PAPair, Double> scores = new HashMap<PAPair, Double>();
-        //result.add("a;c;c", "att");
-        //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 5; ++ i) {
+		//result.add("a;c;c", "att");
+		//result.add("g;c;c", "gtt");
+		for (int i = 0; i < 5; ++ i) {
 			Mutagen result = new Mutagen();
-            String genome = randomString();
-            String mutated = console.Mutate(genome);
+			String genome = randomString();
+			String mutated = console.Mutate(genome);
 			// Step 1: Add first 10 characters of genome and mutated to the end
 			String genome_new = genome.concat(genome.substring(0, 10));
 			String mutated_new = mutated.concat(mutated.substring(0, 10));
@@ -104,10 +104,10 @@ public class Player extends mutation.sim.Player {
 				}
         	}
 			// Step 3: Evaluate the most possible
-            if (console.Guess(result)) {
+			if (console.Guess(result)) {
 				return result;
 			}
-        }
-        return result;
-    }
+		}
+		return result;
+	}
 }
