@@ -102,7 +102,7 @@ public class Player extends mutation.sim.Player {
 					result.add(s.getKey().getPattern(), s.getKey().getAction());
 					rules++;
 				}
-        	}
+			}
 			// Step 3: Evaluate the most possible
 			if (console.Guess(result)) {
 				return result;
