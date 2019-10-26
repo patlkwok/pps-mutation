@@ -12,10 +12,10 @@ keep a count of how many times we've seen a change. Everytime we see a change
 record the possible contexts(sliding window) towards the end pick out common elements
 in the context )
 
-NEEDS:
+goals:
 Make smarter test cases
-handle more complicated switches?
-
+Handle more complicated mutations
+Possibly model after the scientific method ( can we model that as a search problem)
 */
 
 package mutation.g2;
