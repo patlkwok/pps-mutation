@@ -26,16 +26,38 @@ public class RuleEnumerator {
      */
     public HashMap<Rule, Double> enumerate(String original, String mutated) {
         final int length = original.length();
-        List<char[]> possibleActions = new ArrayList<>();
-        for (int i = 0; i < length; i++) {
-            char outcome = mutated.charAt(i);
-            // it is always possible that the action in this position consists of
-            // exactly the same character that we observe after change
-            String possibleAction = "" + outcome;
-
-            possibleActions.add(possibleAction.toCharArray());
-        }
+        List<HashMap<Byte, Double>> patternElements;
+        List<HashMap<Character, Double>> actionElements;
+        // iterate over all possible pattern positions and values they could have
+        // and compute their likelihood, keep those with non-zero probability
         return null;
+    }
+
+    /**
+     * Computes the likelihood of pi being the ith element of the pattern given
+     * that the ith position of the original string was si and that the genome
+     * was matched at this position
+     *
+     * @param pi pattern element value
+     * @param si character in the ith position of the original string
+     * @return the computed probability
+     */
+    protected double probabilityPi(byte pi, byte si) {
+        return 0;
+    }
+
+    /**
+     * Computes the likelihood of ai being the ith element of the action given
+     * the original string, the ith position of the mutated string, and knowing
+     * that the string was matched
+     *
+     * @param pi pattern element value
+     * @param s the original string
+     * @param ti the character at the ith position of the mutated string
+     * @return the computed probability
+     */
+    protected double probabilityAi(char pi, String s, char ti) {
+        return 0;
     }
 
     /**
