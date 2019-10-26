@@ -62,8 +62,9 @@ public class Player extends mutation.sim.Player {
 
         //guess strongest evidence
         String maxString = Utilities.argMax(evidence);
-        if(maxString != null){
+        if(maxString != null || evidence.get(maxString) == 1){
           Change maxEvidence = Change.fromChangeString(maxString);
+
 
           result.add(Utilities.formatPattern(maxEvidence.before),maxEvidence.after);
           boolean guess = console.Guess(result);
