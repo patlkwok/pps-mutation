@@ -13,10 +13,12 @@ public class Player extends mutation.sim.Player {
 
     private final Random random;
     private final List<Pair<String, String>> expHistory;
+    private final RuleEnumerator enumerator;
 
     public Player() {
         random = new Random();
         expHistory = new ArrayList<>();
+        enumerator = new RuleEnumerator();
     }
 
     @Override
