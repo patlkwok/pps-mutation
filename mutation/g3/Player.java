@@ -12,16 +12,18 @@ import mutation.sim.Mutagen;
 public class Player extends mutation.sim.Player {
 
     private final Random random;
+    private final List<Pair<String, String>> expHistory;
 
     public Player() {
         random = new Random();
+        expHistory = new ArrayList<>();
     }
 
     @Override
     public Mutagen Play(Console console, int m) {
         final int numExps = console.getNumExps();
         for (int i = 0; i < numExps; ++i) {
-            String genome = this.designExperiment(numExps - i);
+            String genome = designExperiment(numExps - i);
             String mutated = console.Mutate(genome);
             int q = console.getNumberOfMutations();
             recordMutations(genome, mutated, m, q);
@@ -54,7 +56,7 @@ public class Player extends mutation.sim.Player {
      * @param q actual number of mutations that were possible to apply
      */
     protected void recordMutations(String original, String mutated, int m, int q) {
-
+        expHistory.add(new Pair<>(original, mutated));
     }
 
     /**
@@ -63,6 +65,10 @@ public class Player extends mutation.sim.Player {
      * @return the guessed Mutagen
      */
     protected Mutagen makeGuess() {
+        Pair<String, String> lastExperiment = expHistory.get(expHistory.size() - 1);
+        String original = lastExperiment.getFirst();
+        String mutated = lastExperiment.getSecond();
+        // integrate here
         Mutagen result = new Mutagen();
         result.add("a;c;c", "att");
         result.add("g;c;c", "gtt");
@@ -81,5 +87,28 @@ public class Player extends mutation.sim.Player {
             result += pool[Math.abs(random.nextInt() % 4)];
         }
         return result;
+    }
+
+    /**
+     * List all changes in the strings within a windows of the given length
+     *
+     * @param original the original string
+     * @param mutated changed string
+     * @param windowSize size of the window
+     * @return list of all changed pieces
+     */
+    private HashSet<Pair<String, String>> getPossibleMutations(String original, String mutated, int windowSize) {
+        HashSet<Pair<String, String>> set = new HashSet<>();
+        String genome_new = original.concat(original.substring(0, windowSize));
+        String mutated_new = mutated.concat(mutated.substring(0, windowSize));
+        for (int j = 0; j < original.length(); ++j) {
+            String gPart = genome_new.substring(j, j + windowSize);
+            String mPart = mutated_new.substring(j, j + windowSize);
+            boolean wasMutated = !gPart.equals(mPart);
+            if (wasMutated) {
+                set.add(new Pair(gPart, mPart));
+            }
+        }
+        return set;
     }
 }

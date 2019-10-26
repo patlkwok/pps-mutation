@@ -1,6 +1,7 @@
 package mutation.g3;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -23,7 +24,7 @@ public class RuleEnumerator {
      * @param mutated window after change
      * @return a list of consistent rules
      */
-    public List<Rule> enumerate(String original, String mutated) {
+    public HashMap<Rule, Double> enumerate(String original, String mutated) {
         final int length = original.length();
         List<char[]> possibleActions = new ArrayList<>();
         for (int i = 0; i < length; i++) {
