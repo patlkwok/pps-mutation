@@ -13,8 +13,10 @@ public class Player extends mutation.sim.Player {
     
     public Player() {
         random = new Random();
-        hash = new HashMap<>({{put('a', 0); put('c', 1); put('g', 2); put('t', 3);}});
-        antiHash = new HashMap<>({{put(0, 'a'); put(1, 'c'); put(2, 'g'); put(3, 't');}});
+        hash = new HashMap<>();
+        hash.put('a', 0); hash.put('c', 1); hash.put('g', 2); hash.put('t', 3);
+        antiHash = new HashMap<>();
+        antiHash.put(0, 'a'); antiHash.put(1, 'c'); antiHash.put(2, 'g'); antiHash.put(3, 't');
     }
 
     private String randomString() {
@@ -30,7 +32,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 10; ++ i) {
+        for (int i = 0; i < 1; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -47,7 +49,7 @@ public class Player extends mutation.sim.Player {
         int[][] set = new int[4][4];
 
         for(Element e : diff) {
-            if(e.isMutated) {
+            if(e.isMutated()) {
                 set[hash.get(e.getOG())][hash.get(e.getAfter())]++;
             }
         }
@@ -55,7 +57,7 @@ public class Player extends mutation.sim.Player {
         for(int i = 0; i < 4; i++) {
             for(int j = 0; j < 4; j++) {
                 if(set[i][j] > 0) {
-                    result.add(Character.toString(antiHash.get(i), Character.toString(antiHash.get(j))));
+                    result.add(Character.toString(antiHash.get(i)), Character.toString(antiHash.get(j)));
                 }
             }
         }
