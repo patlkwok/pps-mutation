@@ -1,9 +1,12 @@
 /*
 TODO:
-Implement Wrap Around
+- Implement Wrap Around
+- dont guess the same thing twice
+- implement context checking
 
 NEEDS:
 Make smarter test cases
+handle more complicated switches? 
 
 */
 
