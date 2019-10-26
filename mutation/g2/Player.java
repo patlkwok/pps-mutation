@@ -1,12 +1,20 @@
 /*
+
+right now: random string + mutations, records how many times it has seen something, guesses.
+only runs 1/2 experiments. really naive.
+
 TODO:
 - Implement Wrap Around
 - dont guess the same thing twice
 - implement context checking
+( a better way to do this might be to record changes as before -> after and
+keep a count of how many times we've seen a change. Everytime we see a change
+record the possible contexts(sliding window) towards the end pick out common elements
+in the context )
 
 NEEDS:
 Make smarter test cases
-handle more complicated switches? 
+handle more complicated switches?
 
 */
 
