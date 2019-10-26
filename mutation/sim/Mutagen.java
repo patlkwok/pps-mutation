@@ -10,7 +10,16 @@ public class Mutagen {
     }
     public Mutagen(List<String> patterns, List<String> actions) {
         this.random = new Random();
-        this.patterns = new ArrayList<String>(patterns);
+        this.patterns = new ArrayList<String>();
+        for (String pattern : patterns) {
+            String[] l = pattern.split(";");
+            for (int i = 0; i < l.length; ++ i) {
+                char[] arr = l[i].toCharArray();
+                Arrays.sort(arr);
+                l[i] = String.valueOf(arr);
+            }
+            patterns.add(String.join(";", l));
+        }
         this.actions = new ArrayList<String>(actions);
     }
 
@@ -72,7 +81,13 @@ public class Mutagen {
     }
 
     public void add(String pattern, String action) {
-        patterns.add(pattern);
+        String[] l = pattern.split(";");
+        for (int i = 0; i < l.length; ++ i) {
+            char[] arr = l[i].toCharArray();
+            Arrays.sort(arr);
+            l[i] = String.valueOf(arr);
+        }
+        patterns.add(String.join(";", l));
         actions.add(action);
     }
 
