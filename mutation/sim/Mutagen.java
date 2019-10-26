@@ -113,20 +113,34 @@ public class Mutagen {
                 if (matched) {
                     ++ counter;
                     // Perform action & insert
-                    Long entry = 0l;
+                    char[] delta = new char[10];
                     String action = actions.get(k);
                     for (int j = 0; j < action.length(); ++ j) {
-                        char c = action.charAt(j);
-                        if (c >= '0' && c <= '9')
-                            c = s.charAt((i + c - '0') % s.length());
-                        entry = entry * 4l + translate(c);
+                        delta[j] = action.charAt(j);
+                        if (delta[j] >= '0' && delta[j] <= '9')
+                            delta[j] = s.charAt((i + delta[j] - '0') % s.length());
+                        // entry = entry * 4l + translate(c);
                     }
                     for (int j = action.length(); j < 10; ++ j) {
-                        char c = s.charAt((i + j) % s.length());
-                        entry = entry * 4l + translate(c);
+                        delta[j] = s.charAt((i + j) % s.length());
+                        // entry = entry * 4l + translate(c);
                     }
-                    entry += ((long)i) << 20l;
-                    result.add(entry);
+                    int idx = 0;
+                    for (idx = 0; idx < 10; ++ idx)
+                        if (delta[idx] != s.charAt(i + idx))
+                            break;
+                    if (idx == 10) result.add((long)-1);
+                    else {
+                        // entry += ((long)i) << 20l;
+                        Long entry = 0l;
+                        for (int j = 0; j < 10; ++ j) {
+                            if (idx + j < 10)
+                                entry = entry * 4l + translate(delta[j + idx]);
+                            else
+                                entry = entry * 4l + translate(s.charAt((i + idx + j) % s.length()));
+                        }
+                        result.add(entry);
+                    }
                 }
             }
         }
