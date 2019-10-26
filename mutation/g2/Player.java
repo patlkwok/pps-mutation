@@ -3,7 +3,7 @@ TODO:
 Implement Wrap Around
 
 NEEDS:
-Make smarter test cases 
+Make smarter test cases
 
 */
 
@@ -50,12 +50,16 @@ public class Player extends mutation.sim.Player {
         }
 
         //guess strongest evidence
-        Change maxEvidence = Change.fromChangeString(Utilities.argMax(evidence));
-        result.add(Utilities.formatPattern(maxEvidence.before),maxEvidence.after);
-        boolean guess = console.Guess(result);
-        if(guess){
-          Utilities.alert("Correctly guessed");
-          break;
+        String maxString = Utilities.argMax(evidence);
+        if(maxString != null){
+          Change maxEvidence = Change.fromChangeString(maxString);
+
+          result.add(Utilities.formatPattern(maxEvidence.before),maxEvidence.after);
+          boolean guess = console.Guess(result);
+          if(guess){
+            Utilities.alert("Correctly guessed");
+            break;
+          }
         }
       }
 

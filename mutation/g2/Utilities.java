@@ -23,6 +23,9 @@ public class Utilities {
 
   // consolidate a bunch of single letter changes by location
   public static List<Change> consolidateChanges (List<Change> changes) {
+    if(changes.size() == 0){
+      return changes;
+    }
     List<Change> consolidated = new ArrayList<>();
     int ctr = 1;
     Change ongoing = changes.get(0);
@@ -53,6 +56,9 @@ public class Utilities {
 
   // get maximum key in a counting hashmap
   public static <E> E argMax(HashMap<E, Integer> counts){
+    if(counts.size() == 0){
+      return null;
+    }
     Map.Entry<E, Integer> maxEntry = null;
     for (Map.Entry<E, Integer> entry : counts.entrySet()) {
         if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0) {
