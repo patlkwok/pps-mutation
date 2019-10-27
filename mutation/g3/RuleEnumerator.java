@@ -2,6 +2,7 @@ package mutation.g3;
 
 import java.util.HashMap;
 import java.util.List;
+import javafx.util.Pair;
 
 /**
  *
@@ -29,7 +30,55 @@ public class RuleEnumerator {
         List<HashMap<Character, Double>> actionElements;
         // iterate over all possible pattern positions and values they could have
         // and compute their likelihood, keep those with non-zero probability
+        ArrayList<ArrayList<Pair<byte, double>>> Pis = getPis(original);
+        ArrayList<ArrayList<Pair<char, double>>> Ais = getAis(original, mutated);
+        // now get all combinations of 1 choice from each Pis and Ais index to form rule
+        // multiply probabilities that they are paired with to get rule prob
+
         return null;
+    }
+
+    private ArrayList<ArrayList<Pair<char, double>>> getAis(String original, String mutated) {
+        ArrayList<ArrayList<Pair<char, double>>> Ais = new ArrayList<ArrayList<Pair<char, double>>>();
+        ArrayList<Pair<char, double>> currentAiList = new ArrayList<Pair<char, double>>();
+        for (int i=0; i < mutated.length(); i++) {
+            // get all possible (ai, prob) pair for each Ti
+            char ti = mutated.charAt(i);
+            String actionSet = getActionSet(original.length());
+            for (char ai : actionSet) {
+                prob = probabilityAi(ai, original, ti);
+                if (prob > 0) {
+                    currentAiList.add(Pair<ai, prob>)
+                }
+            }
+        }
+    }
+
+    private String getActionSet(Integer windowSize) {
+        String actionSet = "acgt";
+        for (int i=0; i < windowSize; i++) {
+            actionSet += i;
+        }
+        return actionSet;
+    }
+
+    private ArrayList<ArrayList<Pair<byte, double>>> getPis(String original) {
+        ArrayList<ArrayList<Pair<byte, double>>> Pis = new ArrayList<ArrayList<Pair<byte, double>>>();
+        ArrayList<Pair<byte, double>> currentPiList = new ArrayList<Pair<byte, double>>()
+        for (int i=0; i < original.length(); i++) {
+            // get all possible (pi, prob) pair for each Si
+            char si = original.charAt(i);
+            for (int j=1; j < 16; j++) {
+                byte pi = j;
+                prob = probabilityPi(pi, si);
+                if (prob > 0) {
+                    currentPiList.add(new Pair<pi, prob>)
+                }
+            }
+            Pis.add(currentPiList);
+            currentPiList = new ArrayList<Pair<byte, double>>()
+        }
+        return Pis
     }
 
     /**
@@ -42,7 +91,9 @@ public class RuleEnumerator {
      * @return the computed probability
      */
     protected double probabilityPi(byte pi, byte si) {
-        return 0;
+        // if si matches any bit of pi, pi is possible
+        // there are 8 pi's that would match any si, and we make them all uniformly probable for now
+        return (pi & si > 0) ? 1.0/8 : 0;
     }
 
     /**
@@ -55,8 +106,24 @@ public class RuleEnumerator {
      * @param ti the character at the ith position of the mutated string
      * @return the computed probability
      */
-    protected double probabilityAi(char pi, String s, char ti) {
-        return 0;
+    protected double probabilityAi(char ai, String s, char ti) {  // Juan, why did we have pi as an input here? -John
+        // the possibilities for the action are the letter ti itself, or any number that corresponds to
+        // the letter ti in S
+        int possibleActions = 1;
+        for (int i = 0; i < s.length(); i++) {
+            char base = s.charAt(i);
+            if (base == ti) {
+                possibleActions += 1;
+            }
+        }
+        boolean condition1 = (ai == ti);
+        boolean condition2 = (s[int(ai)] == ti)
+        if (condition1 || condition2) {
+            return 1.0 / possibleActions  // distribute probability uniformly
+        }
+        else {
+            return 0
+        }
     }
 
     /**
