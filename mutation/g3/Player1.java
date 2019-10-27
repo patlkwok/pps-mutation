@@ -37,6 +37,30 @@ public class Player extends mutation.sim.Player {
         }
         return makeGuess();
     }
+    
+    /**
+     * Sort a hashmap based on scores of rules
+     *
+     * @param scores original hashmap
+     * @return a hashmap sorted with scores in descending order
+     */
+    public static HashMap<Rule, Double> sortScores(HashMap<Rule, Double> scores) {
+        // Sort a hash map containing (pattern, action) pairs
+        // Step 1: Create a list from elements of hash map
+        List<Map.Entry<Rule, Double>> list = new ArrayList<Map.Entry<Rule, Double>>(scores.entrySet());
+        // Step 2: Sort the list (in descending order of scores)
+        Collections.sort(list, new Comparator<Map.Entry<Rule, Double>>() {
+            public int compare(Map.Entry<Rule, Double> o1, Map.Entry<Rule, Double> o2) {
+                return (o2.getValue()).compareTo(o1.getValue());
+            }
+        });
+        // Step 3: Put data from sorted list to hash map
+        HashMap<Rule, Double> newScores = new LinkedHashMap<Rule, Double>();
+        for (Map.Entry<Rule, Double> s: list) { 
+            newScores.put(s.getKey(), s.getValue());
+        }
+        return newScores;
+    }
 
     /**
      * Based on the internal state of the player generates the best experiment
@@ -67,13 +91,34 @@ public class Player extends mutation.sim.Player {
      * @return the guessed Mutagen
      */
     protected Mutagen makeGuess() {
+        HashMap<Rule, Double> scores = new HashMap<Rule, Double>();
         Pair<String, String> lastExperiment = expHistory.get(expHistory.size() - 1);
         String original = lastExperiment.getFirst();
         String mutated = lastExperiment.getSecond();
         // integrate here
-        Mutagen result = new Mutagen();
-        result.add("a;c;c", "att");
-        result.add("g;c;c", "gtt");
+        HashSet<Pair<String, String>> mutations = getPossibleMutations(original, mutated, 2);
+        //result.add("a;c;c", "att");
+        //result.add("g;c;c", "gtt");
+        for (Pair<String, String> m: mutations) {
+            List<Rule> possibles = getPossibleRules(m.getFirst(), m.getSecond()); // black box
+            for (Rule r: possibles) {
+                if (scores.containsKey(p)) {
+                    scores.put(p, scores.get(p) + 1.0);
+                }
+                else {
+                    scores.put(p, 1.0);
+                }
+            }
+        }
+        HashMap<Rule, Double> sortedScores = sortScores(scores);
+        int maxRules = 3;
+        int rules = 0;
+        for (Map.Entry<Rule, Double> s: sortedScores.entrySet()) {
+            if (rules < maxRules) {
+                result.add(s.getKey().getPattern(), s.getKey().getAction());
+                rules++;
+            }
+        }
         return result;
     }
 
