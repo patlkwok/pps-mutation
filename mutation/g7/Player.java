@@ -6,11 +6,14 @@ import mutation.sim.Mutagen;
 
 
 public class Player extends mutation.sim.Player {
+
     private Random random;
     private Map<String, Double> lhs;
     private Map<String, Double> rhs;
     private Set<String> combs;
     private int count = 0;
+    private double lhsPerm = 0.0;
+    private double rhsPerm = 0.0;
     private String[] genes = "acgt".split("");
 
     // An array to record the wrong guesses so we don't repeat them
@@ -23,23 +26,55 @@ public class Player extends mutation.sim.Player {
         lhs = new HashMap<>();
         rhs = new HashMap<>();
         combs = new HashSet<>();
+        setLHSPerm(2);
+        setRHSPerm(2);
         generateCombinations("", 4);
-        generateDistributionMap("", 2);
+        generateLHSMap("", 2);
+        generateRHSMap("", 2);
         System.out.println(count);
     }
 
-    private void generateDistributionMap(String result, int n){
+    private void setLHSPerm(int n){
+        for(int i = 1; i <= n; i++){
+            lhsPerm += Math.pow(340, i);
+        }
+    }
+
+    private void setRHSPerm(int n){
+        for(int i = 1; i <= n; i++){
+            rhsPerm += Math.pow(4, i);
+        }
+    }
+
+    private void generateLHSMap(String result, int n){
         if(n == 0){
-            count++;
+            lhs.put(result, 1 / lhsPerm);
             return;
         }
         String tmp = result;
         for(String c : combs){
             if(!result.equals("")) tmp = result + ";";
-            generateDistributionMap(tmp + c, n - 1);
+            generateLHSMap(tmp + c, n - 1);
+        }
+        if(!result.equals("")) {
+            lhs.put(result, 1 / lhsPerm);
+        }
+    }
+
+    private void generateRHSMap(String result, int n){
+        if(n == 0){
+            rhs.put(result, 1 / rhsPerm);
+            count++;
+            return;
+        }
+        String tmp = result;
+        for(String c : genes){
+            if(!result.equals("")) tmp = result + ";";
+            generateRHSMap(tmp + c, n - 1);
         }
         if(!result.equals("")) {
             count++;
+            rhs.put(result, 1 / rhsPerm);
         }
     }
 
@@ -96,14 +131,14 @@ public class Player extends mutation.sim.Player {
                 windowSizesCounts[windowLength]++;
                 if(windowLength == maxMutagenLength) {
                     // TODO: Handle the case if two smaller mutations occured side by side
-                    possibleWindows.add(window)
+                    possibleWindows.add(window);
                 } else {
                     for (int proposedWindowLength = windowLength; proposedWindowLength <= maxMutagenLength; proposedWindowLength++) {
                         int diff = proposedWindowLength - windowLength;
                         // TODO: Handle the edge cases (i.e. start = 0 || 999)
                         for(int offset = -diff; offset <= 0; offset++) {
                             int newStart = start + offset;
-                            int newFinish = newStart + proposedWindowLength
+                            int newFinish = newStart + proposedWindowLength;
                             possibleWindows.add(new Pair<int, int>(newStart, newFinish));
                         }
                     }
@@ -141,7 +176,7 @@ public class Player extends mutation.sim.Player {
                 return result;
             } else {
                 // Record that this is not a correct mutagen
-                wrongMutagens.add(guess)
+                wrongMutagens.add(guess);
             }
         }
     }
