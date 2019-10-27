@@ -4,10 +4,13 @@ import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
 import java.lang.Math;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
+
 import javafx.util.Pair;
-import org.jetbrains.annotations.NotNull;
 
 public class Player extends mutation.sim.Player {
     private Random random;
@@ -26,15 +29,15 @@ public class Player extends mutation.sim.Player {
 
     private String defaultString() {
         return "aaaaaaaaaaccccccccccggggggggggttttttttttacacacacacacacacacacagagagagagagagagagagatatatatatatatatatat" +
-               "cgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgtacgacgacgaacgacgacgaacgacgacgaacgacgacga" +
-               "acgacgacgaacgacgacgaactactactaactactactaactactactaactactactaactactactaactactactaagtagtagtaagtagtagta" +
-               "agtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtc" +
-               "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
-               "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
-               "acgtacgtacacgtacgtacacgtacgtacacgtacgtacaaaaaaaaaaccccccccccggggggggggttttttttttacacacacacacacacacac" +
-               "agagagagagagagagagagatatatatatatatatatatcgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgt" +
-               "acgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaactactactaactactactaactactactaactactacta" +
-               "actactactaactactactaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtc";
+                "cgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgtacgacgacgaacgacgacgaacgacgacgaacgacgacga" +
+                "acgacgacgaacgacgacgaactactactaactactactaactactactaactactactaactactactaactactactaagtagtagtaagtagtagta" +
+                "agtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtc" +
+                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
+                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
+                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacaaaaaaaaaaccccccccccggggggggggttttttttttacacacacacacacacacac" +
+                "agagagagagagagagagagatatatatatatatatatatcgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgt" +
+                "acgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaactactactaactactactaactactactaactactacta" +
+                "actactactaactactactaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtc";
     }
 
     private ArrayList<Pair<Integer, Integer>> getPossibleWindows(String beforeMutation, String afterMutation, int m) {
@@ -76,15 +79,80 @@ public class Player extends mutation.sim.Player {
         return pattern;
     }
 
+    private ArrayList<String> getPossibleActions2(String beforeMutation, String afterMutation, int startIdx) {
+        ArrayList<String> actions = new ArrayList<>();
+        if(beforeMutation.length() == 0) {
+            actions.add("");
+            return actions;
+        }
+
+        char after = afterMutation.charAt(0);
+
+        ArrayList<String>prefixActionStrings = new ArrayList<String>();
+        prefixActionStrings.add(Character.toString(after));
+
+        for(int j=0; j < beforeMutation.length(); j++) {
+            if(beforeMutation.charAt(j) == after) {
+                prefixActionStrings.add(Integer.toString(j + startIdx));
+            }
+        }
+
+        ArrayList<String> actionStrings = getPossibleActions2(
+                beforeMutation.substring(1), afterMutation.substring(1), startIdx + 1);
+
+        for(String prefixString : prefixActionStrings) {
+            for(String actionString : actionStrings) {
+                String fullString = prefixString + actionString;
+                actions.add(fullString);
+            }
+        }
+
+        return actions;
+    }
+
+    private ArrayList<String> getPossibleActions(String beforeMutation, String afterMutation) {
+        int lastChangeIdx = -1;
+        for(int i=0; i < beforeMutation.length(); i++) {
+            if(beforeMutation.charAt(i) != afterMutation.charAt(i)) {
+                lastChangeIdx = i;
+            }
+        }
+        String beforeMutationSub = beforeMutation.substring(0, lastChangeIdx + 1);
+        String afterMutationSub = afterMutation.substring(0, lastChangeIdx + 1);
+        return getPossibleActions2(beforeMutationSub, afterMutationSub, 0);
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
         result.add("a;c;c", "att");
         result.add("g;c;c", "gtt");
+
+        Set<String>addedRules = new HashSet<>();
+
+        ArrayList<Pair<String, String>> candidateRules = new ArrayList<>();
         for (int i = 0; i < 10; ++ i) {
             String genome = defaultString();
             String mutated = console.Mutate(genome);
-            console.Guess(result);
+
+            ArrayList<Pair<Integer, Integer>> possibleWindows = this.getPossibleWindows(genome, mutated, m);
+            for(Pair <Integer, Integer> p : possibleWindows) {
+                String beforeMutation = genome.substring(p.getKey(), p.getValue());
+                String afterMutation = mutated.substring(p.getKey(), p.getValue());
+                ArrayList<String> possiblePatterns = this.getPossiblePattern(beforeMutation);
+                ArrayList<String> possibleActions = this.getPossibleActions(beforeMutation, afterMutation);
+
+                for(String patternString : possiblePatterns) {
+                    for (String actionString : possibleActions) {
+                        String ruleString = patternString + "=" + actionString;
+                        if(! addedRules.contains(ruleString)) {
+                            candidateRules.add(new Pair(patternString, actionString));
+                            addedRules.add(ruleString);
+                        }
+                    }
+                }
+            }
+//            console.Guess(result);
         }
         return result;
     }
