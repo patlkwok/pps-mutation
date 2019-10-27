@@ -66,6 +66,16 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+    private ArrayList<String> getPossiblePattern(String window_str){
+        ArrayList<String> pattern = new ArrayList<>();
+        for (int i = 0; i < window_str.length(); i++){
+            for (int j = i; j < window_str.length(); j++){
+                pattern.add(window_str.substring(i, j+1));
+            }
+        }
+        return pattern;
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
