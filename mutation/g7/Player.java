@@ -6,9 +6,46 @@ import mutation.sim.Mutagen;
 
 public class Player extends mutation.sim.Player {
     private Random random;
+    private Map<String, Double> lhs;
+    private Map<String, Double> rhs;
+    private Set<String> combs;
+    private int count = 0;
+    private String[] genes = "acgt".split("");
 
     public Player() {
         random = new Random();
+        lhs = new HashMap<>();
+        rhs = new HashMap<>();
+        combs = new HashSet<>();
+        generateCombinations("", 4);
+        generateDistributionMap("", 2);
+        System.out.println(count);
+    }
+
+    private void generateDistributionMap(String result, int n){
+        if(n == 0){
+            count++;
+            return;
+        }
+        String tmp = result;
+        for(String c : combs){
+            if(!result.equals("")) tmp = result + ";";
+            generateDistributionMap(tmp + c, n - 1);
+        }
+        if(!result.equals("")) {
+            count++;
+        }
+    }
+
+    private void generateCombinations(String result, int n){
+        if(n == 0){
+            combs.add(result);
+            return;
+        }
+        for(int i = 0; i < 4; i++){
+            generateCombinations(result + genes[i], n - 1);
+        }
+        if(!result.equals("")) combs.add(result);
     }
 
     private String randomString() {
