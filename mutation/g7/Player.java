@@ -22,6 +22,7 @@ public class Player extends mutation.sim.Player {
     private Vector<Mutagen> wrongMutagens = new Vector<Mutagen>();
 
     private int maxMutagenLength = 2;
+    private Vector<HashSet<String>> allPatterns = new Vector<HashSet<String>>();
 
     public Player() {
         random = new Random();
@@ -29,6 +30,9 @@ public class Player extends mutation.sim.Player {
         rhs = new HashMap<>();
         setNumPerm(2);
         generateDistributionMap("", 2);
+        for (int i = 0; i < maxMutagenLength; i++) {
+            allPatterns.add(new HashSet<String>());
+        }
     }
 
     private void setNumPerm(int n){
@@ -54,9 +58,56 @@ public class Player extends mutation.sim.Player {
         }
     }
 
+    private String samplePattern(int length) {
+        while(true) {
+            Double random = Math.random();
+            Double cummulative = 0.0;
+            Iterator it = lhs.entrySet().iterator();
+            while (it.hasNext()) {
+                Pair<String, Double> pair = (Pair<String, Double>)it.next();
+                cummulative += pair.getValue();
+                if(random < cummulative) {
+                    String pattern = pair.getKey();
+                    if(pattern.length() == length) {
+                        return pattern;
+                    } else {
+                        break;
+                    }
+                }
+                it.remove();
+            }
+        }
+    }
+
+    private String sampleAction() {
+        Double random = Math.random();
+        Double cummulative = 0.0;
+        Iterator it = rhs.entrySet().iterator();
+        while (it.hasNext()) {
+            Pair<String, Double> pair = (Pair<String, Double>)it.next();
+            cummulative += pair.getValue();
+            if(random < cummulative) {
+                return pair.getKey();
+            }
+            it.remove();
+        }
+        it = rhs.entrySet().iterator();
+        Pair<String, Double> pair = (Pair<String, Double>)it.next();
+        return pair.getKey();
+    }
+
     private Mutagen sampleMutagen() {
-        // TODO: Implement a sampling based on distribution
-        return new Mutagen();
+        Mutagen mutagen = new Mutagen();
+        // Sample action
+        String action = sampleAction();
+        int ruleLength = action.length();
+        int numberOfRulesToCombine = allPatterns.get(ruleLength).size();
+        // Sample patterns of same length as action
+        for (int i = 0; i < numberOfRulesToCombine; i++) {
+            String pattern = samplePattern(ruleLength);
+            mutagen.add(pattern, action);
+        }
+        return mutagen;
     }
 
     private void modifyPatternDistribution(String pattern, Double modifier) {
@@ -102,6 +153,7 @@ public class Player extends mutation.sim.Player {
                     changeWindows.add(new Pair<Integer, Integer>(j, finish));
                 }
             }
+
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
             Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
@@ -125,17 +177,20 @@ public class Player extends mutation.sim.Player {
                     }
                 }
             }
+
             // Modify the distributions for length
             for (int j = 0; j < maxMutagenLength; j++) {
-                Double modifier = windowSizesCounts[j] * 1.0 / changeWindows.size();
-                modifyMutagenLengthDistribution(j, modifier);
+                Double modifier = windowSizesCounts[j] * 1.0 / (changeWindows.size() / maxMutagenLength);
+                modifyMutagenLengthDistribution(j + 1, modifier);
             }
+
             // Modify the distributions for pattens and actions
             for (Pair<Integer, Integer> window: possibleWindows) {
                 int start = window.getKey();
                 int finish = window.getValue();
                 // Get the string from
                 String before = genome.substring(start, finish + 1);
+                allPatterns.get(before.length()).add(before);
                 // Get the string after
                 String after = mutated.substring(start, finish + 1);
                 // Modify the distribution
@@ -160,7 +215,6 @@ public class Player extends mutation.sim.Player {
                 wrongMutagens.add(guess);
             }
         }
-        Mutagen guess = sampleMutagen();
-        return guess;
+        return sampleMutagen();
     }
 }
