@@ -11,22 +11,30 @@ import mutation.sim.Mutagen;
  */
 public class Player extends mutation.sim.Player {
 
+    public static final int WINDOW_SIZE = 3;
+    
     private final Random random;
     private final List<Pair<String, String>> expHistory;
     private final RuleEnumerator enumerator;
+    private final HashMap<Rule, Double> candidateRules;
 
     public Player() {
         random = new Random();
         expHistory = new ArrayList<>();
         enumerator = new RuleEnumerator();
+        candidateRules = new HashMap<>();
     }
 
     @Override
     public Mutagen Play(Console console, int m) {
-        final int numExps = console.getNumExps();
-        for (int i = 0; i < numExps; ++i) {
-            String genome = designExperiment(numExps - i);
+        //final int numExps = console.getNumExps();
+        while (true) {
+            String genome = designExperiment();
             String mutated = console.Mutate(genome);
+            // check if we ran out of experiments to run
+            if (mutated.equals("")) {
+                break;
+            }
             int q = console.getNumberOfMutations();
             recordMutations(genome, mutated, m, q);
             Mutagen guess = makeGuess();
@@ -39,12 +47,34 @@ public class Player extends mutation.sim.Player {
     }
 
     /**
+     * Sort a hashmap based on scores of rules
+     *
+     * @param scores original hashmap
+     * @return a hashmap sorted with scores in descending order
+     * @see
+     */
+    public static HashMap<Rule, Double> sortRules(HashMap<Rule, Double> scores) {
+        // Sort a hash map containing (pattern, action) pairs
+        // Step 1: Create a list from elements of hash map
+        List<Map.Entry<Rule, Double>> list = new ArrayList<>(scores.entrySet());
+        // Step 2: Sort the list (in descending order of scores)
+        Collections.sort(list, (Map.Entry<Rule, Double> o1, Map.Entry<Rule, Double> o2)
+                -> (o2.getValue()).compareTo(o1.getValue()));
+        // Step 3: Put data from sorted list to hash map
+        HashMap<Rule, Double> newScores = new LinkedHashMap<>();
+        for (Map.Entry<Rule, Double> s : list) {
+            newScores.put(s.getKey(), s.getValue());
+        }
+        return newScores;
+    }
+
+    /**
      * Based on the internal state of the player generates the best experiment
      *
      * @param expsLeft number of available experiments left
      * @return a string to be submitted to the mutagen's effect
      */
-    protected String designExperiment(int expsLeft) {
+    protected String designExperiment() {
         return generateRandomGenome();
     }
 
@@ -59,6 +89,20 @@ public class Player extends mutation.sim.Player {
      */
     protected void recordMutations(String original, String mutated, int m, int q) {
         expHistory.add(new Pair<>(original, mutated));
+        //Pair<String, String> lastExperiment = expHistory.get(expHistory.size() - 1);
+        //String original = lastExperiment.getFirst();
+        //String mutated = lastExperiment.getSecond();
+        // integrate here
+        HashSet<Pair<String, String>> mutations = getPossibleMutations(original, mutated, WINDOW_SIZE);
+        //result.add("a;c;c", "att");
+        //result.add("g;c;c", "gtt");
+        for (Pair<String, String> mut : mutations) {
+            Map<Rule, Double> possibleRules = enumerator.enumerate(mut.getFirst(), mut.getSecond()); // black box
+            for (Map.Entry<Rule, Double> pr : possibleRules.entrySet()) {
+                Double pVal = candidateRules.get(pr.getKey());
+                candidateRules.put(pr.getKey(), (pVal != null ? pVal : 0) + pr.getValue());
+            }
+        }
     }
 
     /**
@@ -67,13 +111,16 @@ public class Player extends mutation.sim.Player {
      * @return the guessed Mutagen
      */
     protected Mutagen makeGuess() {
-        Pair<String, String> lastExperiment = expHistory.get(expHistory.size() - 1);
-        String original = lastExperiment.getFirst();
-        String mutated = lastExperiment.getSecond();
-        // integrate here
+        HashMap<Rule, Double> sortedRules = sortRules(candidateRules);
+        int maxRules = 1;
+        int rules = 0;
         Mutagen result = new Mutagen();
-        result.add("a;c;c", "att");
-        result.add("g;c;c", "gtt");
+        for (Map.Entry<Rule, Double> s : sortedRules.entrySet()) {
+            if (rules < maxRules) {
+                result.add(s.getKey().getPattern(), s.getKey().getAction());
+                rules++;
+            }
+        }
         return result;
     }
 

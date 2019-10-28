@@ -1,8 +1,8 @@
 package mutation.g3;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import javafx.util.Pair;
 
 /**
  *
@@ -25,60 +25,135 @@ public class RuleEnumerator {
      * @return a list of consistent rules
      */
     public HashMap<Rule, Double> enumerate(String original, String mutated) {
-        final int length = original.length();
-        List<HashMap<Byte, Double>> patternElements;
-        List<HashMap<Character, Double>> actionElements;
         // iterate over all possible pattern positions and values they could have
         // and compute their likelihood, keep those with non-zero probability
-        ArrayList<ArrayList<Pair<byte, double>>> Pis = getPis(original);
-        ArrayList<ArrayList<Pair<char, double>>> Ais = getAis(original, mutated);
+        List<List<Pair<Byte, Double>>> Pis = getPis(original);
+        List<List<Pair<Character, Double>>> Ais = getAis(original, mutated);
         // now get all combinations of 1 choice from each Pis and Ais index to form rule
         // multiply probabilities that they are paired with to get rule prob
-
-        return null;
+        HashMap<Rule, Double> bucket = new HashMap();
+        makeRules(bucket, Pis, Ais, 0, "", 1);
+        return bucket;
+    }
+    
+    /**
+     * Populates a map of rules recursively
+     *
+     * @param bucket map where the rules and their probabilities should be added
+     * @param Pis possible pattern elements and their probabilities
+     * @param Ais possible action elements and their probabilities
+     * @param step the element of the pattern currently under construction
+     * @param partial a partial rule being constructed
+     * @param probability the probability associated with the rule so far
+     */
+    protected void makeRules(
+            HashMap<Rule, Double> bucket,
+            List<List<Pair<Byte, Double>>> Pis,
+            List<List<Pair<Character, Double>>> Ais,
+            int step,
+            String partial,
+            double probability) {
+        final int patternL = Pis.size();
+        if (step < patternL) {
+            // add another pattern element
+            List<Pair<Byte, Double>> pi = Pis.get(step);
+            for (int j = 0; j < pi.size(); j++) {
+                final String nPartial = partial + (step > 0 ? ';' : "") + baseByteToString(pi.get(j).getFirst());
+                final double nProb = probability * pi.get(j).getSecond();
+                makeRules(bucket, Pis, Ais, step + 1, nPartial, nProb);
+            }
+        } else if (step == patternL) {
+            // add @ to start the action
+            makeRules(bucket, Pis, Ais, step + 1, partial + "@", probability);
+        } else if (step < patternL + 1 + Ais.size()) {
+            // add another action element
+            List<Pair<Character, Double>> ai = Ais.get(step - patternL - 1);
+            for (int j = 0; j < ai.size(); j++) {
+                final String nPartial = partial + ai.get(j).getFirst();
+                final double nProb = probability * ai.get(j).getSecond();
+                makeRules(bucket, Pis, Ais, step + 1, nPartial, nProb);
+            }
+        } else {
+            // rule is full
+            final String pattern = partial.substring(0, partial.indexOf("@"));
+            final String action = partial.substring(partial.indexOf("@") + 1);
+            bucket.put(simplifyRule(new Rule(pattern, action)), probability);
+        }
     }
 
-    private ArrayList<ArrayList<Pair<char, double>>> getAis(String original, String mutated) {
-        ArrayList<ArrayList<Pair<char, double>>> Ais = new ArrayList<ArrayList<Pair<char, double>>>();
-        ArrayList<Pair<char, double>> currentAiList = new ArrayList<Pair<char, double>>();
-        for (int i=0; i < mutated.length(); i++) {
+    private List<List<Pair<Character, Double>>> getAis(String original, String mutated) {
+        final List<List<Pair<Character, Double>>> Ais = new ArrayList<>();
+        for (int i = 0; i < mutated.length(); i++) {
             // get all possible (ai, prob) pair for each Ti
+            final List<Pair<Character, Double>> currentAiList = new ArrayList<>();
             char ti = mutated.charAt(i);
             String actionSet = getActionSet(original.length());
-            for (char ai : actionSet) {
-                prob = probabilityAi(ai, original, ti);
+            for (char ai : actionSet.toCharArray()) {
+                double prob = probabilityAi(ai, original, ti);
                 if (prob > 0) {
-                    currentAiList.add(Pair<ai, prob>)
+                    currentAiList.add(new Pair(ai, prob));
                 }
             }
+            Ais.add(currentAiList);
         }
+        return Ais;
     }
 
     private String getActionSet(Integer windowSize) {
         String actionSet = "acgt";
-        for (int i=0; i < windowSize; i++) {
+        for (int i = 0; i < windowSize; i++) {
             actionSet += i;
         }
         return actionSet;
     }
 
-    private ArrayList<ArrayList<Pair<byte, double>>> getPis(String original) {
-        ArrayList<ArrayList<Pair<byte, double>>> Pis = new ArrayList<ArrayList<Pair<byte, double>>>();
-        ArrayList<Pair<byte, double>> currentPiList = new ArrayList<Pair<byte, double>>()
-        for (int i=0; i < original.length(); i++) {
+    protected List<List<Pair<Byte, Double>>> getPis(String original) {
+        final List<List<Pair<Byte, Double>>> Pis = new ArrayList<>();
+        for (int i = 0; i < original.length(); i++) {
             // get all possible (pi, prob) pair for each Si
-            char si = original.charAt(i);
-            for (int j=1; j < 16; j++) {
-                byte pi = j;
-                prob = probabilityPi(pi, si);
+            final List<Pair<Byte, Double>> currentPiList = new ArrayList<>();
+            final char si = original.charAt(i);
+            for (byte pi = 1; pi < 16; pi++) {
+                double prob = probabilityPi(pi, baseCharToByte(si));
                 if (prob > 0) {
-                    currentPiList.add(new Pair<pi, prob>)
+                    currentPiList.add(new Pair(pi, prob));
                 }
             }
             Pis.add(currentPiList);
-            currentPiList = new ArrayList<Pair<byte, double>>()
         }
-        return Pis
+        return Pis;
+    }
+
+    protected byte baseCharToByte(char b) {
+        switch (b) {
+            case 'a':
+                return A;
+            case 'c':
+                return C;
+            case 'g':
+                return G;
+            case 't':
+                return T;
+            default:
+                throw new IllegalArgumentException(b + " is not a valid base");
+        }
+    }
+
+    protected String baseByteToString(byte b) {
+        String pattern = "";
+        if ((b & A) > 0) {
+            pattern += 'a';
+        }
+        if ((b & C) > 0) {
+            pattern += 'c';
+        }
+        if ((b & G) > 0) {
+            pattern += 'g';
+        }
+        if ((b & T) > 0) {
+            pattern += 't';
+        }
+        return pattern;
     }
 
     /**
@@ -93,7 +168,7 @@ public class RuleEnumerator {
     protected double probabilityPi(byte pi, byte si) {
         // if si matches any bit of pi, pi is possible
         // there are 8 pi's that would match any si, and we make them all uniformly probable for now
-        return (pi & si > 0) ? 1.0/8 : 0;
+        return ((pi & si) > 0) ? 1.0 / 8 : 0;
     }
 
     /**
@@ -101,7 +176,7 @@ public class RuleEnumerator {
      * the original string, the ith position of the mutated string, and knowing
      * that the string was matched
      *
-     * @param pi pattern element value
+     * @param ai action element value
      * @param s the original string
      * @param ti the character at the ith position of the mutated string
      * @return the computed probability
@@ -116,13 +191,12 @@ public class RuleEnumerator {
                 possibleActions += 1;
             }
         }
-        boolean condition1 = (ai == ti);
-        boolean condition2 = (s[int(ai)] == ti)
-        if (condition1 || condition2) {
-            return 1.0 / possibleActions  // distribute probability uniformly
-        }
-        else {
-            return 0
+        boolean isExactLetter = (ai == ti);
+        boolean isDigit = ai >= '0' && ai <= '9';
+        if (isExactLetter || (isDigit && (s.charAt((int) (ai - '0')) == ti))) {
+            return 1.0 / possibleActions;  // distribute probability uniformly
+        } else {
+            return 0;
         }
     }
 

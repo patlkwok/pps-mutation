@@ -9,13 +9,13 @@ import mutation.sim.Mutagen;
  *
  * @author group3
  */
-public class Player extends mutation.sim.Player {
+public class Player1 extends mutation.sim.Player {
 
     private final Random random;
     private final List<Pair<String, String>> expHistory;
     private final RuleEnumerator enumerator;
 
-    public Player() {
+    public Player1() {
         random = new Random();
         expHistory = new ArrayList<>();
         enumerator = new RuleEnumerator();
@@ -37,26 +37,24 @@ public class Player extends mutation.sim.Player {
         }
         return makeGuess();
     }
-    
+
     /**
      * Sort a hashmap based on scores of rules
      *
      * @param scores original hashmap
      * @return a hashmap sorted with scores in descending order
+     * @see
      */
-    public static HashMap<Rule, Double> sortScores(HashMap<Rule, Double> scores) {
+    public static HashMap<Rule, Double> sortRules(HashMap<Rule, Double> scores) {
         // Sort a hash map containing (pattern, action) pairs
         // Step 1: Create a list from elements of hash map
-        List<Map.Entry<Rule, Double>> list = new ArrayList<Map.Entry<Rule, Double>>(scores.entrySet());
+        List<Map.Entry<Rule, Double>> list = new ArrayList<>(scores.entrySet());
         // Step 2: Sort the list (in descending order of scores)
-        Collections.sort(list, new Comparator<Map.Entry<Rule, Double>>() {
-            public int compare(Map.Entry<Rule, Double> o1, Map.Entry<Rule, Double> o2) {
-                return (o2.getValue()).compareTo(o1.getValue());
-            }
-        });
+        Collections.sort(list, (Map.Entry<Rule, Double> o1, Map.Entry<Rule, Double> o2)
+                -> (o2.getValue()).compareTo(o1.getValue()));
         // Step 3: Put data from sorted list to hash map
-        HashMap<Rule, Double> newScores = new LinkedHashMap<Rule, Double>();
-        for (Map.Entry<Rule, Double> s: list) { 
+        HashMap<Rule, Double> newScores = new LinkedHashMap<>();
+        for (Map.Entry<Rule, Double> s : list) {
             newScores.put(s.getKey(), s.getValue());
         }
         return newScores;
@@ -91,7 +89,7 @@ public class Player extends mutation.sim.Player {
      * @return the guessed Mutagen
      */
     protected Mutagen makeGuess() {
-        HashMap<Rule, Double> scores = new HashMap<Rule, Double>();
+        HashMap<Rule, Double> scores = new HashMap<>();
         Pair<String, String> lastExperiment = expHistory.get(expHistory.size() - 1);
         String original = lastExperiment.getFirst();
         String mutated = lastExperiment.getSecond();
@@ -99,21 +97,18 @@ public class Player extends mutation.sim.Player {
         HashSet<Pair<String, String>> mutations = getPossibleMutations(original, mutated, 2);
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (Pair<String, String> m: mutations) {
-            List<Rule> possibles = getPossibleRules(m.getFirst(), m.getSecond()); // black box
-            for (Rule r: possibles) {
-                if (scores.containsKey(p)) {
-                    scores.put(p, scores.get(p) + 1.0);
-                }
-                else {
-                    scores.put(p, 1.0);
-                }
+        for (Pair<String, String> m : mutations) {
+            Map<Rule, Double> possibleRules = enumerator.enumerate(m.getFirst(), m.getSecond()); // black box
+            for (Map.Entry<Rule, Double> pr : possibleRules.entrySet()) {
+                Double pVal = scores.get(pr.getKey());
+                scores.put(pr.getKey(), (pVal != null ? pVal : 0) + pr.getValue());
             }
         }
-        HashMap<Rule, Double> sortedScores = sortScores(scores);
-        int maxRules = 3;
+        HashMap<Rule, Double> sortedRules = sortRules(scores);
+        int maxRules = 1;
         int rules = 0;
-        for (Map.Entry<Rule, Double> s: sortedScores.entrySet()) {
+        Mutagen result = new Mutagen();
+        for (Map.Entry<Rule, Double> s : sortedRules.entrySet()) {
             if (rules < maxRules) {
                 result.add(s.getKey().getPattern(), s.getKey().getAction());
                 rules++;
