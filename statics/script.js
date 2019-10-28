@@ -28,8 +28,9 @@ function process(data) {
 	document.getElementById("score").innerHTML = score;
 
 	if (score.length > 0) {
-		if (score == "Score pending") refresh = 1000;
+		if (score == "Score pending") refresh = 5000;
 		else refresh = -1;
+		// refresh = -1;
 	}
 
 	var i, j;
