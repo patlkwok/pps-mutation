@@ -12,10 +12,7 @@ public class Player extends mutation.sim.Player {
     private Random random;
     private Map<String, Double> lhs;
     private Map<String, Double> rhs;
-    private Set<String> combs;
-    private int count = 0;
-    private double lhsPerm = 0.0;
-    private double rhsPerm = 0.0;
+    private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
     private int numTrials = 1000;
@@ -30,68 +27,31 @@ public class Player extends mutation.sim.Player {
         random = new Random();
         lhs = new HashMap<>();
         rhs = new HashMap<>();
-        combs = new HashSet<>();
-        setLHSPerm(2);
-        setRHSPerm(2);
-        generateCombinations("", 4);
-        generateLHSMap("", 2);
-        generateRHSMap("", 2);
-        System.out.println(count);
+        setNumPerm(2);
+        generateDistributionMap("", 2);
     }
 
-    private void setLHSPerm(int n){
+    private void setNumPerm(int n){
         for(int i = 1; i <= n; i++){
-            lhsPerm += Math.pow(340, i);
+            numPerm += Math.pow(4, i);
         }
     }
 
-    private void setRHSPerm(int n){
-        for(int i = 1; i <= n; i++){
-            rhsPerm += Math.pow(4, i);
-        }
-    }
-
-    private void generateLHSMap(String result, int n){
+    private void generateDistributionMap(String result, int n){
         if(n == 0){
-            lhs.put(result, 1 / lhsPerm);
-            return;
-        }
-        String tmp = result;
-        for(String c : combs){
-            if(!result.equals("")) tmp = result + ";";
-            generateLHSMap(tmp + c, n - 1);
-        }
-        if(!result.equals("")) {
-            lhs.put(result, 1 / lhsPerm);
-        }
-    }
-
-    private void generateRHSMap(String result, int n){
-        if(n == 0){
-            rhs.put(result, 1 / rhsPerm);
-            count++;
+            lhs.put(result, 1 / numPerm);
+            rhs.put(result, 1 / numPerm);
             return;
         }
         String tmp = result;
         for(String c : genes){
             if(!result.equals("")) tmp = result + ";";
-            generateRHSMap(tmp + c, n - 1);
+            generateDistributionMap(tmp + c, n - 1);
         }
         if(!result.equals("")) {
-            count++;
-            rhs.put(result, 1 / rhsPerm);
+            lhs.put(result, 1 / numPerm);
+            rhs.put(result, 1 / numPerm);
         }
-    }
-
-    private void generateCombinations(String result, int n){
-        if(n == 0){
-            combs.add(result);
-            return;
-        }
-        for(int i = 0; i < 4; i++){
-            generateCombinations(result + genes[i], n - 1);
-        }
-        if(!result.equals("")) combs.add(result);
     }
 
     private Mutagen sampleMutagen() {
