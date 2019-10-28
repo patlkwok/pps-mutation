@@ -12,7 +12,7 @@ public class Player extends mutation.sim.Player {
 	private int numMutations;
 	private List<Map<Character, Integer>> patternTracker = new ArrayList<>();
 	private List<Map<Character, Integer>> actionTracker = new ArrayList<>();
-	private static final int DISTANCE_THRESHOLD = 16;
+	private static final int DISTANCE_THRESHOLD = 4;
 	private static final int NONEXISTENT_BASE_THRESHOLD = 2;
 
     public Player() {
@@ -105,7 +105,7 @@ public class Player extends mutation.sim.Player {
     			String pattern = "";
 				int offsetForBaseMutationInAction = 0;
     			if(interestingPatternsMap.size() == 0) {
-    				pattern += "acgt";
+    				pattern += "actg";
     			}
     			else {
     				/*
@@ -122,7 +122,7 @@ public class Player extends mutation.sim.Player {
     				for(int i = 0; i < interestingPatternLocations.size(); i++) {
     					int nextLocation = interestingPatternLocations.get(i);
     					while(currentLocation < nextLocation) {
-    						pattern += "acgt;";
+    						pattern += "actg;";
     						currentLocation++;
     					}
     					if(i == interestingPatternLocations.size() - 1)
@@ -158,7 +158,73 @@ public class Player extends mutation.sim.Player {
 				double distance = getDistance(actionOccurrences, patternOccurrences);
 				if(distance <= DISTANCE_THRESHOLD)
 					possibleLocationsForAction.add(i);
-			}			
+			}
+			
+			/*
+			 * Determine pattern
+			 */
+			String pattern = "";
+			int locationForFirstPattern = 0;
+			if(interestingPatternsMap.size() == 0) {
+				pattern += "actg";
+			}
+			else {
+				/*
+				 * If we have acgt;acgt;gt;acgt;acgt;act@012c, then
+				 * "offsetForBaseMutationInAction" would be 3, since "c"
+				 * is in offset 3 in the action.
+				 */
+				List<Integer> interestingPatternLocations = new ArrayList<>();
+				for(Integer interestingPatternLocation : interestingPatternsMap.keySet())
+					interestingPatternLocations.add(interestingPatternLocation);
+				int currentLocation = interestingPatternLocations.get(0);
+				locationForFirstPattern = currentLocation;
+
+				for(int i = 0; i < interestingPatternLocations.size(); i++) {
+					int nextLocation = interestingPatternLocations.get(i);
+					while(currentLocation < nextLocation) {
+						pattern += "actg;";
+						currentLocation++;
+					}
+					if(i == interestingPatternLocations.size() - 1)
+						pattern += String.join("", interestingPatternsMap.get(nextLocation));
+					else
+						pattern += String.join("", interestingPatternsMap.get(nextLocation)) + ";";
+					currentLocation++;
+				}
+			}
+			/*
+			 * Determine action
+			 */
+			for(int i = 0; i < possibleLocationsForAction.size(); i++) {
+				String newPattern = pattern;
+				int locationForAction = possibleLocationsForAction.get(i);
+				if(locationForAction < locationForFirstPattern)
+					for(int j = 0; j < locationForFirstPattern - locationForAction; j++)
+						newPattern = "actg;" + newPattern;
+
+				String firstInterestingPattern = String.join("", interestingPatternsMap.get(locationForFirstPattern));
+				int indexOfFirstInterestingPattern = Arrays.asList(newPattern.split(";")).indexOf(firstInterestingPattern);
+				int offsetForBaseMutationInAction = 9 + indexOfFirstInterestingPattern - locationForFirstPattern;
+				int numberMutation = offsetForBaseMutationInAction + locationForAction - 9;
+				
+				String action = "";
+				for(int j = 0; j < offsetForBaseMutationInAction; j++) {
+					action += Integer.toString(j);
+				}
+				action += Integer.toString(numberMutation);
+
+				System.out.println("Predicted pattern: " + newPattern);
+				System.out.println("Predicted action: " + action);
+				System.out.println("Predicted number mutation: " + numberMutation);
+				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+				System.out.println("Predicted rule: " + newPattern + "@" + action);
+				
+    			        Mutagen mutagen = new Mutagen();
+    			        mutagen.add(pattern, action);
+    			        mutagens.add(mutagen);
+			}
+
     	}
     	else {
     		
