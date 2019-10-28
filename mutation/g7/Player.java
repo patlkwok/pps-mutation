@@ -96,6 +96,7 @@ public class Player extends mutation.sim.Player {
 
     private Mutagen sampleMutagen() {
         // TODO: Implement a sampling based on distribution
+        return new Mutagen();
     }
 
     private void modifyPatternDistribution(String pattern, Double modifier) {
@@ -199,5 +200,7 @@ public class Player extends mutation.sim.Player {
                 wrongMutagens.add(guess);
             }
         }
+        Mutagen guess = sampleMutagen();
+        return guess;
     }
 }
