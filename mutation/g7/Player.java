@@ -12,6 +12,7 @@ public class Player extends mutation.sim.Player {
     private Random random;
     private Map<String, Double> lhs;
     private Map<String, Double> rhs;
+    private Map<Integer, Double> lengthMap;
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
@@ -19,19 +20,23 @@ public class Player extends mutation.sim.Player {
     private Double modifierStep = 1.05;
 
     // An array to record the wrong guesses so we don't repeat them
-    private Vector<Mutagen> wrongMutagens = new Vector<Mutagen>();
+    private Vector<Mutagen> wrongMutagens = new Vector<>();
 
     private int maxMutagenLength = 2;
-    private Vector<HashSet<String>> allPatterns = new Vector<HashSet<String>>();
+    private Vector<HashSet<String>> allPatterns = new Vector<>();
 
     public Player() {
         random = new Random();
         lhs = new HashMap<>();
         rhs = new HashMap<>();
+        lengthMap = new HashMap<>();
         setNumPerm(2);
         generateDistributionMap("", 2);
+        for(int i = 1; i <= 10; i++){
+            lengthMap.put(i, 0.01);
+        }
         for (int i = 0; i < maxMutagenLength; i++) {
-            allPatterns.add(new HashSet<String>());
+            allPatterns.add(new HashSet<>());
         }
     }
 
@@ -111,15 +116,27 @@ public class Player extends mutation.sim.Player {
     }
 
     private void modifyPatternDistribution(String pattern, Double modifier) {
-        // TODO: Implement a pattern distribution modification
+        String[] patternArr = pattern.split("");
+        String patternKey = patternArr[0];
+        for(int i = 1; i < patternArr.length; i++){
+            patternKey += ";" + patternArr[i];
+        }
+
+        lhs.put(patternKey,lhs.get(patternKey) + modifier);
     }
 
     private void modifyActionDistribution(String action, Double modifier) {
-        // TODO: Implement a action distribution modification
+        String[] actionArr = action.split("");
+        String actionKey = actionArr[0];
+        for(int i = 1; i < actionArr.length; i++){
+            actionKey += ";" + actionArr[i];
+        }
+
+        rhs.put(actionKey,rhs.get(actionKey) + modifier);
     }
 
     private void modifyMutagenLengthDistribution(Integer mutagenLength, Double modifier) {
-        // TODO: Implement a mutagen length distribution modification
+        lengthMap.put(mutagenLength, lengthMap.get(mutagenLength) + modifier);
     }
 
     private String randomString() {
