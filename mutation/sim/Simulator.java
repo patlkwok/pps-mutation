@@ -230,7 +230,7 @@ public class Simulator {
                     getStandardFileManager(null, null, null);
 //            long files = player_files.size();
             Log.record("Compiling for player " + name);
-            if (!compiler.getTask(null, manager, null, null, null,
+            if (!compiler.getTask(null, manager, null, Arrays.asList("-g"), null,
                     manager.getJavaFileObjectsFromFiles(player_files)).call())
                 throw new IOException("Compilation failed");
             class_file = new File(root + sep + name + sep + "Player.class");
