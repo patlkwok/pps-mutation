@@ -69,11 +69,11 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
-    private ArrayList<String> getPossiblePattern(String window_str){
+    private ArrayList<String> getPossiblePattern(String windowStr){
         ArrayList<String> pattern = new ArrayList<>();
-        for (int i = 0; i < window_str.length(); i++){
-            for (int j = i; j < window_str.length(); j++){
-                pattern.add(window_str.substring(i, j+1));
+        for (int i = 0; i < windowStr.length(); i++){
+            for (int j = i; j < windowStr.length(); j++){
+                pattern.add(windowStr.substring(i, j+1));
             }
         }
         return pattern;
@@ -120,6 +120,44 @@ public class Player extends mutation.sim.Player {
         String beforeMutationSub = beforeMutation.substring(0, lastChangeIdx + 1);
         String afterMutationSub = afterMutation.substring(0, lastChangeIdx + 1);
         return getPossibleActions2(beforeMutationSub, afterMutationSub, 0);
+    }
+    
+    /**
+     * Returns a boolean if the pattern:action pair matches a possible mutation
+     * Assumption: One substitution mutation per window
+     * 
+     * @param pattern: Pattern to search in window
+     * @param action: Action to perform if pattern is found
+     * @param window: Original window
+     * @param mutatedWindow: Window with isolated mutation
+     * @return true if pattern:action pair matches the mutated window
+     */
+    private boolean explain(String pattern, String action, String window, String mutatedWindow) {
+    	char[] actionArr = action.toCharArray();
+    	char[] windowArr = window.toCharArray();
+    	
+    	// Search for pattern in window
+    	int index = window.indexOf(pattern);
+    	while(index >= 0) {
+    		
+    		// For every occurrence of the pattern try the mutation
+    		char[] windowArrTemp = windowArr.clone();
+    		for(int i = 0; i < actionArr.length; i ++) {
+    			windowArrTemp[index + i] = actionArr[i];
+    		}
+    		
+    		// Check of mutation at a location matches the mutated window
+    		String mutatedTemp = new String(windowArrTemp);
+    		if(mutatedTemp.equals(mutatedWindow)) {
+    			// Match Found
+    			return true;
+    		}
+    		
+    		// Find next pattern in window, starting from next index after the occurrence of the last pattern
+    		index = window.indexOf(pattern, index + 1);
+    	}
+    	// No matches found
+    	return false;
     }
 
     @Override
