@@ -143,7 +143,9 @@ public class Player extends mutation.sim.Player {
     		// For every occurrence of the pattern try the mutation
     		char[] windowArrTemp = windowArr.clone();
     		for(int i = 0; i < actionArr.length; i ++) {
-    			windowArrTemp[index + i] = actionArr[i];
+    			if(index + i < windowArrTemp.length) {
+    				windowArrTemp[index + i] = actionArr[i];
+    			}
     		}
     		
     		// Check of mutation at a location matches the mutated window
@@ -163,8 +165,8 @@ public class Player extends mutation.sim.Player {
     @Override
     public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
-        result.add("a;c;c", "att");
-        result.add("g;c;c", "gtt");
+        //result.add("a;c;c", "att");
+        //result.add("g;c;c", "gtt");
 
         Set<String>addedRules = new HashSet<>();
 
@@ -177,20 +179,32 @@ public class Player extends mutation.sim.Player {
             for(Pair <Integer, Integer> p : possibleWindows) {
                 String beforeMutation = genome.substring(p.getKey(), p.getValue());
                 String afterMutation = mutated.substring(p.getKey(), p.getValue());
+                
                 ArrayList<String> possiblePatterns = this.getPossiblePattern(beforeMutation);
                 ArrayList<String> possibleActions = this.getPossibleActions(beforeMutation, afterMutation);
 
                 for(String patternString : possiblePatterns) {
                     for (String actionString : possibleActions) {
                         String ruleString = patternString + "=" + actionString;
+                        
+                        // If pattern is longer than action then continue. This case was not seen in the class
+                        if(patternString.length() > actionString.length()) {
+                        	continue;
+                        }
+                        
                         if(! addedRules.contains(ruleString)) {
                             candidateRules.add(new Pair(patternString, actionString));
                             addedRules.add(ruleString);
                         }
+                        
+                        // If pattern:action pair is possible add it to results
+                        if(explain(patternString, actionString, beforeMutation, afterMutation)) {
+                        	result.add(patternString, actionString);
+                        }
                     }
                 }
             }
-//            console.Guess(result);
+            console.Guess(result);
         }
         return result;
     }
