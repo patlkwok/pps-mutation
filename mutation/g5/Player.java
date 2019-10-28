@@ -15,7 +15,7 @@ public class Player extends mutation.sim.Player {
 	private static final int DISTANCE_THRESHOLD = 4;
 	private static final int NONEXISTENT_BASE_THRESHOLD = 2;
 
-    public Player() {
+    public Player() { 
         random = new Random();
     }
 
@@ -135,21 +135,27 @@ public class Player extends mutation.sim.Player {
     			/*
     			 * Determine action
     			 */
-    			String action = "";
-    			for(int i = 0; i < offsetForBaseMutationInAction; i++) {
-    				action += Integer.toString(i);
-    			}
-    			action += letterMutation;
+    			for(int i = 0; i < 10 - offsetForBaseMutationInAction; i++) {
+                    String newPattern = pattern;
+                    for(int j = 0; j < i; j++)
+                        newPattern = "actg;" + newPattern;
 
-    			System.out.println("Predicted pattern: " + pattern);
-    			System.out.println("Predicted action: " + action);
-    			System.out.println("Predicted mutated base: " + letterMutation);
-    			System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
-    			System.out.println("Predicted rule: " + pattern + "@" + action);
-    			
-    			Mutagen mutagen = new Mutagen();
-    			mutagen.add(pattern, action);
-    			mutagens.add(mutagen);
+                    String action = "";
+                    for(int j = 0; j < offsetForBaseMutationInAction + i; j++)
+                        action += Integer.toString(j);
+                    action += letterMutation;
+
+                    System.out.println("Predicted pattern: " + newPattern);
+                    System.out.println("Predicted action: " + action);
+                    System.out.println("Predicted mutated base: " + letterMutation);
+                    System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+                    System.out.println("Predicted rule: " + newPattern + "@" + action);
+                    System.out.println();
+                    
+                    Mutagen mutagen = new Mutagen();
+                    mutagen.add(newPattern, action);
+                    mutagens.add(mutagen);
+                }
     		}
     		
     		// Either the mutation is numerical, or the mutation could be either base or numerical
@@ -208,21 +214,34 @@ public class Player extends mutation.sim.Player {
 				int offsetForBaseMutationInAction = 9 + indexOfFirstInterestingPattern - locationForFirstPattern;
 				int numberMutation = offsetForBaseMutationInAction + locationForAction - 9;
 				
-				String action = "";
-				for(int j = 0; j < offsetForBaseMutationInAction; j++) {
-					action += Integer.toString(j);
-				}
-				action += Integer.toString(numberMutation);
+				for(int j = 0; j < 10 - offsetForBaseMutationInAction; j++) {
+					newPattern = pattern;
+					
+					if(numberMutation + j > 9)
+						continue;
+					
+                    for(int k = 0; k < j; k++)
+                        newPattern = "actg;" + newPattern;
 
-				System.out.println("Predicted pattern: " + newPattern);
-				System.out.println("Predicted action: " + action);
-				System.out.println("Predicted number mutation: " + numberMutation);
-				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
-				System.out.println("Predicted rule: " + newPattern + "@" + action);
-				
-    			        Mutagen mutagen = new Mutagen();
-    			        mutagen.add(pattern, action);
-    			        mutagens.add(mutagen);
+                    String action = "";
+					for(int k = 0; k < offsetForBaseMutationInAction + j; k++) {
+						action += Integer.toString(k);
+					}					
+					action += Integer.toString(numberMutation + j);
+	
+					System.out.println("Predicted pattern: " + newPattern);
+					System.out.println("Predicted action: " + action);
+					System.out.println("Predicted number mutation: " + numberMutation);
+					System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
+					System.out.println("Location for first interesting pattern: " + locationForFirstPattern);
+					System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+					System.out.println("Predicted rule: " + newPattern + "@" + action);
+					System.out.println();
+					
+			        Mutagen mutagen = new Mutagen();
+			        mutagen.add(newPattern, action);
+			        mutagens.add(mutagen);
+				}
 			}
 
     	}

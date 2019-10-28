@@ -20,10 +20,10 @@ public class Simulator {
     private static boolean gui = false;
     private static double fps = 5;
     private static long seed = 1;
-    private static String cfgPath = "mutagen.cfg";
+    private static String cfgPath = "mutation/g5/mutagen_single_rule.cfg";
     private static String name;
 
-    private static int m = 1;
+    private static int m = 15;
     private static int trials = 100000;
     private static Mutagen target, result;
     private static Player player;
