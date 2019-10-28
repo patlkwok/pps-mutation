@@ -4,6 +4,8 @@ import java.util.*;
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
+import javafx.util.Pair;
+
 
 public class Player extends mutation.sim.Player {
 
@@ -15,6 +17,9 @@ public class Player extends mutation.sim.Player {
     private double lhsPerm = 0.0;
     private double rhsPerm = 0.0;
     private String[] genes = "acgt".split("");
+
+    private int numTrials = 1000;
+    private Double modifierStep = 1.05;
 
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<Mutagen>();
@@ -89,6 +94,22 @@ public class Player extends mutation.sim.Player {
         if(!result.equals("")) combs.add(result);
     }
 
+    private Mutagen sampleMutagen() {
+        // TODO: Implement a sampling based on distribution
+    }
+
+    private void modifyPatternDistribution(String pattern, Double modifier) {
+        // TODO: Implement a pattern distribution modification
+    }
+
+    private void modifyActionDistribution(String action, Double modifier) {
+        // TODO: Implement a action distribution modification
+    }
+
+    private void modifyMutagenLengthDistribution(Integer mutagenLength, Double modifier) {
+        // TODO: Implement a mutagen length distribution modification
+    }
+
     private String randomString() {
         char[] pool = {'a', 'c', 'g', 't'};
         String result = "";
@@ -99,32 +120,31 @@ public class Player extends mutation.sim.Player {
 
     @Override
     public Mutagen Play(Console console, int m) {
-        for (int i = 0; i < 10; ++ i) {
+        for (int i = 0; i < numTrials; ++ i) {
             // Get the genome
             String genome = randomString();
             String mutated = console.Mutate(genome);
             // Collect the change windows
-            Vector<Pair<int, int>> changeWindows = new Vector<Pair<int, int>>();
+            Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
             for (int j = 0; j < genome.length(); j++) {
                 char before = genome.charAt(j);
                 char after = mutated.charAt(j);
                 if(before != after) {
-                    int start = j;
                     int finish = j;
                     for(int forwardIndex = j + 1; forwardIndex < j + 10; forwardIndex++) {
-                        // TODO: Handle the what to do at the end of the genome (i.e. when j is 999)
-                        if(genome.charAt(forwardIndex) == mutagen.charAt(forwardIndex)) {
+                        // TODO: Handle the case when we are at the end of the genome (i.e. when j is 999)
+                        if(genome.charAt(forwardIndex) == mutated.charAt(forwardIndex)) {
                             finish = forwardIndex - 1;
                             break;
                         }
                     }
-                    changeWindows.add(new Pair<int, int>(start, finish));
+                    changeWindows.add(new Pair<Integer, Integer>(j, finish));
                 }
             }
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
-            Vector<Pair<int, int>> possibleWindows = new Vector<Pair<int, int>>();
-            for (Pair<int, int> window: changeWindows) {
+            Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
+            for (Pair<Integer, Integer> window: changeWindows) {
                 int start = window.getKey();
                 int finish = window.getValue();
                 int windowLength = finish - start + 1;
@@ -139,41 +159,41 @@ public class Player extends mutation.sim.Player {
                         for(int offset = -diff; offset <= 0; offset++) {
                             int newStart = start + offset;
                             int newFinish = newStart + proposedWindowLength;
-                            possibleWindows.add(new Pair<int, int>(newStart, newFinish));
+                            possibleWindows.add(new Pair<Integer, Integer>(newStart, newFinish));
                         }
                     }
                 }
             }
             // Modify the distributions for length
             for (int j = 0; j < maxMutagenLength; j++) {
-                float modifier = windowSizesCounts[j] / changeWindows.size();
-                // TODO: Modify the distribution
-                // distribution.modifyLength(j, modifier);
+                Double modifier = windowSizesCounts[j] * 1.0 / changeWindows.size();
+                modifyMutagenLengthDistribution(j, modifier);
             }
             // Modify the distributions for pattens and actions
-            for (Pair<int, int> window: possibleWindows) {
-                // TODO: Get the string from
-                // String before = ;
-                // TODO: Get the string after
-                // String after = ;
-                // TODO: Modify the distribution
-                // distribution.modifyPatter(before, modifier);
-                // distribution.modifyAction(after, modifier);
+            for (Pair<Integer, Integer> window: possibleWindows) {
+                int start = window.getKey();
+                int finish = window.getValue();
+                // Get the string from
+                String before = genome.substring(start, finish + 1);
+                // Get the string after
+                String after = mutated.substring(start, finish + 1);
+                // Modify the distribution
+                modifyPatternDistribution(before, modifierStep);
+                modifyActionDistribution(after, modifierStep);
             }
 
             // Sample a mutagen
             boolean foundGuess = false;
-            Mutagen guess;
+            Mutagen guess = new Mutagen();
             while (!foundGuess) {
-                // TODO: Sample
-                // guess = ;
+                guess = sampleMutagen();
                 if(!wrongMutagens.contains(guess)) {
                     foundGuess = true;
                 }
             }
-            boolean isCorrect = console.Guess(result);
+            boolean isCorrect = console.Guess(guess);
             if(isCorrect) {
-                return result;
+                return guess;
             } else {
                 // Record that this is not a correct mutagen
                 wrongMutagens.add(guess);
