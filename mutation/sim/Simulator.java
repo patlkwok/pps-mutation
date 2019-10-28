@@ -96,12 +96,12 @@ public class Simulator {
         }
         long elapsedTime = thread.getElapsedTime();
         Log.record("Player finished in " + elapsedTime + "ms.");
-        console.reportScore("", "", "Score pending");
 
         System.out.println("Player " + name + " made " + console.getNumGuesses() + " guesses and " + console.getNumExps() + " experiments");
         if (console.isCorrect()) {
             System.out.println("Correct!");
         } else {
+            console.reportScore("", "", "Score pending");
             System.out.println("Failed, calculating Jaccard score.");
             char[] pool = {'a', 'c', 'g', 't'};
             char[] data = new char[1000000];
