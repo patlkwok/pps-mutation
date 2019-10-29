@@ -23,7 +23,7 @@ public class Simulator {
     private static String cfgPath = "mutagen.cfg";
     private static String name;
 
-    private static int m = 1;
+    private static int m = 10;
     private static int trials = 100000;
     private static Mutagen target, result;
     private static Player player;

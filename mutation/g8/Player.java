@@ -22,14 +22,17 @@ public class Player extends mutation.sim.Player {
     @Override
     public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
-        for (int i = 0; i < 1; ++ i) {
+        for (int i = 0; i < 10; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             ArrayList<Integer> mutationPositions = getMutationPositions(genome, mutated);
+            Mutagen changes = new Mutagen();
             if (mutationPositions.size() > 0){
-                Mutagen change = getMutationChange(genome, mutated, mutationPositions.get(0));
-                result = change;
+                for (int j = 0; j < mutationPositions.size(); j++){
+                    changes = addMutationChange(changes, genome, mutated, mutationPositions.get(j));
+                }
             }
+            result = changes;
             console.Guess(result);
         }
         return result;
@@ -46,9 +49,25 @@ public class Player extends mutation.sim.Player {
         return mutationIndices;
     }
 
-    public Mutagen getMutationChange(String original, String mutated, int index){
-        Mutagen change = new Mutagen();
-        change.add("" + original.charAt(index), ""+mutated.charAt(index));
-        return change;
+    public Mutagen addMutationChange(Mutagen changes, String original, String mutated, int index){
+        System.out.println("in here");
+        if (!mutagenContains(changes, ""+original.charAt(index), ""+mutated.charAt(index))){
+            changes.add("" + original.charAt(index), ""+mutated.charAt(index));
+        }
+                System.out.println("patterns: " + changes.getPatterns());
+        return changes;
+    }
+
+    public boolean mutagenContains(Mutagen mutagen, String pattern, String action){
+        List<String> patterns = mutagen.getPatterns();
+        List<String> actions = mutagen.getActions();
+        for (int i = 0; i < patterns.size(); i++){
+            if (patterns.get(i).equals(pattern)){
+                if (actions.get(i).equals(action)){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
