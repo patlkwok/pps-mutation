@@ -16,6 +16,7 @@ public class Console {
         this.server = server;
         this.playerName = playerName;
         this.refresh = refresh;
+        this.lastGuess = new Mutagen();
 
         if (gui) {
             sendGUI(server, state("", "", String.join("@", mutagen.getPatterns()), String.join("@", mutagen.getActions()), "", "", ""));
@@ -37,6 +38,10 @@ public class Console {
         if (correct) return correct;
         ++ numGuesses;
         correct = mutagen.equals(other);
+        lastGuess.getPatterns().clear();
+        lastGuess.getActions().clear();
+        lastGuess.getPatterns().addAll(other.getPatterns());
+        lastGuess.getActions().addAll(other.getActions());
         if (gui) {
             String score = "";
             if (correct) score = "Correct!";
@@ -59,6 +64,10 @@ public class Console {
 
     public int getNumberOfMutations() {
         return mutagen.getNumberOfMutations();
+    }
+
+    public Mutagen getLastGuess() {
+        return lastGuess;
     }
 
     public void reportScore(String patterns, String actions, String score) {
@@ -112,7 +121,7 @@ public class Console {
 
     private int numExps = 0, limit, m = 1, numGuesses = 0;
     private boolean correct = false, gui = false;
-    private Mutagen mutagen;
+    private Mutagen mutagen, lastGuess;
     private HTTPServer server;
     private String playerName;
     private double refresh;
