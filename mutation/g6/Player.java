@@ -189,13 +189,20 @@ public class Player extends mutation.sim.Player {
 
         public String getOG(){
             String temp = "";
+            boolean first = true;
             for(int i = 0; i < 10; i++) {
                 if(window[i].isMutated()) {
-                    temp = temp.concat(Character.toString(window[i].getOG()));
+                    if(first) {
+                        temp = temp.concat(Character.toString(window[i].getOG()));
+                        first = false;
+                    }
+                    else {
+                        temp = temp.concat(";").concat(Character.toString(window[i].getOG()));
+                    }
                 }
             }
             System.out.println(temp);
-            return temp;
+            return temp.subStrin;
         }
     }
 
