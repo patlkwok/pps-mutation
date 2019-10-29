@@ -86,7 +86,6 @@ public class Player extends mutation.sim.Player {
             if(input[i] != output[i]) {
                 diff[i] = new Element(true, input[i], output[i]);
                 beforeCounter[hash.get(input[i])]++;
-                System.out.println(output[i] + " ");
                 afterCounter[hash.get(output[i])]++;
             }
             else diff[i] = new Element(input[i]);
