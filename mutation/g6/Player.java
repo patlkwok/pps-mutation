@@ -54,18 +54,13 @@ public class Player extends mutation.sim.Player {
             }
         }
 
-        for(int i = 0; i < 4; i++) {
+        /*for(int i = 0; i < 4; i++) {
             for(int j = 0; j < 4; j++) {
                 if(set[i][j] > 0) {
                     result.add(Character.toString(antiHash.get(i)), Character.toString(antiHash.get(j)));
                 }
             }
-        }
-
-        List<String> pattern = result.getPatterns();
-        List<String> actions = result.getActions();
-
-        result = new Mutagen();
+        }*/
 
         List<Window> winList = new ArrayList<>();
         for(int i = 0; i < 1000; i++) {
@@ -75,6 +70,10 @@ public class Player extends mutation.sim.Player {
         		i+=10;
         	}
         }
+
+        Window temp = winList.get(0);
+        result.add(temp.getOG());
+        result.add(temp.getAfter());
         return result;
     }
 
@@ -170,21 +169,6 @@ public class Player extends mutation.sim.Player {
     		return mutagenCount;
     	}
 
-    	/*public boolean isSame(Window temp) {
-    		for(int i = 0; i < 10; i++) {
-    			if(temp.window[i].isMutated() && this.window[i].isMutated()) {
-    				if(temp.window[i].getOG() == this.window[i].getOG()) {
-    					if(temp.window[i].getAfter() == this.window[i].getAfter()) {
-    						continue;
-    					}
-    				}
-    				return false;
-    			}
-    			else return false;
-    		}
-    		return true;
-    	}*/
-
     	public boolean isSameLoc(Window temp) {
     		for(int i = 0; i < 10; i++) {
     			if(temp.window[i].isMutated() && this.window[i].isMutated()) {
@@ -194,6 +178,26 @@ public class Player extends mutation.sim.Player {
     		}
     		return true;
     	}
+
+        public String getAfter(){
+            String temp = "";
+            for(int i = left; i <= right; i++) {
+                if(window[i].isMutated()) {
+                    return temp.concat(window[i].getAfter());
+                }
+            }
+            return temp;
+        }
+
+        public String getOG(){
+            String temp = "";
+            for(int i = left; i <= right; i++) {
+                if(window[i].isMutated()) {
+                    return temp.concat(window[i].getOG());
+                }
+            }
+            return temp;
+        }
     }
 
 
