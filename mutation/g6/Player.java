@@ -61,6 +61,20 @@ public class Player extends mutation.sim.Player {
                 }
             }
         }
+
+        List<String> pattern = result.getPatterns();
+        List<String> actions = result.getActions();
+
+        result = new Mutagen();
+
+        List<Window> winList = new ArrayList<>();
+        for(int i = 0; i < 1000; i++) {
+        	if(diff[i].isMutated()) {
+        		Window temp = new Window(i, i+9);
+        		winList.add(temp);
+        		i+=10;
+        	}
+        }
         return result;
     }
 
@@ -119,6 +133,66 @@ public class Player extends mutation.sim.Player {
         public void putAfter(char after) {
             this.after = after;
         }
+    }
+
+    public class Window {
+    	public int start;
+    	public int end;
+    	public int mutagenCount;
+    	public Element[] window;
+
+    	public Window() {
+
+    	}
+
+    	public Window(int left, int right, Element[] input) {
+    		start = left;
+    		end = right;
+    		mutagenCount = 0;
+    		window = new Element[10];
+    		int index = 0;
+    		for(int i = left; i <= right; i++) {
+    			window[index++] = input[i];
+    			if(input[i].isMutated()) {
+    				mutagenCount++;
+    				System.out.print(input[i].getAfter());
+    			}
+    		}
+    		System.out.println();
+    	}
+
+    	public Element[] getWindow() {
+    		return window;
+    	}
+
+    	public int getMutagenCount() {
+    		return mutagenCount;
+    	}
+
+    	/*public boolean isSame(Window temp) {
+    		for(int i = 0; i < 10; i++) {
+    			if(temp.window[i].isMutated() && this.window[i].isMutated()) {
+    				if(temp.window[i].getOG() == this.window[i].getOG()) {
+    					if(temp.window[i].getAfter() == this.window[i].getAfter()) {
+    						continue;
+    					}
+    				}
+    				return false;
+    			}
+    			else return false;
+    		}
+    		return true;
+    	}*/
+
+    	public boolean isSameLoc(Window temp) {
+    		for(int i = 0; i < 10; i++) {
+    			if(temp.window[i].isMutated() && this.window[i].isMutated()) {
+    				continue;
+    				
+    			} else return false;
+    		}
+    		return true;
+    	}
     }
 
 
