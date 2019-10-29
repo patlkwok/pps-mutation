@@ -32,7 +32,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 1; ++ i) {
+        for (int i = 0; i < 100; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -74,31 +74,39 @@ public class Player extends mutation.sim.Player {
         Window temp = winList.get(0);
         Set<String> left = new HashSet<>();
         int length = getLength(winList);
+        length = length*2 - 1;
+        String output = "";
         for(Window w: winList) {
-            String temp = w.getOG();
-            if(temp.length() == length) left.add(w.getOG());
+            String t = w.getOG();
+            System.out.println(length + " " + t.length());
+            if(t.length() == length) left.add(w.getOG());
         }
 
-        if(left.size() == 1) return result.add(temp.getOG(), temp.getAfter());
+        if(left.size() == 1) {
+            result.add(temp.getOG(), temp.getAfter());
+            return result;
+        }
         
         else {
-            String output = "";
+
             for(int i = 0; i < length; i += 2) {
                 Set<Character> c = new HashSet<>();
                 for(String s: left) {
+                    System.out.println(s);
                     c.add(s.charAt(i));
                 }
                 for(char curr : c) {
+                    System.out.println(curr+".");
                     output = output.concat(Character.toString(curr));
                 }
                 if(i != length - 1) output = output.concat(";");
             }
         }
-
+        result.add(output, temp.getAfter());
         return result;
     }
 
-    public getLength(List<Window> winList) {
+    public int getLength(List<Window> winList) {
         int length = 11;
         for(Window w: winList) {
             if(w.getMutagenCount() < length) length = w.getMutagenCount();
