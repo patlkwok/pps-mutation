@@ -12,6 +12,7 @@ public class Player extends mutation.sim.Player {
     private Random random;
     private Map<String, Double> lhs;
     private Map<String, Double> rhs;
+    private Map<String, Double >rules;
     private Map<Integer, Double> lengthMap;
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
@@ -20,6 +21,7 @@ public class Player extends mutation.sim.Player {
     private Double modifierStep = 0.05;
     private Double lhsLength = 1.0;
     private Double rhsLength = 1.0;
+    private Double rulesLength = 1.0;
 
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<>();
@@ -127,28 +129,33 @@ public class Player extends mutation.sim.Player {
         return mutagen;
     }
 
-    private void modifyPatternDistribution(String pattern, Double modifier) {
+//    private void modifyPatternDistribution(String pattern, Double modifier) {
+//        String[] patternArr = pattern.split("");
+//        String patternKey = patternArr[0];
+//        for(int i = 1; i < patternArr.length; i++){
+//            patternKey += ";" + patternArr[i];
+//        }
+//        lhsLength += modifier;
+//        lhs.put(patternKey,lhs.get(patternKey) + modifier);
+//    }
+//
+//    private void modifyActionDistribution(String action, Double modifier) {
+//        rhsLength += modifier;
+//        rhs.put(action, rhs.get(action) + modifier);
+//    }
+//
+//    private void modifyMutagenLengthDistribution(Integer mutagenLength, Double modifier) {
+//        lengthMap.put(mutagenLength, lengthMap.get(mutagenLength) + modifier);
+//    }
+
+    private void modifyRuleDistribution(String pattern, String action, Double modifier){
         String[] patternArr = pattern.split("");
         String patternKey = patternArr[0];
         for(int i = 1; i < patternArr.length; i++){
             patternKey += ";" + patternArr[i];
         }
-        lhsLength += modifier;
-        lhs.put(patternKey,lhs.get(patternKey) + modifier);
-    }
-
-    private void modifyActionDistribution(String action, Double modifier) {
-        String[] actionArr = action.split("");
-        String actionKey = actionArr[0];
-        for(int i = 1; i < actionArr.length; i++){
-            actionKey += ";" + actionArr[i];
-        }
-        rhsLength += modifier;
-        rhs.put(actionKey, rhs.get(actionKey) + modifier);
-    }
-
-    private void modifyMutagenLengthDistribution(Integer mutagenLength, Double modifier) {
-        lengthMap.put(mutagenLength, lengthMap.get(mutagenLength) + modifier);
+        rulesLength += modifier;
+        rules.put(patternKey + "@" + action, rules.getOrDefault(patternKey + "@" + action, 0.0) + modifier);
     }
 
     private String randomString() {
@@ -229,11 +236,12 @@ public class Player extends mutation.sim.Player {
                 String before = genome.substring(start, finish + 1);
                 // Get the string after
                 String after = mutated.substring(start, finish + 1);
+                modifyRuleDistribution(before, after, modifierStep);
                 // Modify the distribution
                 // System.out.println("Modifying the pattern distribution: " + before);
-                modifyPatternDistribution(before, modifierStep);
+                //modifyPatternDistribution(before, modifierStep);
                 // System.out.println("Modifying the action distribution: " + after);
-                modifyActionDistribution(after, modifierStep);
+                //modifyActionDistribution(after, modifierStep);
             }
 
             // Sample a mutagen
