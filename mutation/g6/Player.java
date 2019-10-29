@@ -70,7 +70,7 @@ public class Player extends mutation.sim.Player {
         List<Window> winList = new ArrayList<>();
         for(int i = 0; i < 1000; i++) {
         	if(diff[i].isMutated()) {
-        		Window temp = new Window(i, i+9);
+        		Window temp = new Window(i, i+9, diff);
         		winList.add(temp);
         		i+=10;
         	}
@@ -86,6 +86,7 @@ public class Player extends mutation.sim.Player {
             if(input[i] != output[i]) {
                 diff[i] = new Element(true, input[i], output[i]);
                 beforeCounter[hash.get(input[i])]++;
+                System.out.println(output[i] + " ");
                 afterCounter[hash.get(output[i])]++;
             }
             else diff[i] = new Element(input[i]);
