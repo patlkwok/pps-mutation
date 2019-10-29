@@ -10,10 +10,12 @@ public class Rule {
 
     private final String pattern;
     private final String action;
+    private final int scopeSize;
 
     public Rule(String pattern, String action) {
         this.pattern = pattern;
         this.action = action;
+        this.scopeSize = calculateScopeSize(pattern, action);
     }
 
     public String getPattern() {
@@ -22,6 +24,22 @@ public class Rule {
 
     public String getAction() {
         return action;
+    }
+
+    public int getScopeSize() {
+        return scopeSize;
+    }
+
+    public static int calculateScopeSize(String pattern, String action) {
+        int patternSize = pattern.split(";").length;
+        char mai = '0' - 1;
+        for (int i = 0; i < action.length(); i++) {
+            char ai = action.charAt(i);
+            if (ai >= '0' && ai <= '9' && ai > mai) {
+                mai = ai;
+            }
+        }
+        return Math.max(patternSize, (int) (mai - '0'));
     }
 
     @Override
