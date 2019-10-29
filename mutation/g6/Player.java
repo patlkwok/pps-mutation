@@ -202,7 +202,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
             System.out.println(temp);
-            return temp.subStrin;
+            return temp;
         }
     }
 
