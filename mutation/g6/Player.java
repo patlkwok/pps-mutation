@@ -192,7 +192,6 @@ public class Player extends mutation.sim.Player {
                     temp = temp.concat(Character.toString(window[i].getAfter()));
                 }
             }
-            System.out.println(temp);
             return temp;
         }
 
@@ -210,7 +209,7 @@ public class Player extends mutation.sim.Player {
                     }
                 }
             }
-            System.out.println(temp);
+
             return temp;
         }
     }
