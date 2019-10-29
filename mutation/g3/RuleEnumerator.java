@@ -168,7 +168,17 @@ public class RuleEnumerator {
     protected double probabilityPi(byte pi, byte si) {
         // if si matches any bit of pi, pi is possible
         // there are 8 pi's that would match any si, and we make them all uniformly probable for now
-        return ((pi & si) > 0) ? 1.0 / 8 : 0;
+
+        // our prior belief distribution about the length of pi.  Index i is our prior for length i.  0.0 is a dummy.
+        // we give fairly strong bias to shorter lengths, but can rule these out quickly from experiment if wrong
+        Double [] prior = {0.0, .4, .4, .15, .05};
+
+        // number of possible matches at each length
+        Integer [] num_matches = {0, 1, 3, 3, 1};
+
+        Integer len_pi = Integer.bitCount(pi);
+
+        return ((pi & si) > 0) ? prior[len_pi] / num_matches[len_pi] : 0;
     }
 
     /**
