@@ -72,8 +72,8 @@ public class Player extends mutation.sim.Player {
         }
 
         Window temp = winList.get(0);
-        result.add(temp.getOG());
-        result.add(temp.getAfter());
+        result.add(temp.getOG(), temp.getAfter());
+
         return result;
     }
 
@@ -154,10 +154,8 @@ public class Player extends mutation.sim.Player {
     			window[index++] = input[i];
     			if(input[i].isMutated()) {
     				mutagenCount++;
-    				System.out.print(input[i].getAfter());
     			}
     		}
-    		System.out.println();
     	}
 
     	public Element[] getWindow() {
@@ -180,21 +178,23 @@ public class Player extends mutation.sim.Player {
 
         public String getAfter(){
             String temp = "";
-            for(int i = left; i <= right; i++) {
+            for(int i = 0; i < 10; i++) {
                 if(window[i].isMutated()) {
-                    return temp.concat(window[i].getAfter());
+                    temp = temp.concat(Character.toString(window[i].getAfter()));
                 }
             }
+            System.out.println(temp);
             return temp;
         }
 
         public String getOG(){
             String temp = "";
-            for(int i = left; i <= right; i++) {
+            for(int i = 0; i < 10; i++) {
                 if(window[i].isMutated()) {
-                    return temp.concat(window[i].getOG());
+                    temp = temp.concat(Character.toString(window[i].getOG()));
                 }
             }
+            System.out.println(temp);
             return temp;
         }
     }
