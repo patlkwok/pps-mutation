@@ -73,17 +73,37 @@ public class Player extends mutation.sim.Player {
 
         Window temp = winList.get(0);
         Set<String> left = new HashSet<>();
+        int length = getLength(winList);
         for(Window w: winList) {
-            left.add(w.getOG());
+            String temp = w.getOG();
+            if(temp.length() == length) left.add(w.getOG());
         }
 
-        for(String s : left) {
-            System.out.println(s);
+        if(left.size() == 1) return result.add(temp.getOG(), temp.getAfter());
+        
+        else {
+            String output = "";
+            for(int i = 0; i < length; i += 2) {
+                Set<Character> c = new HashSet<>();
+                for(String s: left) {
+                    c.add(s.charAt(i));
+                }
+                for(char curr : c) {
+                    output = output.concat(Character.toString(curr));
+                }
+                if(i != length - 1) output = output.concat(";");
+            }
         }
-
-        result.add(temp.getOG(), temp.getAfter());
 
         return result;
+    }
+
+    public getLength(List<Window> winList) {
+        int length = 11;
+        for(Window w: winList) {
+            if(w.getMutagenCount() < length) length = w.getMutagenCount();
+        }
+        return length;
     }
 
     public Element[] checkDifference(char[] input, char[] output) {
