@@ -109,10 +109,20 @@ public class Player extends mutation.sim.Player {
         action = action.replaceAll(";", "");
         int ruleLength = action.length();
         int numberOfRulesToCombine = allPatterns.get(ruleLength-1).size();
+        if(numberOfRulesToCombine == 0) {
+            numberOfRulesToCombine = 1;
+        }
         // Sample patterns of same length as action
+        Vector<String> previousPatterns = new Vector<String>();
         for (int i = 0; i < numberOfRulesToCombine; i++) {
-            String pattern = samplePattern(ruleLength);
-            mutagen.add(pattern, action);
+            while(true) {
+                String pattern = samplePattern(ruleLength);
+                if(!previousPatterns.contains(pattern)) {
+                    mutagen.add(pattern, action);
+                    previousPatterns.add(pattern);
+                    break;
+                }
+            }
         }
         return mutagen;
     }
@@ -134,7 +144,6 @@ public class Player extends mutation.sim.Player {
             actionKey += ";" + actionArr[i];
         }
         rhsLength += modifier;
-        // System.out.println(actionKey + modifier + rhs.get(actionKey) + rhs.containsKey(actionKey));
         rhs.put(actionKey, rhs.get(actionKey) + modifier);
     }
 
