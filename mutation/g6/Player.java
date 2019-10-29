@@ -72,6 +72,15 @@ public class Player extends mutation.sim.Player {
         }
 
         Window temp = winList.get(0);
+        Set<String> left = new HashSet<>();
+        for(Window w: winList) {
+            left.add(w.getOG());
+        }
+
+        for(String s : left) {
+            System.out.println(s);
+        }
+
         result.add(temp.getOG(), temp.getAfter());
 
         return result;
@@ -202,7 +211,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
             System.out.println(temp);
-            return temp.subStrin;
+            return temp;
         }
     }
 
