@@ -154,17 +154,22 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++ i) {
             // Get the genome
-            String genome = randomString();
+            String genome = randomString(); 
             String mutated = console.Mutate(genome);
+            int genome_length = genome.length();
+
+            // Add 10 last characters to beginning and 10 first characters to end of genome before / after mutation 
+            // To simulate wrapping around 
+            genome = genome.substring(genome_length-9, genome_length) + genome + genome.substring(0,9);
+            mutated = mutated.substring(mutated.length()-9, mutated.length()) + mutated + mutated.substring(0,9);
             // Collect the change windows
             Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
-            for (int j = 0; j < genome.length(); j++) {
+            for (int j = 9; j < genome_length; j++) {
                 char before = genome.charAt(j);
                 char after = mutated.charAt(j);
                 if(before != after) {
                     int finish = j;
                     for(int forwardIndex = j + 1; forwardIndex < j + 10; forwardIndex++) {
-                        // TODO: Handle the case when we are at the end of the genome (i.e. when j is 999)
                         if(genome.charAt(forwardIndex) == mutated.charAt(forwardIndex)) {
                             finish = forwardIndex - 1;
                             break;
@@ -173,7 +178,6 @@ public class Player extends mutation.sim.Player {
                     changeWindows.add(new Pair<Integer, Integer>(j, finish));
                 }
             }
-
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
             Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
@@ -181,6 +185,7 @@ public class Player extends mutation.sim.Player {
                 int start = window.getKey();
                 int finish = window.getValue();
                 String before = genome.substring(start, finish + 1);
+                if (before.length()-1 >= maxMutagenLength) continue; 
                 allPatterns.get(before.length() - 1).add(before);
                 int windowLength = finish - start + 1;
                 windowSizesCounts[windowLength-1]++;
@@ -210,7 +215,7 @@ public class Player extends mutation.sim.Player {
             for (Pair<Integer, Integer> window: possibleWindows) {
                 int start = window.getKey();
                 int finish = window.getValue();
-                // System.out.println(start + " " + finish);
+                
                 // Get the string from
                 String before = genome.substring(start, finish + 1);
                 // Get the string after
@@ -231,6 +236,7 @@ public class Player extends mutation.sim.Player {
                 if(!wrongMutagens.contains(guess)) {
                     foundGuess = true;
                 }
+                
             }
             boolean isCorrect = console.Guess(guess);
             if(isCorrect) {
