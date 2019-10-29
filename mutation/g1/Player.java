@@ -193,19 +193,24 @@ public class Player extends mutation.sim.Player {
                         }
                         
                         if(! addedRules.contains(ruleString)) {
-                            candidateRules.add(new Pair(patternString, actionString));
+                            candidateRules.add(new Pair <String,String>(patternString, actionString));
                             addedRules.add(ruleString);
                         }
                         
                         // If pattern:action pair is possible add it to results
                         if(explain(patternString, actionString, beforeMutation, afterMutation)) {
+                            //only add to result if haven't seen before
                         	result.add(patternString, actionString);
                         }
                     }
                 }
             }
+
             console.Guess(result);
         }
+        //deduplicate result
+        //result.patterns
+        System.out.println(result.getPatterns());
         return result;
     }
 }
