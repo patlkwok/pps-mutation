@@ -77,7 +77,7 @@ public class RuleEnumerator {
             // rule is full
             final String pattern = partial.substring(0, partial.indexOf("@"));
             final String action = partial.substring(partial.indexOf("@") + 1);
-            bucket.put(simplifyRule(new Rule(pattern, action)), Math.log(probability));
+            bucket.put(simplifyRule(new Rule(pattern, action)), probability);
         }
     }
 

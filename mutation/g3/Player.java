@@ -11,23 +11,23 @@ import mutation.sim.Mutagen;
  * @author group3
  */
 public class Player extends mutation.sim.Player {
-    
-    private final static double GUESSING_THRESHOLD = 0.0;
-    
+
+    private final static double GUESSING_THRESHOLD = 0;
+
     private final Random random;
     private final List<Mutation> expHistory;
     private final RuleEnumerator enumerator;
     private final HashMap<Rule, Double> candidateRules;
-    private int consideredWindowSize = 3;
+    private int consideredWindowSize = 4;
     private int windowCleared = 0;
-    
+
     public Player() {
         random = new Random();
         expHistory = new ArrayList<>();
         enumerator = new RuleEnumerator();
         candidateRules = new HashMap<>();
     }
-    
+
     @Override
     public Mutagen Play(Console console, int m) {
         //final int numExps = console.getNumExps();
@@ -156,7 +156,7 @@ public class Player extends mutation.sim.Player {
         do {
             try {
                 guess = getMostLikelyMutagen();
-            } catch (NotConfidentEnoughException ex) {
+            } catch (NotConfidentEnoughException | NoMoreCandidateRulesException ex) {
                 // current most likely rule is not likely enough
                 // we conclude that the scope size/ window size considered may be
                 // too small, we increase it and reevaluate the evidence so far
@@ -167,8 +167,10 @@ public class Player extends mutation.sim.Player {
                     for (Mutation m : expHistory) {
                         updateBelieves(m);
                     }
+                } else if (ex instanceof NotConfidentEnoughException) {
+                    guess = ((NotConfidentEnoughException) ex).getMostLikely();
                 } else {
-                    guess = ex.getMostLikely();
+                    return null;
                 }
             }
         } while (guess == null);
@@ -195,19 +197,25 @@ public class Player extends mutation.sim.Player {
      * @throws NotConfidentEnoughException if the confidence in the most likely
      * rule is too low
      */
-    protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException {
+    protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException, NoMoreCandidateRulesException {
         HashMap<Rule, Double> sortedRules = sortRules(candidateRules);
         int maxRules = 1;
         int rules = 0;
         Mutagen result = new Mutagen();
+        if (candidateRules.isEmpty()) {
+            throw new NoMoreCandidateRulesException();
+        }
         boolean notLikelyEnough = false;
         for (Entry<Rule, Double> s : sortedRules.entrySet()) {
             if (s.getValue() < GUESSING_THRESHOLD) {
                 notLikelyEnough = true;
             }
+
             if (rules < maxRules) {
                 result.add(s.getKey().getPattern(), s.getKey().getAction());
                 rules++;
+            } else {
+                break;
             }
         }
         if (notLikelyEnough) {
@@ -240,49 +248,94 @@ public class Player extends mutation.sim.Player {
      */
     private List<HashSet<Mutation>> getPossibleMutations(String original, String mutated, int windowSize) {
         List<HashSet<Mutation>> mutations = new ArrayList<>();
-        HashSet<Mutation> set = new HashSet<>();
-        String genomeRound = original.concat(original.substring(0, windowSize));
-        String mutatedRound = mutated.concat(mutated.substring(0, windowSize));
-        int lastChangePos = Integer.MIN_VALUE;
+
+        List<Integer> changes = new ArrayList<>();
         for (int j = 0; j < original.length(); j++) {
-            String gPart = genomeRound.substring(j, j + windowSize);
-            String mPart = mutatedRound.substring(j, j + windowSize);
-            boolean wasMutated = !gPart.equals(mPart);
-            
-            if (wasMutated) {
-                // if the last position where a change was detected is more that a 
-                // window away, assume we are seeing a different change
-                if (j - lastChangePos > windowSize && !set.isEmpty()) {
-                    mutations.add(set);
-                    set = new HashSet<>();
-                }
-                
-                set.add(new Mutation(gPart, mPart));
-                lastChangePos = j;
+            if (original.charAt(j) != mutated.charAt(j)) {
+                changes.add(j);
             }
         }
-        if (!set.isEmpty()) {
-            mutations.add(set);
+
+        final int numChanges = changes.size();
+        for (int i = 0; i < numChanges;) {
+            int curChangePos = changes.get(i);
+            int nextChangePos;
+            int j = i;
+            do {
+                j++;
+                if (j % numChanges < 0) {
+                    System.out.println("Here");
+                }
+                nextChangePos = changes.get(j % numChanges);
+                if (nextChangePos < curChangePos) {
+                    nextChangePos += original.length();
+                }
+            } while (nextChangePos - curChangePos < windowSize);
+            j--;
+            nextChangePos = changes.get(j % numChanges);
+            if (nextChangePos < curChangePos) {
+                nextChangePos += original.length();
+            }
+            int margin = windowSize - (nextChangePos - curChangePos + 1);
+            mutations.add(extractWindows(original, mutated, curChangePos, margin, windowSize));
+            i = j + 1;
         }
         return mutations;
+    }
+
+    /**
+     * Extract the mutations defined by the pairs of string of margin windows
+     * starting at position pos - margin
+     *
+     * @param genome original genome
+     * @param mutated mutated genome
+     * @param pos position
+     * @param margin margin/number of windows
+     * @param windowSize size of the windows
+     * @return
+     */
+    protected HashSet<Mutation> extractWindows(String genome, String mutated, int pos, int margin, int windowSize) {
+        HashSet<Mutation> set = new HashSet<>();
+        final int size = genome.length();
+
+        for (int j = pos - margin; j <= pos; j++) {
+            String gPart;
+            String mPart;
+            if (j < 0) {
+                gPart = genome.substring(size + j) + genome.substring(0, windowSize + j);
+                mPart = mutated.substring(size + j) + mutated.substring(0, windowSize + j);
+            } else if (j + windowSize > size) {
+                gPart = genome.substring(j) + genome.substring(0, windowSize + j - size);
+                mPart = mutated.substring(j) + mutated.substring(0, windowSize + j - size);
+            } else {
+                gPart = genome.substring(j, j + windowSize);
+                mPart = mutated.substring(j, j + windowSize);
+            }
+            set.add(new Mutation(gPart, mPart));
+        }
+        return set;
     }
 }
 
 class NotConfidentEnoughException extends Exception {
-    
+
     private final Mutagen mostLikely;
-    
+
     public NotConfidentEnoughException(Mutagen mostLikely, String message) {
         super(message);
         this.mostLikely = mostLikely;
     }
-    
+
     public NotConfidentEnoughException(Mutagen mostLikely) {
         this.mostLikely = mostLikely;
     }
-    
+
     public Mutagen getMostLikely() {
         return mostLikely;
     }
-    
+
+}
+
+class NoMoreCandidateRulesException extends Exception {
+
 }
