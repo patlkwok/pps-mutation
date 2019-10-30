@@ -227,9 +227,9 @@ public class RuleEnumerator {
         while (pattern.endsWith(";acgt")) {
             pattern = pattern.substring(0, pattern.length() - 5);
         }
-        if (rule.getPattern().equals("acgt;acgt;acgt;acgt")) {
-            System.out.println("Here");
-        }
+        //if (rule.getPattern().equals("acgt;acgt;acgt;acgt")) {
+        //    System.out.println("Here");
+        //}
         if (!pattern.equals(rule.getPattern())) {
             return new Rule(pattern, rule.getAction());
         }
