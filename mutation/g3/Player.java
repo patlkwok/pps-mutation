@@ -18,7 +18,7 @@ public class Player extends mutation.sim.Player {
     private final List<Mutation> expHistory;
     private final RuleEnumerator enumerator;
     private final HashMap<Rule, Double> candidateRules;
-    private int consideredWindowSize = 3;
+    private int consideredWindowSize = 1;
     private int windowCleared = 0;
 
     public Player() {
