@@ -37,17 +37,26 @@ public class Player extends mutation.sim.Player {
             String mutated = console.Mutate(genome);
             identifyMutations(genome, mutated);
             
-            Pair<String,String> guess;
-            for (Mutation mutation : this.mutations) {
-                guess = getSimpleGuess(mutation);
-                result.add(guess.getKey(), guess.getValue());
+            // Pair<String,String> guess;
+            // for (Mutation mutation : this.mutations) {
+            //     guess = getSimpleGuess(mutation);
+            //     result.add(guess.getKey(), guess.getValue());
                 
-                guess = getSimpleGuessBackOneIndex(mutation);
-                result.add(guess.getKey(), guess.getValue());
-                break;
+            //     guess = getSimpleGuessBackOneIndex(mutation);
+            //     result.add(guess.getKey(), guess.getValue());
+            //     break;
+            // }
+            Set<Rule> simpleRulesCopy = new HashSet<>(simpleRules);
+            System.out.println(simpleRules.size());
+            for (Rule simpleRule : simpleRulesCopy) {
+            	result = new Mutagen();
+            	simpleRules.remove(simpleRule);
+            	// System.out.println("Guessing: ");
+            	// System.out.println("Pattern: " + simpleRule.getPattern().toString());
+            	// System.out.println("Action: " + simpleRule.getAction().toString());
+      			result.add(simpleRule.getPattern().toString().toLowerCase(), simpleRule.getAction().toString().toLowerCase());
+            	console.Guess(result);
             }
-            
-            console.Guess(result);
         }
         
         return result;
@@ -108,7 +117,6 @@ public class Player extends mutation.sim.Player {
         Pair<String,String> guess = new Pair<>(pattern, action);
         return guess;
     }
-    
 
     private void identifyMutations(String before, String after) {
     	if (before.length() != after.length()) {

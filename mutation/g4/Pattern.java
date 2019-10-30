@@ -27,7 +27,6 @@ public class Pattern {
 		}
 		return true;
 	}
-
 	@Override
 	public String toString() {
 		String result = "";

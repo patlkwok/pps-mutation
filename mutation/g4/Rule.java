@@ -35,5 +35,20 @@ public class Rule {
 	public String toString() {
 		return "Pattern: " + pattern.toString() + "\nAction: " + action.toString();
 	}
+	@Override
+	public boolean equals(Object object) {
+		if (object == null) return false;
+		if (!(object instanceof Rule)) return false;
+		Rule rule = (Rule) object;
+		return this.pattern.toString().equals(rule.pattern.toString()) && this.action.toString().equals(rule.action.toString());
+	}
+
+	@Override
+	public int hashCode() {
+		int result = 19;
+		result = 43*result + this.pattern.hashCode();
+		result = 43*result + this.action.hashCode();
+		return result;
+	}
 
 }
