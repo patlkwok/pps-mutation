@@ -1,10 +1,9 @@
-package mutation.g1;
+package mutation.g1_baseline;
 
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
 import java.lang.Math;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
