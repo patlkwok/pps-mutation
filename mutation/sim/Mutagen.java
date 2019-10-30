@@ -18,7 +18,7 @@ public class Mutagen {
                 Arrays.sort(arr);
                 l[i] = String.valueOf(arr);
             }
-            patterns.add(String.join(";", l));
+            this.patterns.add(String.join(";", l));
         }
         this.actions = new ArrayList<String>(actions);
     }

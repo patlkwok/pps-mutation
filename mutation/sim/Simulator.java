@@ -84,9 +84,9 @@ public class Simulator {
                     ++ intersection;
             int union = s1.size() + s2.size() - intersection;
 
-            System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Timed out. Jaccard score: " + intersection + "/" + union);
-
+            double score = (double)intersection / (double) union;
+            System.out.println("Jaccard score is: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%).");
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%)");
             System.exit(-1);
         } catch (Exception e) {
             StringWriter errors = new StringWriter();
