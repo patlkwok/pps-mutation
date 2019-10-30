@@ -14,6 +14,7 @@ public class Player extends mutation.sim.Player {
 	private List<Map<Character, Integer>> actionTracker = new ArrayList<>();
 	private static final int DISTANCE_THRESHOLD = 4;
 	private static final int NONEXISTENT_BASE_THRESHOLD = 2;
+	private List<Mutagen> mutagensGuessed = new ArrayList<>();
 
     public Player() { 
         random = new Random();
@@ -57,8 +58,12 @@ public class Player extends mutation.sim.Player {
         		return mutagen;
         }
         
-        if(possibleMutagens.size() > 0)
-        	return possibleMutagens.get(0);
+        for(Mutagen mutagen : possibleMutagens) {
+        	if(!mutagensGuessed.contains(mutagen)) {
+        		mutagensGuessed.add(mutagen);
+        		return mutagen;
+        	}
+        }
 
         Mutagen mutagen = new Mutagen();
         mutagen.add("a;c;c", "att");
@@ -137,8 +142,9 @@ public class Player extends mutation.sim.Player {
     			 */
     			for(int i = 0; i < 10 - offsetForBaseMutationInAction; i++) {
                     String newPattern = pattern;
-                    for(int j = 0; j < i; j++)
-                        newPattern = "actg;" + newPattern;
+                    if(newPattern.length() != 4 || newPattern.contains(";"))
+	                    for(int j = 0; j < i; j++)
+	                        newPattern = "actg;" + newPattern;
 
                     String action = "";
                     for(int j = 0; j < offsetForBaseMutationInAction + i; j++)
@@ -171,9 +177,9 @@ public class Player extends mutation.sim.Player {
 			 */
 			String pattern = "";
 			int locationForFirstPattern = 0;
-			if(interestingPatternsMap.size() == 0) {
+			boolean firstPatternFound = false;
+			if(interestingPatternsMap.size() == 0)
 				pattern += "actg";
-			}
 			else {
 				/*
 				 * If we have acgt;acgt;gt;acgt;acgt;act@012c, then
@@ -185,6 +191,7 @@ public class Player extends mutation.sim.Player {
 					interestingPatternLocations.add(interestingPatternLocation);
 				int currentLocation = interestingPatternLocations.get(0);
 				locationForFirstPattern = currentLocation;
+				firstPatternFound = true;
 
 				for(int i = 0; i < interestingPatternLocations.size(); i++) {
 					int nextLocation = interestingPatternLocations.get(i);
@@ -203,25 +210,32 @@ public class Player extends mutation.sim.Player {
 			 * Determine action
 			 */
 			for(int i = 0; i < possibleLocationsForAction.size(); i++) {
-				String newPattern = pattern;
+				String intermediatePattern = pattern;
 				int locationForAction = possibleLocationsForAction.get(i);
-				if(locationForAction < locationForFirstPattern)
-					for(int j = 0; j < locationForFirstPattern - locationForAction; j++)
-						newPattern = "actg;" + newPattern;
+				if(intermediatePattern.length() != 4 || intermediatePattern.contains(";"))
+					if(locationForAction < locationForFirstPattern)
+						for(int j = 0; j < locationForFirstPattern - locationForAction; j++)
+							intermediatePattern = "actg;" + intermediatePattern;
 
-				String firstInterestingPattern = String.join("", interestingPatternsMap.get(locationForFirstPattern));
-				int indexOfFirstInterestingPattern = Arrays.asList(newPattern.split(";")).indexOf(firstInterestingPattern);
+					int indexOfFirstInterestingPattern = 0;
+				if(!firstPatternFound)
+					locationForFirstPattern = locationForAction;
+				if(interestingPatternsMap.size() != 0) {
+					String firstInterestingPattern = String.join("", interestingPatternsMap.get(locationForFirstPattern));
+					indexOfFirstInterestingPattern = Arrays.asList(intermediatePattern.split(";")).indexOf(firstInterestingPattern);					
+				}
 				int offsetForBaseMutationInAction = 9 + indexOfFirstInterestingPattern - locationForFirstPattern;
 				int numberMutation = offsetForBaseMutationInAction + locationForAction - 9;
 				
 				for(int j = 0; j < 10 - offsetForBaseMutationInAction; j++) {
-					newPattern = pattern;
+					String newPattern = intermediatePattern;
 					
 					if(numberMutation + j > 9)
 						continue;
 					
-                    for(int k = 0; k < j; k++)
-                        newPattern = "actg;" + newPattern;
+					if(newPattern.length() != 4 || newPattern.contains(";"))
+	                    for(int k = 0; k < j; k++)
+	                        newPattern = "actg;" + newPattern;
 
                     String action = "";
 					for(int k = 0; k < offsetForBaseMutationInAction + j; k++) {
@@ -232,6 +246,7 @@ public class Player extends mutation.sim.Player {
 					System.out.println("Predicted pattern: " + newPattern);
 					System.out.println("Predicted action: " + action);
 					System.out.println("Predicted number mutation: " + numberMutation);
+					System.out.println("Location of action: " + locationForAction);
 					System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
 					System.out.println("Location for first interesting pattern: " + locationForFirstPattern);
 					System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
@@ -243,11 +258,36 @@ public class Player extends mutation.sim.Player {
 			        mutagens.add(mutagen);
 				}
 			}
+			
+			List<Mutagen> newMutagens = new ArrayList<>();
+			for(Mutagen mutagen : mutagens) {
+				String mutagenPattern = mutagen.getPatterns().get(0);
+				List<String> oldPatternElementsAsList = Arrays.asList(mutagenPattern.split(";"));
+				List<String> patternElementsAsList = new ArrayList<String>(oldPatternElementsAsList);
+				while(patternElementsAsList.size() > 1) {
+					if(patternElementsAsList.get(patternElementsAsList.size() - 1).length() >= 3) {
+						int lastIndex = patternElementsAsList.size() - 1;
+						patternElementsAsList.remove(lastIndex);
+						String newMutagenPattern = String.join(";", patternElementsAsList);
+						Mutagen newMutagen = new Mutagen();
+						newMutagen.add(newMutagenPattern, mutagen.getActions().get(0));
+						newMutagens.add(newMutagen);
 
+						System.out.println("Predicted pattern: " + newMutagenPattern);
+						System.out.println("Predicted action: " + mutagen.getActions().get(0));
+						System.out.println("Predicted rule: " + newMutagenPattern + "@" + mutagen.getActions().get(0));
+						System.out.println();
+					}
+					else
+						break;
+				}
+			}
+			mutagens.addAll(newMutagens);
     	}
     	else {
     		
     	}
+    	    	
     	return mutagens;
     }
     
