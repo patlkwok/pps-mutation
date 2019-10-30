@@ -18,7 +18,7 @@ public class Player extends mutation.sim.Player {
     private final List<Mutation> expHistory;
     private final RuleEnumerator enumerator;
     private final HashMap<Rule, Double> candidateRules;
-    private int consideredWindowSize = 4;
+    private int consideredWindowSize = 3;
     private int windowCleared = 0;
 
     public Player() {
@@ -63,8 +63,14 @@ public class Player extends mutation.sim.Player {
         // Step 1: Create a list from elements of hash map
         List<Entry<Rule, Double>> list = new ArrayList<>(scores.entrySet());
         // Step 2: Sort the list (in descending order of scores)
-        Collections.sort(list, (Entry<Rule, Double> o1, Entry<Rule, Double> o2)
-                -> (o2.getValue()).compareTo(o1.getValue()));
+        Collections.sort(list, (Entry<Rule, Double> o1, Entry<Rule, Double> o2) -> {
+            int cmp = o2.getValue().compareTo(o1.getValue());
+            if (cmp == 0) {
+                return Rule.countActionDigits(o1.getKey()) - Rule.countActionDigits(o2.getKey());
+            } else {
+                return cmp;
+            }
+        });
         // Step 3: Put data from sorted list to hash map
         HashMap<Rule, Double> newScores = new LinkedHashMap<>();
         for (Entry<Rule, Double> s : list) {
@@ -196,6 +202,7 @@ public class Player extends mutation.sim.Player {
      * @return the guessed Mutagen
      * @throws NotConfidentEnoughException if the confidence in the most likely
      * rule is too low
+     * @throws NoMoreCandidateRulesException if we run out of rules to guess
      */
     protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException, NoMoreCandidateRulesException {
         HashMap<Rule, Double> sortedRules = sortRules(candidateRules);

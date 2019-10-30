@@ -42,6 +42,17 @@ public class Rule {
         return Math.max(patternSize, (int) (mai - '0'));
     }
 
+    public static int countActionDigits(Rule rule) {
+        String pattern = rule.getAction();
+        int digits = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+            if (pattern.charAt(i) >= '0' && pattern.charAt(i) <= '9') {
+                digits++;
+            }
+        }
+        return digits;
+    }
+
     @Override
     public int hashCode() {
         int hash = 7;
