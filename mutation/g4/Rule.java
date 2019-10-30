@@ -9,6 +9,11 @@ public class Rule {
 	private Pattern pattern;
 	private Action action;
 
+	public Rule(String pattern, String action) {
+		this.pattern = new Pattern(pattern);
+		this.action = new Action(action);
+	}
+
 	public Rule(Pattern pattern, Action action) {
 		this.pattern = pattern;
 		this.action = action;
@@ -20,6 +25,15 @@ public class Rule {
 
 	public Action getAction() {
 		return action;
+	}
+
+	public boolean explains(Mutation mutation) {
+		return pattern.explains(mutation.getBefore()) && action.explains(mutation.getAfter());
+	}
+
+	@Override
+	public String toString() {
+		return "Pattern: " + pattern.toString() + "\nAction: " + action.toString();
 	}
 
 }
