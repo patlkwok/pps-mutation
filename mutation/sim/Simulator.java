@@ -120,7 +120,7 @@ public class Simulator {
             System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
             console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union);
         }
-
+        System.wait(1000);
         System.exit(0);
     }
 

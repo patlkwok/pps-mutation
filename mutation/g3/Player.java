@@ -110,8 +110,10 @@ public class Player extends mutation.sim.Player {
      * @param mutation the observed mutation
      */
     protected void updateBelieves(Mutation mutation) {
+        // function to guess most likely window size
         List<HashSet<Mutation>> mutations
                 = getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), consideredWindowSize);
+        // filter out coliding mutations from mutations
         for (HashSet<Mutation> world : mutations) {
             HashMap<Rule, Double> localRules = updateBelievesPossibleWindows(world);
             for (Entry<Rule, Double> pr : localRules.entrySet()) {
@@ -254,6 +256,10 @@ public class Player extends mutation.sim.Player {
      * @return list of all changed pieces
      */
     private List<HashSet<Mutation>> getPossibleMutations(String original, String mutated, int windowSize) {
+        // try checking size of list with m value, which would now need to be passed in
+        // eliminate two colliding mutations from the list
+        // we can also run this function with higher and higher window sizes to try to figure out
+        // the best window size, taking m into account
         List<HashSet<Mutation>> mutations = new ArrayList<>();
 
         List<Integer> changes = new ArrayList<>();
@@ -274,7 +280,7 @@ public class Player extends mutation.sim.Player {
                     System.out.println("Here");
                 }
                 nextChangePos = changes.get(j % numChanges);
-                if (nextChangePos < curChangePos) {
+                if (nextChangePos <= curChangePos) {
                     nextChangePos += original.length();
                 }
             } while (nextChangePos - curChangePos < windowSize);
