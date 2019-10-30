@@ -15,6 +15,8 @@ public class RuleEnumerator {
     public static final byte G = 0b0010;
     public static final byte T = 0b0001;
 
+    private double minProbability = 6E-10;
+
     /**
      * Given two strings with the same length corresponding to the same portion
      * of the genome, before and after mutation; this method returns a list of
@@ -35,7 +37,7 @@ public class RuleEnumerator {
         makeRules(bucket, Pis, Ais, 0, "", 1);
         return bucket;
     }
-    
+
     /**
      * Populates a map of rules recursively
      *
@@ -53,6 +55,9 @@ public class RuleEnumerator {
             int step,
             String partial,
             double probability) {
+        if (probability < minProbability) {
+            return;
+        }
         final int patternL = Pis.size();
         if (step < patternL) {
             // add another pattern element
@@ -171,10 +176,10 @@ public class RuleEnumerator {
 
         // our prior belief distribution about the length of pi.  Index i is our prior for length i.  0.0 is a dummy.
         // we give fairly strong bias to shorter lengths, but can rule these out quickly from experiment if wrong
-        Double [] prior = {0.0, .4, .4, .15, .05};
+        Double[] prior = {0.0, .4, .4, .15, .05};
 
         // number of possible matches at each length
-        Integer [] num_matches = {0, 1, 3, 3, 1};
+        Integer[] num_matches = {0, 1, 3, 3, 1};
 
         Integer len_pi = Integer.bitCount(pi);
 
@@ -218,6 +223,16 @@ public class RuleEnumerator {
      * @return a minimal rule equivalent to the given one (possibly the same)
      */
     public static Rule simplifyRule(Rule rule) {
+        String pattern = rule.getPattern();
+        while (pattern.endsWith(";acgt")) {
+            pattern = pattern.substring(0, pattern.length() - 5);
+        }
+        if (rule.getPattern().equals("acgt;acgt;acgt;acgt")) {
+            System.out.println("Here");
+        }
+        if (!pattern.equals(rule.getPattern())) {
+            return new Rule(pattern, rule.getAction());
+        }
         return rule;
     }
 }

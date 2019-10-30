@@ -39,7 +39,7 @@ public class Rule {
                 mai = ai;
             }
         }
-        return Math.max(patternSize, (int) (mai - '0'));
+        return Math.max(patternSize, Math.max(action.length(), (int) (mai - '0')));
     }
 
     public static int countActionDigits(Rule rule) {
