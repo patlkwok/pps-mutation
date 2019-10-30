@@ -1,125 +1,146 @@
 package mutation.g1;
 
-import javafx.util.Pair;
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Set;
+
+import javafx.util.Pair;
 
 
 public class MyTree {
+    // Entropy Hyperparameters
+    public final boolean useEntropy = true;
+    public final int supportBeforeEntropy = 20;
+    public final double lambda = 1.0;
+    public final double entropyThreshold = 0.8;
+
+    private final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
     public String action;
-    public ArrayList<String> basePattern;
-    public ArrayList<ArrayList<String>> patterns;
+    public int support;
+    public ArrayList<ArrayList<Integer>> patternCounts;
 
-    public String sorted(String x) {
-        char[] chars = x.toCharArray();
-        Arrays.sort(chars);
-        return new String(chars);
+    public double log2(double x) {
+        return Math.log(x) / Math.log(2);
     }
 
-    public HashSet<String> combinations(String x) {
-        HashSet<String> possibleStrings = new HashSet<>();
-        possibleStrings.add(x);
-        for(int y = 0; y < x.length(); y++) {
-            String substring = x.substring(0, y) + x.substring(y + 1);
-            possibleStrings.addAll(combinations(substring));
+    public double normalizedEntropy(ArrayList<Integer> counts) {
+        double smoothing = lambda / Math.sqrt(this.support);
+        double entropy = 0.0;
+        double Z = 0.0;
+        for(int c : counts) {
+            Z += c + smoothing;
         }
-
-        return possibleStrings;
-    }
-
-    public Pair<String, Double> computeBestPattern() {
-        ArrayList<Double>precisionScores = new ArrayList<>();
-        ArrayList<Double>compactnessScores = new ArrayList<>();
-
-        ArrayList<String>shortestStrings = new ArrayList<>();
-        for(ArrayList<String> strings : this.patterns) {
-            int minSize = 10000;
-            String minString = "";
-            for(String string : strings) {
-                if(string.length() < minSize) {
-                    minSize = string.length();
-                    minString = string;
-                }
-            }
-            shortestStrings.add(minString);
-        }
-
-        int lengthSum = 0;
-        int precisionSum = 0;
-        for(int i = 0; i < this.patterns.size(); i++) {
-            String shortestPattern = shortestStrings.get(i);
-            int shortestLen = shortestPattern.length();
-            precisionSum += 4 - shortestLen;
-            lengthSum += shortestLen;
-            compactnessScores.add((40.0 - lengthSum) / 40.0);
-            precisionScores.add(precisionSum / 40.0);
-        }
-
-        int bestIdx = 0;
-        double bestScore = 0.0;
-        ArrayList<Double> jointScores = new ArrayList<>();
-        for(int i = 0; i < this.patterns.size(); i++) {
-            double jointScore = (compactnessScores.get(i) + precisionScores.get(i)) / 2.0;
-
-            if(jointScore >= bestScore) {
-                bestIdx = i;
-                bestScore = jointScore;
+        for(int c : counts) {
+            double p = (c + smoothing) / Z;
+            if(p > 0) {
+                entropy -= p * this.log2(p);
             }
         }
 
-        String bestPattern = "";
-
-        for(int i=0; i<= bestIdx; i++) {
-            bestPattern += shortestStrings.get(i);
-            if(i < bestIdx) {
-                bestPattern += ";";
-            }
-        }
-
-        return new Pair(bestPattern, bestScore);
+        return entropy / this.log2(4.0);
     }
 
-    public void prune(String newPattern) {
-        ArrayList<ArrayList<String>> prunedPatterns = new ArrayList<>();
-
-        for(int i=0; i < this.patterns.size(); i++) {
-            ArrayList<String> prunedPattern = new ArrayList<>();
-            for(String pattern : this.patterns.get(i)) {
-                if(pattern.contains(Character.toString(newPattern.charAt(i)))) {
-                    prunedPattern.add(pattern);
-                }
-            }
-            prunedPatterns.add(prunedPattern);
-        }
-
-        this.patterns = prunedPatterns;
-    }
-
-    public MyTree(ArrayList<String> basePattern) {
-        this.patterns = new ArrayList<>();
-        this.basePattern = basePattern;
-        String bases = "acgt";
-        this.action = null;
+    public MyTree(String pattern, String action) {
+        this.patternCounts = new ArrayList<>();
         for(int i = 0; i < 10; i++) {
-            ArrayList<String>possibleChoices = new ArrayList<>();
-            // Every combination
-            String thisChar = basePattern.get(i);
-            String otherChars = "";
-            for(int j = 0; j < bases.length(); j++) {
-                String base = Character.toString(bases.charAt(j));
-                if(! base.equals(thisChar)) {
-                    otherChars += base;
-                }
+            ArrayList<Integer>charCounts = new ArrayList<>();
+            for(int j = 0; j < 4; j++) {
+                charCounts.add(0);
             }
+            this.patternCounts.add(charCounts);
+        }
 
-            HashSet<String> combos = this.combinations(otherChars);
-            for (String temp : combos) {
-                String sorted = this.sorted(temp + thisChar);
-                possibleChoices.add(sorted);
+        this.action = action;
+        this.addPattern(pattern);
+    }
+
+    public String generatePattern(ArrayList<String>shortestPatterns, int endIdx) {
+        String pattern = "";
+        for(int i=0; i <= endIdx; i++) {
+            pattern += shortestPatterns.get(i);
+            if(i < endIdx) {
+                pattern += ";";
             }
+        }
 
-            this.patterns.add(possibleChoices);
+        return pattern;
+    }
+
+    public Pair<String, Double> computeBestPattern(Set<String> missedGuesses) {
+      ArrayList<String> shortestPatterns = new ArrayList<>();
+
+      for(int positionIdx = 0; positionIdx < 10; positionIdx++) {
+          ArrayList<Integer>charCounts = this.patternCounts.get(positionIdx);
+          String posString = "";
+          for(int charIdx = 0; charIdx < 4; charIdx++) {
+              int charCount = charCounts.get(charIdx);
+              if(charCount / (float) this.support > 0.1) {
+                  posString += this.bases.get(charIdx);
+              }
+          }
+
+          shortestPatterns.add(posString);
+      }
+
+      ArrayList<Double>precisionScores = new ArrayList<>();
+      ArrayList<Double>compactnessScores = new ArrayList<>();
+      ArrayList<Double>entropies = new ArrayList<>();
+      ArrayList<Integer>predictionCounts = new ArrayList<>();
+      int lengthSum = 0;
+      int precisionSum = 0;
+      for(int i = 0; i < 10; i++) {
+          String shortestPattern = shortestPatterns.get(i);
+          int shortestLen = shortestPattern.length();
+          predictionCounts.add(shortestLen);
+          precisionSum += 4 - shortestLen;
+          lengthSum += shortestLen;
+          compactnessScores.add((40.0 - lengthSum) / 40.0);
+          precisionScores.add(precisionSum / 40.0);
+          entropies.add(this.normalizedEntropy(this.patternCounts.get(i)));
+      }
+
+      int bestEntropyIdx = -1;
+      for(int e = 0; e < entropies.size(); e++) {
+          if(entropies.get(e) <= entropyThreshold) {
+              bestEntropyIdx = e;
+          }
+      }
+
+      int bestPrecisionIdx = -1;
+      double bestScore = 0.0;
+      for(int i = 0; i < 10; i++) {
+          double jointScore = (compactnessScores.get(i) + precisionScores.get(i)) / 2.0;
+          if(jointScore >= bestScore) {
+              bestPrecisionIdx = i;
+              bestScore = jointScore;
+          }
+      }
+
+      boolean chooseEntropyIdx = bestEntropyIdx > -1 && this.support > supportBeforeEntropy && useEntropy;
+      if(chooseEntropyIdx) {
+          System.out.println("Using Entropy!");
+      }
+      int bestIdx = chooseEntropyIdx ? bestEntropyIdx : bestPrecisionIdx;
+      int altIdx = chooseEntropyIdx ? bestPrecisionIdx : bestEntropyIdx;
+      if(altIdx == -1) {
+          altIdx = 0;
+      }
+      String bestPattern = this.generatePattern(shortestPatterns, bestIdx);
+      String resultStr = bestPattern + "@" + this.action;
+      if(missedGuesses.contains(resultStr)) {
+          bestPattern = this.generatePattern(shortestPatterns, altIdx);
+      }
+
+      return new Pair(bestPattern, bestScore);
+    }
+
+    public void addPattern(String newPattern) {
+        this.support += 1;
+        for(int positionIdx = 0; positionIdx < newPattern.length(); positionIdx++) {
+            int charIdx = this.bases.indexOf(newPattern.charAt(positionIdx));
+            int newValue = this.patternCounts.get(positionIdx).get(charIdx) + 1;
+            this.patternCounts.get(positionIdx).set(charIdx, newValue);
         }
     }
 }
