@@ -142,7 +142,7 @@ public class Mutagen {
                     }
                     int idx = 0;
                     for (idx = 0; idx < 10; ++ idx)
-                        if (delta[idx] != s.charAt(i + idx))
+                        if (delta[idx] != s.charAt((i + idx) % s.length()))
                             break;
                     if (idx == 10) result.add((long)-1);
                     else {
