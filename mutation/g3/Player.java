@@ -214,7 +214,7 @@ public class Player extends mutation.sim.Player {
         }
         boolean notLikelyEnough = false;
         for (Entry<Rule, Double> s : sortedRules.entrySet()) {
-            if (s.getValue() < GUESSING_THRESHOLD) {
+            if (s.getValue() <= GUESSING_THRESHOLD) {
                 notLikelyEnough = true;
             }
 
