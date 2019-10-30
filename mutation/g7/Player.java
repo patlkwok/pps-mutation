@@ -20,11 +20,13 @@ public class Player extends mutation.sim.Player {
     private int numTrials = 1000;
     private Double modifierStep = 0.05;
     private Double rulesLength = 0.0;
+    private Double momentum = 0.01;
+    private Double takeAChanceWithLength = 0.05;
 
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<>();
 
-    private int maxMutagenLength = 2;
+    private int maxMutagenLength = 10;
 
     // An array of all patterns that happened
     private Vector<HashSet<String>> allPatterns = new Vector<>();
@@ -36,31 +38,10 @@ public class Player extends mutation.sim.Player {
         }
     }
 
-    private String samplePattern(int length) {
-        while (true) {
-            Double random = Math.random() * lhsLength;
-            Double cummulative = 0.0;
-            Iterator it = lhs.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
-                cummulative += pair.getValue();
-                if (random < cummulative) {
-                    String pattern = pair.getKey();
-                    String patternNo = pattern.replaceAll(";", "");
-                    if (patternNo.length() == length) {
-                        return pattern;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    private String sampleAction() {
-        Double random = Math.random() * rhsLength;
+    private String samplePair() {
+        Double random = Math.random() * rulesLength;
         Double cummulative = 0.0;
-        Iterator it = rhs.entrySet().iterator();
+        Iterator it = rules.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
             cummulative += pair.getValue();
@@ -68,29 +49,84 @@ public class Player extends mutation.sim.Player {
                 return pair.getKey();
             }
         }
-        it = rhs.entrySet().iterator();
+        it = rules.entrySet().iterator();
         Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
         return pair.getKey();
     }
 
+    private String samplePairOfLength(int length) {
+        for (int i = 0; i < 1000; i++) {
+            Double random = Math.random() * rulesLength;
+            Double cummulative = 0.0;
+            Iterator it = rules.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
+                cummulative += pair.getValue();
+                if (random < cummulative) {
+                    String actionPatternPair = pair.getKey();
+                    if (actionPatternPair.length() == length) {
+                        return actionPatternPair;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        return samplePair();
+    }
+
     private Mutagen sampleMutagen() {
         Mutagen mutagen = new Mutagen();
-        // Sample action
-        String action = sampleAction();
-        action = action.replaceAll(";", "");
+        // Find the most probable length
+        int maxValue = 0;
+        int maxIndex = 0;
+        for (int i = 0; i < maxMutagenLength; i++) {
+            if(allPatterns.get(i).size() > maxValue) {
+                maxIndex = i;
+                maxValue = allPatterns.get(i).size();
+            }
+        }
+        // Sample first pattern action pair
+        String pair;
+        if(Math.random() < takeAChanceWithLength) {
+            pair = samplePair();
+        } else {
+            pair = samplePairOfLength(maxIndex + 1);
+        }
+        String[] patternAction = pair.split("@");
+        String pattern = patternAction[0];
+        String action = patternAction[1];
+        mutagen.add(pattern, action);
+        // Check if we need more pairs
         int ruleLength = action.length();
         int numberOfRulesToCombine = allPatterns.get(ruleLength - 1).size();
         if (numberOfRulesToCombine == 0) {
-            numberOfRulesToCombine = 1;
+            // If there were no such rules try randomly the number for other length
+            // And check go with it 'takeAChanceWithLength' precent of the times
+            int result = random.nextInt(maxMutagenLength-1);
+            numberOfRulesToCombine = allPatterns.get(result).size();
+            if(numberOfRulesToCombine == 0 || Math.random() > takeAChanceWithLength) {
+                return sampleMutagen();
+            }
         }
-        // Sample patterns of same length as action
+        // Add some randomness in the number of rules
+        // Only minus and a little up, because the probability of underestimating is low
+        int low = -(numberOfRulesToCombine/3) - 1;
+        int high = numberOfRulesToCombine/3 + 1;
+        int randomDelta = random.nextInt(high-low) + low;
+        numberOfRulesToCombine += randomDelta;
+        // Sample pattern actions of same length as the first
         Vector<String> previousPatterns = new Vector<String>();
-        for (int i = 0; i < numberOfRulesToCombine; i++) {
-            while (true) {
-                String pattern = samplePattern(ruleLength);
-                if (!previousPatterns.contains(pattern)) {
+        previousPatterns.add(pair);
+        for (int i = 1; i < numberOfRulesToCombine; i++) {
+            for (int j = 0; j < 2000; j++) {
+                pair = samplePairOfLength(pair.length());
+                if (!previousPatterns.contains(pair)) {
+                    patternAction = pair.split("@");
+                    pattern = patternAction[0];
+                    action = patternAction[1];
                     mutagen.add(pattern, action);
-                    previousPatterns.add(pattern);
+                    previousPatterns.add(pair);
                     break;
                 }
             }
@@ -142,6 +178,7 @@ public class Player extends mutation.sim.Player {
                         }
                     }
                     changeWindows.add(new Pair<Integer, Integer>(j, finish));
+                    j = finish;
                 }
             }
             // Get the window sizes distribution and generate all possible windows
@@ -155,6 +192,8 @@ public class Player extends mutation.sim.Player {
                 allPatterns.get(before.length() - 1).add(before);
                 int windowLength = finish - start + 1;
                 windowSizesCounts[windowLength - 1]++;
+                possibleWindows.add(window);
+                possibleWindows.add(window);
                 if (windowLength == maxMutagenLength) {
                     // TODO: Handle the case if two smaller mutations occured side by side
                     possibleWindows.add(window);
@@ -186,7 +225,7 @@ public class Player extends mutation.sim.Player {
                 // Get the string after
                 String after = mutated.substring(start, finish + 1);
                 // Modify the distribution
-                modifyRuleDistribution(before, after, modifierStep);
+                modifyRuleDistribution(before, after, modifierStep + momentum * rulesLength);
             }
 
             // Sample a mutagen
@@ -194,7 +233,7 @@ public class Player extends mutation.sim.Player {
             Mutagen guess = new Mutagen();
             while (!foundGuess) {
                 guess = sampleMutagen();
-                System.out.println("Guessing");
+                System.out.println("[>] Guessing");
                 if (!wrongMutagens.contains(guess)) {
                     foundGuess = true;
                 }
