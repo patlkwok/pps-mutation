@@ -1,6 +1,7 @@
 package mutation.g2;
 import java.lang.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Utilities {
 
@@ -41,6 +42,10 @@ public class Utilities {
     return consolidated;
   }
 
+  public static List<Integer> getChangeLocations(List<Change> changes) {
+    return changes.stream().map(c -> c.location).collect(Collectors.toList());
+  }
+
   // get single character changes and locations
   public static List<Change> getSingleChanges(String before, String after){
     int len = before.length();
@@ -78,9 +83,63 @@ public class Utilities {
     f+=pattern.charAt(pattern.length()-1);
     return f;
   }
+
+  public static List<Rule> generateRules(List<Change> changes) {
+    List<Rule> rules = new ArrayList<Rule>();
+    for(Change change:changes) {
+      boolean matchesRule = false;
+      for(Rule rule: rules) {
+        if(change.after.equals(rule.after)) {
+          matchesRule = true;
+          for(int i = 0; i<rule.before.length; i++) {
+            if(rule.before[i].indexOf(change.before.charAt(i)) < 0) {
+              //rule missing this possibility -- i.e. given gat -> ccc, if the rule was previously ac;a;t -> ccc make it gac;a;t -> ccc
+              rule.before[i] += change.before.charAt(i);
+            }
+          }
+          break;
+        }
+      }
+      if(!matchesRule) {
+        //Create new rule
+        String[] arr = new String[change.before.length()];
+        for(int i = 0; i<change.before.length(); i++) {
+          arr[i] = "" + change.before.charAt(i);
+        }
+        rules.add(new Rule(arr, change.after));
+      }
+    }
+    return rules;
+  }
+
 }
 
+class Rule {
+  public String[] before;
+  public String after;
 
+  public Rule(String[] b, String a) {
+    this.before = b;
+    this.after = a;
+  }
+  public String formatBefore() {
+    String rule = "";
+    for (String position : before) {
+      rule+=position;
+      rule += ";";
+    }
+    return rule.substring(0, rule.length()-1);
+  }
+  public String toString() {
+    String rule = "";
+    for (String position : before) {
+      rule+=position;
+      rule += ";";
+    }
+    rule += "@" + after;
+    return rule;
+  }
+}
 // ADT for a change type
 class Change implements Comparable<Change>{
   public String before, after;
@@ -111,4 +170,5 @@ class Change implements Comparable<Change>{
     String[] components = cs.split(delimiter);
     return new Change(components[0], components[1], -1);
   }
+
 }
