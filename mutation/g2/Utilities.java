@@ -19,7 +19,45 @@ public class Utilities {
   public static List<Change> diff(String before, String after){
     List<Change> singleChanges = getSingleChanges(before, after);
     Collections.sort(singleChanges);
-    return consolidateChanges(singleChanges);
+    List<Change> consolidatedChanges = consolidateChanges(singleChanges);
+    List<Change> withContext = generateContexts(consolidatedChanges, before, after);
+    return withContext;
+  }
+
+
+  public static List<Change> generateContexts(List<Change> changes, String before, String after){
+    List<Change> withContext = new ArrayList<Change>();
+    for(Change change: changes){
+      withContext.add(generateContext(change, before, after));
+    }
+    return withContext;
+  }
+
+  public static Change generateContext(Change c, String before, String after){
+    int changeLength = c.before.length();
+    int lookupLength = 10 - changeLength;
+    int startingPosition = c.location - lookupLength;
+    if(startingPosition < 0){
+      startingPosition = 1000 - startingPosition; //wrap around
+    }
+    System.out.println("lookupLength "+lookupLength);
+    System.out.println("startingPosition "+startingPosition);
+    System.out.println("changeLength "+changeLength);
+    System.out.println("Location "+c.location);
+    for(int i = 0; i <= lookupLength; i++){
+      int start = (startingPosition + i) % 1000;
+      System.out.println("Start "+start);
+      String beforeContext = "";
+      String afterContext = "";
+      for(int j = 0; j < 10; j++){
+        int current = (start+j)%1000;
+        beforeContext += ""+before.charAt(current);
+        afterContext += ""+after.charAt(current);
+      }
+      c.beforeContext.put((i-lookupLength), beforeContext);
+      c.afterContext.put((i-lookupLength), afterContext);
+    }
+    return c;
   }
 
   // consolidate a bunch of single letter changes by location
@@ -144,6 +182,8 @@ class Rule {
 class Change implements Comparable<Change>{
   public String before, after;
   public int location;
+  public HashMap<Integer, String> beforeContext = new HashMap<Integer, String>();
+  public HashMap<Integer, String> afterContext = new HashMap<Integer, String>();
   static String delimiter = " => ";
 
   public Change(String before, String after, int location){
@@ -158,6 +198,8 @@ class Change implements Comparable<Change>{
 
   @Override
   public String toString(){
+    System.out.println("Before: "+beforeContext);
+    System.out.println("After: "+afterContext);
     return getChange() + " @ " + this.location;
   }
 
