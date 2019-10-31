@@ -32,7 +32,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 100; ++ i) {
+        for (int i = 0; i < 10; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -46,19 +46,11 @@ public class Player extends mutation.sim.Player {
 
     public Mutagen getNaive(Element[] diff) {
         Mutagen result = new Mutagen();
-        int[][] set = new int[4][4];
+        /*int[][] set = new int[4][4];
 
         for(Element e : diff) {
             if(e.isMutated()) {
                 set[hash.get(e.getOG())][hash.get(e.getAfter())]++;
-            }
-        }
-
-        /*for(int i = 0; i < 4; i++) {
-            for(int j = 0; j < 4; j++) {
-                if(set[i][j] > 0) {
-                    result.add(Character.toString(antiHash.get(i)), Character.toString(antiHash.get(j)));
-                }
             }
         }*/
 
@@ -73,45 +65,59 @@ public class Player extends mutation.sim.Player {
 
         Window temp = winList.get(0);
         Set<String> left = new HashSet<>();
-        int length = getLength(winList);
-        length = length*2 - 1;
-        String output = "";
+        int length = getLength(winList.get(0));
+        
         for(Window w: winList) {
             String t = w.getOG();
-            System.out.println(length + " " + t.length());
-            if(t.length() == length) left.add(w.getOG());
+            System.out.println(t);
+            left.add(w.getOG());
         }
 
+        String output = "";
+
         if(left.size() == 1) {
-            result.add(temp.getOG(), temp.getAfter());
+            String out = putSemi(temp.getOG());
+            result.add(out, temp.getAfter());
             return result;
         }
         
         else {
-
-            for(int i = 0; i < length; i += 2) {
+            System.out.println("length " + length );
+            for(int i = 0; i < length; i++) {
                 Set<Character> c = new HashSet<>();
                 for(String s: left) {
-                    System.out.println(s);
-                    c.add(s.charAt(i));
+                    if(i < s.length())
+                        c.add(s.charAt(i));
                 }
-                for(char curr : c) {
-                    System.out.println(curr+".");
-                    output = output.concat(Character.toString(curr));
-                }
-                if(i != length - 1) output = output.concat(";");
+                output += combine(c);
+                System.out.println("c: " + c);
+                System.out.println(output);
+                if(i != length -1) output += ";";
             }
         }
         result.add(output, temp.getAfter());
         return result;
     }
 
-    public int getLength(List<Window> winList) {
-        int length = 11;
-        for(Window w: winList) {
-            if(w.getMutagenCount() < length) length = w.getMutagenCount();
+    public String combine(Set<Character> input) {
+        String output = "";
+        for(char c: input) {
+            output += Character.toString(c);
         }
-        return length;
+        return output;
+    }
+
+    public String putSemi(String s) {
+        String output = "";
+        for(int i = 0; i < s.length(); i++) {
+            output = output + Character.toString(s.charAt(i));
+            if(i != s.length()-1) output += ";";
+        }
+        return output;
+    }
+
+    public int getLength(Window w) {
+        return w.mutEnd - w.mutStart + 1;
     }
 
     public Element[] checkDifference(char[] input, char[] output) {
@@ -148,6 +154,7 @@ public class Player extends mutation.sim.Player {
             this.mutated = mutated;
             this.og = og;
             this.after = after;
+            if(!this.mutated) this.after = og;
         }
 
         public boolean isMutated() {
@@ -174,6 +181,8 @@ public class Player extends mutation.sim.Player {
     public class Window {
     	public int start;
     	public int end;
+        public int mutStart;
+        public int mutEnd;
     	public int mutagenCount;
     	public Element[] window;
 
@@ -184,13 +193,17 @@ public class Player extends mutation.sim.Player {
     	public Window(int left, int right, Element[] input) {
     		start = left;
     		end = right;
+            mutStart = -1;
+            mutEnd = -1;
     		mutagenCount = 0;
     		window = new Element[10];
     		int index = 0;
     		for(int i = left; i <= right; i++) {
-    			window[index++] = input[i];
+    			window[index++] = input[i%1000];
     			if(input[i].isMutated()) {
+                    if(mutStart == -1) mutStart = index-1;
     				mutagenCount++;
+                    mutEnd = index-1;
     			}
     		}
     	}
@@ -215,10 +228,10 @@ public class Player extends mutation.sim.Player {
 
         public String getAfter(){
             String temp = "";
-            for(int i = 0; i < 10; i++) {
-                if(window[i].isMutated()) {
-                    temp = temp.concat(Character.toString(window[i].getAfter()));
-                }
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = mutStart; i <= mutEnd; i++) {
+                temp = temp.concat(Character.toString(window[i].getAfter()));
             }
             return temp;
         }
@@ -226,18 +239,9 @@ public class Player extends mutation.sim.Player {
         public String getOG(){
             String temp = "";
             boolean first = true;
-            for(int i = 0; i < 10; i++) {
-                if(window[i].isMutated()) {
-                    if(first) {
-                        temp = temp.concat(Character.toString(window[i].getOG()));
-                        first = false;
-                    }
-                    else {
-                        temp = temp.concat(";").concat(Character.toString(window[i].getOG()));
-                    }
-                }
+            for(int i = mutStart; i <= mutEnd; i++) {
+                temp = temp.concat(Character.toString(window[i].getOG()));
             }
-
             return temp;
         }
     }
