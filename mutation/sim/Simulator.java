@@ -84,9 +84,9 @@ public class Simulator {
                     ++ intersection;
             int union = s1.size() + s2.size() - intersection;
 
-            System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Timed out. Jaccard score: " + intersection + "/" + union);
-
+            double score = (double)intersection / (double) union;
+            System.out.println("Jaccard score is: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%).");
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%)");
             System.exit(-1);
         } catch (Exception e) {
             StringWriter errors = new StringWriter();
@@ -110,15 +110,18 @@ public class Simulator {
                 data[i] = pool[Math.abs(random.nextInt() % 4)];
             String testStr = String.valueOf(data);
             Set<Long> s1 = target.jaccardSet(testStr);
+            Log.record("Target mutations: " + s1.size());
             Set<Long> s2 = result.jaccardSet(testStr);
+            Log.record("Result mutations: " + s2.size());
             int intersection = 0;
             for (Long entry : s2)
                 if (s1.contains(entry))
                     ++ intersection;
             int union = s1.size() + s2.size() - intersection;
 
-            System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union);
+            double score = (double)intersection / (double) union;
+            System.out.println("Jaccard score is: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%).");
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%)");
         }
 
         System.exit(0);
