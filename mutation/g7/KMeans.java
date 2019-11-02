@@ -64,9 +64,7 @@ public class KMeans{
     public static Set<Integer> initializeCentroids(int k){
         // Centroids initially set to random distances accross the genome 
         Set<Integer> centroids = new HashSet<>(); 
-        int max = 1000; 
-        int min = 0; 
-        for (int i = min ; i < max; i+=max/k)
+        for (int i = 0; i < 1000 && centroids.size()<k; i+=1000/k)
             centroids.add(i);
         return centroids;
     }

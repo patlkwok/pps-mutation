@@ -171,7 +171,7 @@ public class Player extends mutation.sim.Player {
             String mutated = console.Mutate(genome);
 
             KMeans cluster = new KMeans(genome, mutated); 
-            Map<Integer, LinkedList<Integer>> mutations = cluster.fit(10, 400);
+            Map<Integer, LinkedList<Integer>> mutations = cluster.fit(m, 400);
             // This if statement is just to check if correctly identified windows 
             if (true) {
                 printWindows(mutations, genome, mutated);
