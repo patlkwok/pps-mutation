@@ -25,6 +25,9 @@ public class Player extends mutation.sim.Player {
     private Double modifierStep = 1.5;
     private Double initialStep = 1.0;
 
+    // Time limit for when to break (in milliseconds)
+    private long timeLimit = 59500;
+
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<>();
 
@@ -104,7 +107,7 @@ public class Player extends mutation.sim.Player {
             patternKey += ";" + patternArr[i];
         }
         String rule = patternKey + "@" + action;
-        if(rules.containsKey(rule)) {
+        if (rules.containsKey(rule)) {
             Double prevProbability = rules.get(rule);
             Double newProbability = prevProbability * modifierStep;
             Double diff = newProbability - prevProbability;
@@ -124,9 +127,58 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+
+    private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n) {
+        Comparator<? super Map.Entry<K, V>> comparator = new Comparator<Map.Entry<K, V>>() {
+            @Override
+            public int compare(Map.Entry<K, V> e0, Map.Entry<K, V> e1) {
+                V v0 = e0.getValue();
+                V v1 = e1.getValue();
+                return v0.compareTo(v1);
+            }
+        };
+        PriorityQueue<Map.Entry<K, V>> highest = new PriorityQueue<Map.Entry<K, V>>(n, comparator);
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            highest.offer(entry);
+            while (highest.size() > n) {
+                highest.poll();
+            }
+        }
+        List<Map.Entry<K, V>> result = new ArrayList<Map.Entry<K, V>>();
+        while (highest.size() > 0) {
+            result.add(highest.poll());
+        }
+        return result;
+    }
+
+    private Mutagen getFinalMutagen() {
+        Mutagen mutagen = new Mutagen();
+        int numberOfRulesToCombine = allPatterns.size();
+        if (numberOfRulesToCombine == 0) {
+            numberOfRulesToCombine = 1;
+        }
+        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine);
+        for (Map.Entry<String, Double> patternActionPair : pairs) {
+            String pair = patternActionPair.getKey();
+            String[] patternAction = pair.split("@");
+            String pattern = patternAction[0];
+            String action = patternAction[1];
+            mutagen.add(pattern, action);
+        }
+        return mutagen;
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++i) {
+            // Check if we should terminate and return the final mutagen
+            //int numExpsLeft = console.getNumExpsLeft();
+            //long timeLeft = console.getTimeLeft();
+            //if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
+            //    System.out.println("Returning final Mutagen / " + numExpsLeft + " / " + timeLeft);
+            //    return getFinalMutagen();
+            //}
+
             // Get the genome
             String genome = randomString();
             String mutated = console.Mutate(genome);
