@@ -26,7 +26,7 @@ public class Player extends mutation.sim.Player {
     private Double initialStep = 1.0;
 
     // Time limit for when to break (in milliseconds)
-    private long timeLimit = 59500;
+    private long timeLimit = 1000;
 
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<>();
@@ -172,12 +172,12 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++i) {
             // Check if we should terminate and return the final mutagen
-            //int numExpsLeft = console.getNumExpsLeft();
-            //long timeLeft = console.getTimeLeft();
-            //if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
-            //    System.out.println("Returning final Mutagen / " + numExpsLeft + " / " + timeLeft);
-            //    return getFinalMutagen();
-            //}
+            int numExpsLeft = console.getNumExpsLeft();
+            long timeLeft = console.getTimeLeft();
+            if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
+                System.out.println("Returning final Mutagen");
+                return getFinalMutagen();
+            }
 
             // Get the genome
             String genome = randomString();
