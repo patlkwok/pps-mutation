@@ -67,6 +67,12 @@ public class Console {
         return correct;
     }
 
+    public int getNumExpsLeft() { return limit - numExps; }
+
+    public long getTimeLeft() {
+        return endTime - System.currentTimeMillis();
+    }
+
     public int getNumGuesses() {
         return numGuesses;
     }
@@ -90,6 +96,10 @@ public class Console {
     public void reportScore(String patterns, String actions, String score) {
         if (gui)
             sendGUI(server, state("", "", "", "", patterns, actions, score));
+    }
+
+    public void setEndTime(long time) {
+        endTime = time;
     }
 
     private String state(String genome, String mutated, String tPatterns, String tActions, String patterns, String actions, String score) {
@@ -143,4 +153,5 @@ public class Console {
     private String playerName;
     private double refresh;
     private Listagen listagen;
+    private long endTime;
 }

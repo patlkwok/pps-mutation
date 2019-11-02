@@ -62,6 +62,7 @@ public class Simulator {
 
         Log.record("Player " + name + " starts!");
         thread.call_start(() -> {
+            console.setEndTime(System.currentTimeMillis() + timeLimit);
             return player.Play(console, m);
         });
         try {
