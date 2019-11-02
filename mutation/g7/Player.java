@@ -152,21 +152,42 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+
+    private static void printWindows( Map<Integer, LinkedList<Integer>> mutations, String genome, String mutant){
+        for (Integer i : mutations.keySet()){
+            // I is current centroid 
+            System.out.println("Mutation " + i);
+            for (Integer j : mutations.get(i))
+                System.out.println(genome.charAt(j) + " ->" +mutant.charAt(j) );
+        }
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
+        
         for (int i = 0; i < numTrials; ++i) {
             // Get the genome
             String genome = randomString();
             String mutated = console.Mutate(genome);
+
+            KMeans cluster = new KMeans(genome, mutated); 
+            Map<Integer, LinkedList<Integer>> mutations = cluster.fit(10, 400);
+            // This if statement is just to check if correctly identified windows 
+            if (true) {
+                printWindows(mutations, genome, mutated);
+                return new Mutagen();
+            }
+            
             int genome_length = genome.length();
 
             // Add 10 last characters to beginning and 10 first characters to end of genome before / after mutation 
             // To simulate wrapping around 
-            genome = genome.substring(genome_length - 9, genome_length) + genome + genome.substring(0, 9);
-            mutated = mutated.substring(mutated.length() - 9, mutated.length()) + mutated + mutated.substring(0, 9);
+            int overlap = 9; 
+            genome = genome.substring(genome_length - overlap, genome_length) + genome + genome.substring(0, overlap);
+            mutated = mutated.substring(mutated.length() - overlap, mutated.length()) + mutated + mutated.substring(0, overlap);
             // Collect the change windows
             Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
-            for (int j = 9; j < genome_length; j++) {
+            for (int j = overlap; j < genome_length; j++) {
                 char before = genome.charAt(j);
                 char after = mutated.charAt(j);
                 if (before != after) {
