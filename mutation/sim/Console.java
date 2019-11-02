@@ -10,6 +10,7 @@ public class Console {
 
     public Console(int limit, int m, Mutagen mutagen, boolean gui, HTTPServer server, String playerName, double refresh) {
         this.mutagen = mutagen;
+        this.listagen = new Listagen(mutagen);
         this.limit = limit;
         this.m = m;
         this.gui = gui;
@@ -38,6 +39,22 @@ public class Console {
         if (correct) return correct;
         ++ numGuesses;
         correct = mutagen.equals(other);
+        lastGuess.getPatterns().clear();
+        lastGuess.getActions().clear();
+        lastGuess.getPatterns().addAll(other.getPatterns());
+        lastGuess.getActions().addAll(other.getActions());
+        if (gui) {
+            String score = "";
+            if (correct) score = "Correct!";
+            sendGUI(server, state("", "", "", "", String.join("@", other.getPatterns()), String.join("@", other.getActions()), score));
+        }
+        return correct;
+    }
+
+    public boolean testEquiv(Mutagen other) {
+        if (correct) return correct;
+        ++ numGuesses;
+        correct = listagen.equals(new Listagen(other));
         lastGuess.getPatterns().clear();
         lastGuess.getActions().clear();
         lastGuess.getPatterns().addAll(other.getPatterns());
@@ -125,4 +142,5 @@ public class Console {
     private HTTPServer server;
     private String playerName;
     private double refresh;
+    private Listagen listagen;
 }
