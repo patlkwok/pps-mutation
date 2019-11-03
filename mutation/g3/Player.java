@@ -12,20 +12,25 @@ import mutation.sim.Mutagen;
  */
 public class Player extends mutation.sim.Player {
 
-    private final static double GUESSING_THRESHOLD = 0;
+    private final static double GUESSING_THRESHOLD = -150;
 
     private final Random random;
     private final List<Mutation> expHistory;
-    private final RuleEnumerator enumerator;
-    private final HashMap<Rule, Double> candidateRules;
+    private final RuleInferenceEngine inferenceEngine;
+    private final Set<Rule> ruledOutRules;
+    private final List<ChangeBasedDistribution> changeDists;
+    private RunningDistribution distribution;
     private int consideredWindowSize = 1;
     private int windowCleared = 0;
 
     public Player() {
         random = new Random();
         expHistory = new ArrayList<>();
-        enumerator = new RuleEnumerator();
-        candidateRules = new HashMap<>();
+        inferenceEngine = new RuleInferenceEngine();
+        ruledOutRules = new HashSet<>();
+        changeDists = new ArrayList<>();
+        distribution = new RunningDistribution(consideredWindowSize);
+        inferenceEngine.setPriorDistribution(distribution);
     }
 
     @Override
@@ -115,41 +120,27 @@ public class Player extends mutation.sim.Player {
                 = getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), consideredWindowSize);
         // filter out coliding mutations from mutations
         for (HashSet<Mutation> world : mutations) {
-            HashMap<Rule, Double> localRules = updateBelievesPossibleWindows(world);
-            for (Entry<Rule, Double> pr : localRules.entrySet()) {
-                Double pVal = candidateRules.get(pr.getKey());
-                if ((pVal != null && pVal > 0) || windowCleared < pr.getKey().getScopeSize()) {
-                    if (pVal == null) {
-                        pVal = 1.0;
-                    }
-                    candidateRules.put(pr.getKey(), pVal * pr.getValue());
-                }
-            }
-            windowCleared = consideredWindowSize;
-            // filter out rules that are not consistent with new experiment for at least
-            // one window
-            candidateRules.entrySet().removeIf((cr) -> (!localRules.containsKey(cr.getKey())));
+            final ChangeBasedDistribution changeDist = getChangeDistribution(world);
+            changeDists.add(changeDist);
+            distribution.aggregate(changeDist);
+            inferenceEngine.setPriorDistribution(distribution);
         }
     }
 
     /**
-     * Get all rules that could produce at least one of the mutations in the
-     * given set, and associates the highest probability with any of such
-     * mutations to the rule
+     * Formulates a probabilistic theory (a distribution) for the rules that
+     * could have caused any of the mutations in the given world (change)
+     * setting
      *
      * @param world a set of possible mutations
-     * @return a map of rules and their probabilities
+     * @return a theory for the possible mutations
      */
-    protected HashMap<Rule, Double> updateBelievesPossibleWindows(HashSet<Mutation> world) {
-        HashMap<Rule, Double> localRules = new HashMap<>();
+    protected ChangeBasedDistribution getChangeDistribution(HashSet<Mutation> world) {
+        List<RuleDistribution> dists = new ArrayList<>();
         for (Mutation mut : world) {
-            Map<Rule, Double> possibleRules = enumerator.enumerate(mut.getOriginal(), mut.getMutated()); // black box
-            for (Entry<Rule, Double> pr : possibleRules.entrySet()) {
-                Double pVal = localRules.get(pr.getKey());
-                localRules.put(pr.getKey(), Math.max((pVal != null ? pVal : 0), pr.getValue()));
-            }
+            dists.add(inferenceEngine.getDistribution(mut.getOriginal(), mut.getMutated()));
         }
-        return localRules;
+        return new ChangeBasedDistribution(dists);
     }
 
     /**
@@ -171,7 +162,10 @@ public class Player extends mutation.sim.Player {
                 // if there is space to grow
                 if (consideredWindowSize < 10) {
                     consideredWindowSize++;
-                    candidateRules.clear();
+                    ruledOutRules.clear();
+                    changeDists.clear();
+                    distribution = new RunningDistribution(consideredWindowSize);
+                    inferenceEngine.setPriorDistribution(distribution);
                     for (Mutation m : expHistory) {
                         updateBelieves(m);
                     }
@@ -193,7 +187,8 @@ public class Player extends mutation.sim.Player {
     protected void guessedWrong(Mutagen guess) {
         // remove the guessed rule from the candidates
         if (guess.getPatterns().size() == 1) {
-            candidateRules.remove(new Rule(guess.getPatterns().get(0), guess.getActions().get(0)));
+            ruledOutRules.add(Rule.fromString(
+                    guess.getPatterns().get(0), guess.getActions().get(0)));
         }
     }
 
@@ -207,27 +202,44 @@ public class Player extends mutation.sim.Player {
      * @throws NoMoreCandidateRulesException if we run out of rules to guess
      */
     protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException, NoMoreCandidateRulesException {
-        HashMap<Rule, Double> sortedRules = sortRules(candidateRules);
-        int maxRules = 1;
-        int rules = 0;
-        Mutagen result = new Mutagen();
+        Set<Rule> candidateRules = new HashSet<>();
+        //distribution.ruleOut(ruledOutRules);
+        candidateRules.addAll(distribution.getMostLikelyRules(ruledOutRules));
         if (candidateRules.isEmpty()) {
             throw new NoMoreCandidateRulesException();
         }
-        boolean notLikelyEnough = false;
-        for (Entry<Rule, Double> s : sortedRules.entrySet()) {
-            if (s.getValue() <= GUESSING_THRESHOLD) {
-                notLikelyEnough = true;
-            }
+        Rule mlRule = candidateRules.iterator().next();
+        double mlRuleLL = distribution.getLogLikelihood(mlRule);
+//        do {
+//            candidateRules.clear();
+//            for (ChangeBasedDistribution t : changeDists) {
+//                t.ruleOut(ruledOutRules);
+//                candidateRules.addAll(t.getMostLikelyRules(ruledOutRules));
+//            }
+//            for (Rule r : candidateRules) {
+//                double likelihood = 0;
+//                for (ChangeBasedDistribution t : changeDists) {
+//                    double likelihoodInTheory = t.getLogLikelihood(r);
+//                    if (likelihoodInTheory == Double.NEGATIVE_INFINITY) {
+//                        likelihood = Double.NEGATIVE_INFINITY;
+//                        ruledOutRules.add(r);
+//                        break;
+//                    }
+//                    likelihood += likelihoodInTheory;
+//                    if (likelihood < mlRuleLL) {
+//                        break;
+//                    }
+//                }
+//                if (likelihood > mlRuleLL) {
+//                    mlRule = r;
+//                    mlRuleLL = likelihood;
+//                }
+//            }
+//        } while (!candidateRules.isEmpty() && mlRule == null);
 
-            if (rules < maxRules) {
-                result.add(s.getKey().getPattern(), s.getKey().getAction());
-                rules++;
-            } else {
-                break;
-            }
-        }
-        if (notLikelyEnough) {
+        Mutagen result = new Mutagen();
+        result.add(mlRule.getPatternString(), mlRule.getAction());
+        if (mlRuleLL < GUESSING_THRESHOLD) {
             throw new NotConfidentEnoughException(result);
         }
         return result;
@@ -276,9 +288,6 @@ public class Player extends mutation.sim.Player {
             int j = i;
             do {
                 j++;
-                if (j % numChanges < 0) {
-                    System.out.println("Here");
-                }
                 nextChangePos = changes.get(j % numChanges);
                 if (nextChangePos <= curChangePos) {
                     nextChangePos += original.length();
