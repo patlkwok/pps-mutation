@@ -15,7 +15,7 @@ import static java.util.Map.Entry.*;
 public class Player extends mutation.sim.Player {
 
     private Random random;
-    private Map<String, Double> rules = new HashMap<String, Double>();
+    private Map<String, Double> rules = new HashMap<>();
 
     private Map<Integer, Double> lengthMap;
     private double numPerm = 0.0;
@@ -58,6 +58,19 @@ public class Player extends mutation.sim.Player {
         it = rules.entrySet().iterator();
         Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
         return pair.getKey();
+    }
+
+    private List<String> getTopRules(){
+        List<Double> allRules = new ArrayList<>(rules.values());
+        Collections.sort(allRules, Collections.reverseOrder());
+        double threshold = allRules.get(allPatterns.size() - 1);
+        List<String> topRules = new ArrayList<>();
+        for(String rule : rules.keySet()){
+            if(rules.get(rule) >= threshold){
+                topRules.add(rule);
+            }
+        }
+        return topRules;
     }
 
     private String samplePairOfLength(int length) {

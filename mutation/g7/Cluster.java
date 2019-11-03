@@ -71,7 +71,7 @@ public class Cluster{
             for (int j=0; j < mutated_bases.size(); j++){
                 if (distances[i][j] < min && distances[i][j] != 0){
                     min = distances[i][j];
-                    min_pair = new Pair<Integer,Integer>(i, j);
+                    min_pair = new Pair<>(i, j);
                 }
             }
         }
