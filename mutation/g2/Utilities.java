@@ -111,7 +111,70 @@ public class Utilities {
     }
     return rules;
   }
+  
+  private static Set<Character> getIndexes(String genome, char base) {
+	Set<Character> results = new HashSet<Character>();
+	char[] bases = genome.toCharArray();
+	for(int i = 0; i < bases.length; i++) {
+		if(bases[i] == base) {
+			results.add((char)(i + '0'));
+		}
+	}
+	return results;
+  }
+  
+  private static Set<Character> singlePossibleChar(Map<Character, Set<Character>> indexSets, char base) {
+	  Set<Character> indexes = new HashSet<Character>(indexSets.get(base));
+	  indexes.add(base);
+	  return indexes;
+  }
 
+  public static Set<Character>[] toSets(String before, String after) {
+	char[] pool = {'a', 'c', 'g', 't'};
+	Map<Character, Set<Character>> indexSets = new HashMap<>();
+	for(char c: pool) {
+		indexSets.put(c, getIndexes(before, c));
+	}
+	Set<Character>[] results = new Set[10];
+	for(int i = 0; i < 10; i++) {
+		results[i] = singlePossibleChar(indexSets, after.charAt(i));
+	}
+	return results;
+  }
+  
+  private static List<Character> findSameInTwoSets(Set<Character> set1, Set<Character> set2) {
+	  List<Character> res = new ArrayList<Character>();
+	  for(char c: set1) {
+		  if(set2.contains(c))
+			  res.add(c);
+	  }
+	  return res;
+  }
+  
+  private static void backtracking(List<List<Character>> possibleBases, List<String> results, StringBuilder temp) {
+	  if(temp.length() == possibleBases.size()) {
+		  results.add(temp.toString());
+		  return;
+	  }
+	  for(char c: possibleBases.get(temp.length())) {
+		  temp.append(c);
+		  backtracking(possibleBases, results, temp);
+		  temp.deleteCharAt(temp.length()-1);
+	  }
+  }
+  
+  public static List<String> compareTwoMutations(Set<Character>[] mutation1, Set<Character>[] mutation2) {
+	  List<List<Character>> possibleBases = new ArrayList<List<Character>>();
+	  for(int i = 0; i < 10; i++) {
+		  List<Character> possibleBase = findSameInTwoSets(mutation1[i], mutation2[i]);
+		  if(possibleBase.size() == 0)
+			  break;
+		  possibleBases.add(possibleBase);
+	  }
+	  List<String> results = new ArrayList<String>();
+	  backtracking(possibleBases, results, new StringBuilder());
+	  return results;
+  }
 }
 
 class Rule {
@@ -139,6 +202,7 @@ class Rule {
     rule += "@" + after;
     return rule;
   }
+  
 }
 // ADT for a change type
 class Change implements Comparable<Change>{
