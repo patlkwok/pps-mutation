@@ -7,6 +7,10 @@ import mutation.sim.Mutagen;
 
 import javafx.util.Pair;
 
+import java.util.Map; 
+import static java.util.stream.Collectors.*; 
+import static java.util.Map.Entry.*;
+
 
 public class Player extends mutation.sim.Player {
 
@@ -154,10 +158,11 @@ public class Player extends mutation.sim.Player {
 
 
     private static void printWindows( Map<Integer, LinkedList<Integer>> mutations, String genome, String mutant){
-        for (Integer i : mutations.keySet()){
+        Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
+        for (Integer i : sorted.keySet()){
             // I is current centroid 
             System.out.println("Mutation " + i);
-            for (Integer j : mutations.get(i))
+            for (Integer j : sorted.get(i))
                 System.out.println(genome.charAt(j) + " ->" +mutant.charAt(j) );
         }
     }
@@ -170,8 +175,8 @@ public class Player extends mutation.sim.Player {
             String genome = randomString();
             String mutated = console.Mutate(genome);
 
-            KMeans cluster = new KMeans(genome, mutated); 
-            Map<Integer, LinkedList<Integer>> mutations = cluster.fit(m, 400);
+            Cluster cluster = new Cluster(genome, mutated);
+            Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(m);
             // This if statement is just to check if correctly identified windows 
             if (true) {
                 printWindows(mutations, genome, mutated);

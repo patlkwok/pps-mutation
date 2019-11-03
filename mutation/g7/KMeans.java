@@ -2,7 +2,6 @@ package mutation.g7;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.*;
-import java.util.Random; 
 
 /*
     Adapted from https://www.baeldung.com/java-k-means-clustering-algorithm
@@ -18,7 +17,7 @@ public class KMeans{
         }
     }
 
-    public static Map<Integer, LinkedList<Integer>> fit(int k,int maxIterations) {
+    public Map<Integer, LinkedList<Integer>> fit(int k,int maxIterations) {
     
         // generate random centroids (originally equidistant accross genome)
         Set<Integer> centroids = initializeCentroids(k);
