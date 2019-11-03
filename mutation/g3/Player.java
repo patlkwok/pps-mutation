@@ -109,26 +109,39 @@ public class Player extends mutation.sim.Player {
     }
 
     /**
-     * Given a whole mutation genome and the number of mutations applied
-     * try to guess the window size of the rule and skip / advance global considered window size
+     * Given a whole mutation genome and the number of mutations applied try to
+     * guess the window size of the rule and skip / advance global considered
+     * window size
      *
      * @param mutation the observed mutation
      * @param q number of mutations that could be applied
      */
-    
     private void skipBadWindowSizes(Mutation mutation, int q) {
         // the length of getPossibleMutations is the number of times we propose a mutation happened
         // we now check this against q, the number of actual mutations.  If q is smaller, we need to
         // bump up our window size; we might be counting 1 mutation as 2 or 3.
-        while (true) {
-            List<HashSet<Mutation>> mutations = 
-                getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), consideredWindowSize, false);
+        int localWindowSize = consideredWindowSize;
+        while (localWindowSize < 10) {
+            List<HashSet<Mutation>> mutations
+                    = getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), localWindowSize, false);
             if (mutations.size() > q) {
-                consideredWindowSize += 1;  // increment global window size to save time considering too small windows
-                System.out.println("considered widow size increased to: " + String.valueOf(consideredWindowSize));
+                localWindowSize += 1;  // increment global window size to save time considering too small windows
+                System.out.println("considered widow size increased to: " + String.valueOf(localWindowSize));
+            } else {
+                break;
             }
-            else {break;}
         }
+        if (localWindowSize != consideredWindowSize) {
+            setConsideredWindowSize(localWindowSize);
+        }
+    }
+
+    protected void setConsideredWindowSize(int size) {
+        this.consideredWindowSize = size;
+        ruledOutRules.clear();
+        changeDists.clear();
+        distribution = new RunningDistribution(consideredWindowSize);
+        inferenceEngine.setPriorDistribution(distribution);
     }
 
     /**
@@ -187,11 +200,7 @@ public class Player extends mutation.sim.Player {
                 // too small, we increase it and reevaluate the evidence so far
                 // if there is space to grow
                 if (consideredWindowSize < 10) {
-                    consideredWindowSize++;
-                    ruledOutRules.clear();
-                    changeDists.clear();
-                    distribution = new RunningDistribution(consideredWindowSize);
-                    inferenceEngine.setPriorDistribution(distribution);
+                    setConsideredWindowSize(consideredWindowSize + 1);
                     for (Mutation m : expHistory) {
                         updateBelieves(m, q);
                     }
@@ -291,7 +300,8 @@ public class Player extends mutation.sim.Player {
      * @param original the original string
      * @param mutated changed string
      * @param windowSize size of the window
-     * @param ignoreCollisions if true, only return sets of mutations far enough away to avoid composition of mutations
+     * @param ignoreCollisions if true, only return sets of mutations far enough
+     * away to avoid composition of mutations
      * @return list of all changed pieces
      */
     private List<HashSet<Mutation>> getPossibleMutations(String original, String mutated, int windowSize, boolean ignoreCollisions) {
@@ -329,8 +339,7 @@ public class Player extends mutation.sim.Player {
             mutations.add(extractWindows(original, mutated, curChangePos, margin, windowSize));
             if (ignoreCollisions) {
                 i = j + windowSize;  // look for more mutations far enough away to avoid composition of mutations
-            }
-            else {
+            } else {
                 i = j + 1;
             }
         }
