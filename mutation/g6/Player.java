@@ -61,6 +61,7 @@ public class Player extends mutation.sim.Player {
         int length = getLength(winList.get(0));
         
         String output = getWinInt(winList);
+        String leftOne = "";
 		System.out.println("leftis1: " + output);
 
 		for(Window w: winList) {
@@ -77,6 +78,7 @@ public class Player extends mutation.sim.Player {
         }
         
         else {
+        	
         	System.out.println("flag");
             //System.out.println("length " + length );
             for(int i = 0; i < length; i++) {
@@ -85,14 +87,13 @@ public class Player extends mutation.sim.Player {
                     if(i < s.length())
                         c.add(s.charAt(i));
                 }
-                output += combine(c);
+                leftOne += combine(c);
                 //System.out.println("c: " + c);
                 //System.out.println(output);
-                if(i != length -1) output += ";";
+                if(i != length -1) leftOne += ";";
             }
         }
-        System.out.println("output: " + getWinInt(winList));
-        result.add(output, getWinInt(winList));
+        result.add(leftOne, getWinInt(winList));
         return result;
     }
 
