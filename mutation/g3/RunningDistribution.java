@@ -38,8 +38,8 @@ public class RunningDistribution extends MutationBasedDistribution {
                 pis.get(i).put(x, p2log(priorPerLength[nBases] / numMatches[nBases]));
             }
         }
-        final double aiUniformLetter = p2log(1.1 / (4 + scope));
-        final double aiUniformDigit = p2log(0.9 / (4 + scope));
+        final double aiUniformLetter = p2log(1.0 / (4 + scope));
+        final double aiUniformDigit = p2log(1.0 / (4 + scope));
         for (int i = 0; i < scope; i++) {
             ais.add(new LinkedHashMap<>());
             for (char x = '0'; x < '0' + scope; x++) {
