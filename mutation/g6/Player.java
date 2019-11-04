@@ -32,7 +32,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 1; ++ i) {
+        for (int i = 0; i < 10; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -54,7 +54,8 @@ public class Player extends mutation.sim.Player {
         		i+=10;
         	}
         }
-
+        if (winList.isEmpty())
+            return result;
         Window temp = winList.get(0);
         Set<String> left = new HashSet<>();
         int length = getLength(winList.get(0));
@@ -119,29 +120,13 @@ public class Player extends mutation.sim.Player {
     }
 
     public String getWinInt(List<Window> list){
-    	String output = "";
-    	for(Window w: list) {
-    		for(int i = 0; i < 19; i++) {
-    			System.out.print(w.getWindow()[i].getAfter());
-    		}
-    		System.out.println();
-    	}
-    	for(int i = 0; i < 19; i++) {
-    		char temp = list.get(0).getWindow()[i].getAfter();
-    		boolean same = true;
-    		for(Window w: list) {
-    			if(w.getWindow()[i].getAfter() != temp) {
-    				same = false;
-    				break;
-    			}
-    		}
-    		if(same) output += Character.toString(temp);
-    	}
+        String output = list.get(0).getAfterString();
+        for(Window w: list) {
+            String other = w.getAfterString();
+            output = LCSubStr(output, other, output.length(), other.length());
+        }
+        System.out.println(output);
     	return output;
-    }
-
-    public String getMaxSubString(String a, String b) {
-    	
     }
 
     public String combine(Set<Character> input) {
@@ -178,6 +163,68 @@ public class Player extends mutation.sim.Player {
             else diff[i] = new Element(input[i]);
         }
         return diff;
+    }
+
+    private String LCSubStr(String X, String Y, int m, int n)
+    {
+        // Create a table to store lengths of longest common
+        // suffixes of substrings.   Note that LCSuff[i][j]
+        // contains length of longest common suffix of X[0..i-1]
+        // and Y[0..j-1]. The first row and first column entries
+        // have no logical meaning, they are used only for
+        // simplicity of program
+        int[][] LCSuff = new int[m + 1][n + 1];
+
+        // To store length of the longest common substring
+        int len = 0;
+
+        // To store the index of the cell which contains the
+        // maximum value. This cell's index helps in building
+        // up the longest common substring from right to left.
+        int row = 0, col = 0;
+
+        /* Following steps build LCSuff[m+1][n+1] in bottom
+           up fashion. */
+        for (int i = 0; i <= m; i++) {
+            for (int j = 0; j <= n; j++) {
+                if (i == 0 || j == 0)
+                    LCSuff[i][j] = 0;
+
+                else if (X.charAt(i - 1) == Y.charAt(j - 1)) {
+                    LCSuff[i][j] = LCSuff[i - 1][j - 1] + 1;
+                    if (len < LCSuff[i][j]) {
+                        len = LCSuff[i][j];
+                        row = i;
+                        col = j;
+                    }
+                }
+                else
+                    LCSuff[i][j] = 0;
+            }
+        }
+
+        // if true, then no common substring exists
+        if (len == 0) {
+            System.out.println("No Common Substring");
+            return "";
+        }
+
+        // allocate space for the longest common substring
+        String resultStr = "";
+
+        // traverse up diagonally form the (row, col) cell
+        // until LCSuff[row][col] != 0
+        while (LCSuff[row][col] != 0) {
+            resultStr = X.charAt(row - 1) + resultStr; // or Y[col-1]
+            --len;
+
+            // move diagonally up to previous cell
+            row--;
+            col--;
+        }
+
+        // required longest common substring
+        return resultStr;
     }
 
     public class Element {
@@ -281,6 +328,17 @@ public class Player extends mutation.sim.Player {
             }
             return temp;
         }
+
+        public String getAfterString() {
+            String temp = "";
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = 0; i < 19; i++) {
+                temp = temp.concat(Character.toString(window[i].getAfter()));
+            }
+            return temp;
+        }
+
 
         public String getOG(){
             String temp = "";
