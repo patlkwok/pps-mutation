@@ -62,6 +62,7 @@ public class Simulator {
 
         Log.record("Player " + name + " starts!");
         thread.call_start(() -> {
+            console.setEndTime(System.currentTimeMillis() + timeLimit);
             return player.Play(console, m);
         });
         try {
@@ -103,6 +104,12 @@ public class Simulator {
         } else {
             console.reportScore("", "", "Score pending");
             System.out.println("Failed, calculating Jaccard score.");
+            List<String> patterns = result.getPatterns();
+            List<String> actions = result.getActions();
+            System.out.println("Player's guess: ");
+            for (int i = 0; i < patterns.size(); ++ i)
+                System.out.println(patterns.get(i) + " => " + actions.get(i));
+
             char[] pool = {'a', 'c', 'g', 't'};
             char[] data = new char[1000000];
             random = new Random();
