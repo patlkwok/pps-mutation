@@ -60,19 +60,6 @@ public class Player extends mutation.sim.Player {
         return pair.getKey();
     }
 
-    private List<String> getTopRules(){
-        List<Double> allRules = new ArrayList<>(rules.values());
-        Collections.sort(allRules, Collections.reverseOrder());
-        double threshold = allRules.get(allPatterns.size() - 1);
-        List<String> topRules = new ArrayList<>();
-        for(String rule : rules.keySet()){
-            if(rules.get(rule) >= threshold){
-                topRules.add(rule);
-            }
-        }
-        return topRules;
-    }
-
     private String samplePairOfLength(int length) {
         for (int i = 0; i < 1000; i++) {
             Double random = Math.random() * rulesLength;
@@ -145,23 +132,24 @@ public class Player extends mutation.sim.Player {
     }
 
 
-    private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n) {
+    private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n, boolean isMinHeap) {
         Comparator<? super Map.Entry<K, V>> comparator = new Comparator<Map.Entry<K, V>>() {
             @Override
             public int compare(Map.Entry<K, V> e0, Map.Entry<K, V> e1) {
                 V v0 = e0.getValue();
                 V v1 = e1.getValue();
-                return v0.compareTo(v1);
+                if(isMinHeap) return v0.compareTo(v1);
+                return v1.compareTo(v0);
             }
         };
-        PriorityQueue<Map.Entry<K, V>> highest = new PriorityQueue<Map.Entry<K, V>>(n, comparator);
+        PriorityQueue<Map.Entry<K, V>> highest = new PriorityQueue<>(n, comparator);
         for (Map.Entry<K, V> entry : map.entrySet()) {
             highest.offer(entry);
             while (highest.size() > n) {
                 highest.poll();
             }
         }
-        List<Map.Entry<K, V>> result = new ArrayList<Map.Entry<K, V>>();
+        List<Map.Entry<K, V>> result = new ArrayList<>();
         while (highest.size() > 0) {
             result.add(highest.poll());
         }
@@ -174,7 +162,7 @@ public class Player extends mutation.sim.Player {
         if (numberOfRulesToCombine == 0) {
             numberOfRulesToCombine = 1;
         }
-        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine);
+        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
             String[] patternAction = pair.split("@");
@@ -196,6 +184,27 @@ public class Player extends mutation.sim.Player {
         }
     }
 
+    private String createString(){
+        int n = allPatterns.size() != 0 ? allPatterns.size() : 1;
+        List<Map.Entry<String, Double>> greatest = findGreatest(rules, n, true);
+        List<Map.Entry<String, Double>> lowest = findGreatest(rules, n, false);
+        String result = "";
+        int counter = 0;
+        while(result.length() < 1000){
+            String pair;
+            if(counter % 2 == 0){
+                pair = greatest.get((int) Math.floor(Math.random() * n)).getKey();
+            }
+            else{
+                pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
+            }
+            pair = pair.split("@")[0];
+            result += pair;
+            counter++;
+        }
+        return result.substring(0, 1000);
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
 
@@ -209,7 +218,7 @@ public class Player extends mutation.sim.Player {
             }
 
             // Get the genome
-            String genome = randomString();
+            String genome = createString();
             String mutated = console.Mutate(genome);
 
             Cluster cluster = new Cluster(genome, mutated);
@@ -281,16 +290,23 @@ public class Player extends mutation.sim.Player {
                 modifyRuleDistribution(before, after);
             }
 
-            // Sample a mutagen
-            boolean foundGuess = false;
-            Mutagen guess = new Mutagen();
-            while (!foundGuess) {
-                guess = sampleMutagen();
-                System.out.println("[>] Guessing");
-                if (!wrongMutagens.contains(guess)) {
-                    foundGuess = true;
+            Mutagen guess;
+            if(i < 100){
+                guess = getFinalMutagen();
+            }
+            else{
+                // Sample a mutagen
+                boolean foundGuess = false;
+                guess = new Mutagen();
+                while (!foundGuess) {
+                    guess = sampleMutagen();
+                    System.out.println("[>] Guessing");
+                    if (!wrongMutagens.contains(guess)) {
+                        foundGuess = true;
+                    }
                 }
             }
+
             boolean isCorrect = console.Guess(guess);
             if (isCorrect) {
                 return guess;
