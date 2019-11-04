@@ -32,7 +32,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 10; ++ i) {
+        for (int i = 0; i < 1; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -46,14 +46,6 @@ public class Player extends mutation.sim.Player {
 
     public Mutagen getNaive(Element[] diff) {
         Mutagen result = new Mutagen();
-        /*int[][] set = new int[4][4];
-
-        for(Element e : diff) {
-            if(e.isMutated()) {
-                set[hash.get(e.getOG())][hash.get(e.getAfter())]++;
-            }
-        }*/
-
         List<Window> winList = new ArrayList<>();
         for(int i = 0; i < 1000; i++) {
         	if(diff[i].isMutated()) {
@@ -67,22 +59,25 @@ public class Player extends mutation.sim.Player {
         Set<String> left = new HashSet<>();
         int length = getLength(winList.get(0));
         
-        for(Window w: winList) {
-            String t = w.getOG();
-            System.out.println(t);
-            left.add(w.getOG());
+        String output = getWinInt(winList);
+		System.out.println("leftis1: " + output);
+
+		for(Window w: winList) {
+            String t = getLeft(w, output);
+            System.out.println("left: " + t);
+            left.add(t);
         }
 
-        String output = "";
-
         if(left.size() == 1) {
-            String out = putSemi(temp.getOG());
-            result.add(out, temp.getAfter());
+        	String out = "";
+            for(String s: left) out = putSemi(s);
+            result.add(out, output);
             return result;
         }
         
         else {
-            System.out.println("length " + length );
+        	System.out.println("flag");
+            //System.out.println("length " + length );
             for(int i = 0; i < length; i++) {
                 Set<Character> c = new HashSet<>();
                 for(String s: left) {
@@ -90,13 +85,63 @@ public class Player extends mutation.sim.Player {
                         c.add(s.charAt(i));
                 }
                 output += combine(c);
-                System.out.println("c: " + c);
-                System.out.println(output);
+                //System.out.println("c: " + c);
+                //System.out.println(output);
                 if(i != length -1) output += ";";
             }
         }
-        result.add(output, temp.getAfter());
+        System.out.println("output: " + getWinInt(winList));
+        result.add(output, getWinInt(winList));
         return result;
+    }
+
+    public String getLeft(Window w, String output) {
+    	Element[] e = w.getWindow();
+    	String out = "";
+    	if(output == "") return "";
+    	for(int i = 0; i < 19; i++) {
+    		if(e[i].getAfter() == output.charAt(0)) {
+    			out += Character.toString(e[i].getOG());
+    			boolean sub = true;
+    			for(int j = 1; j < output.length(); j++) {
+    				if(i+j > 18) break;
+    				if(e[j+i].getAfter() != output.charAt(j)) {
+    					sub = false;
+    					break;
+    				}
+    				else out += Character.toString(e[j+i].getOG());
+    			}
+    			if(sub) return out;
+    			else out = "";
+    		}
+    	}
+    	return out;
+    }
+
+    public String getWinInt(List<Window> list){
+    	String output = "";
+    	for(Window w: list) {
+    		for(int i = 0; i < 19; i++) {
+    			System.out.print(w.getWindow()[i].getAfter());
+    		}
+    		System.out.println();
+    	}
+    	for(int i = 0; i < 19; i++) {
+    		char temp = list.get(0).getWindow()[i].getAfter();
+    		boolean same = true;
+    		for(Window w: list) {
+    			if(w.getWindow()[i].getAfter() != temp) {
+    				same = false;
+    				break;
+    			}
+    		}
+    		if(same) output += Character.toString(temp);
+    	}
+    	return output;
+    }
+
+    public String getMaxSubString(String a, String b) {
+    	
     }
 
     public String combine(Set<Character> input) {
@@ -196,11 +241,12 @@ public class Player extends mutation.sim.Player {
             mutStart = -1;
             mutEnd = -1;
     		mutagenCount = 0;
-    		window = new Element[10];
+    		window = new Element[19];
     		int index = 0;
-    		for(int i = left; i <= right; i++) {
+
+    		for(int i = left-9+1000; i <= right+1000; i++) {
     			window[index++] = input[i%1000];
-    			if(input[i].isMutated()) {
+    			if(input[i%1000].isMutated()) {
                     if(mutStart == -1) mutStart = index-1;
     				mutagenCount++;
                     mutEnd = index-1;
