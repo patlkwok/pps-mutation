@@ -128,6 +128,12 @@ public class RuleInferenceEngine {
                     totalPossibleProb = logPAdd(totalPossibleProb, priorDist.getPiLikelihood(i, x));
                 }
             }
+            if (totalPossibleProb == LOG_ZERO_PROB) {
+                return LOG_ZERO_PROB;
+            }
+            if (prior - totalPossibleProb == Double.POSITIVE_INFINITY) {
+                System.out.println("Here");
+            }
             return prior - totalPossibleProb; //normalize by dividing (in log space)
         } else {
             // our prior belief distribution about the length of pi.  Index i is our prior for length i.  0.0 is a dummy.
@@ -159,7 +165,7 @@ public class RuleInferenceEngine {
         // if the prior says that the probability of this ai is zero, return now
         if (priorDist != null && priorDist.getAiLikelihood(i, ai) == LOG_ZERO_PROB) {
             return LOG_ZERO_PROB;
-        } 
+        }
         double possibleActionsProb = LOG_ZERO_PROB;
         for (int j = 0; j < s.length(); j++) {
             char base = s.charAt(j);
@@ -170,7 +176,8 @@ public class RuleInferenceEngine {
         possibleActionsProb = logPAdd(possibleActionsProb, priorDist != null ? priorDist.getAiLikelihood(i, ti) : aiUniform);
         boolean isExactLetter = (ai == ti);
         boolean isDigit = ai >= '0' && ai <= '9';
-        if (isExactLetter || (isDigit && (s.charAt((int) (ai - '0')) == ti))) {
+        if ((isExactLetter || (isDigit && (s.charAt((int) (ai - '0')) == ti)))
+                && possibleActionsProb != LOG_ZERO_PROB) {
             return (priorDist != null ? priorDist.getAiLikelihood(i, ai) : aiUniform) - possibleActionsProb; //normalize in log-space
         } else {
             return LOG_ZERO_PROB;

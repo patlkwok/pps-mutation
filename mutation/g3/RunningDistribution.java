@@ -38,16 +38,17 @@ public class RunningDistribution extends MutationBasedDistribution {
                 pis.get(i).put(x, p2log(priorPerLength[nBases] / numMatches[nBases]));
             }
         }
-        final double aiUniform = p2log(1.0 / (4 + scope));
+        final double aiUniformLetter = p2log(1.1 / (4 + scope));
+        final double aiUniformDigit = p2log(0.9 / (4 + scope));
         for (int i = 0; i < scope; i++) {
             ais.add(new LinkedHashMap<>());
             for (char x = '0'; x < '0' + scope; x++) {
-                ais.get(i).put(x, aiUniform);
+                ais.get(i).put(x, aiUniformDigit);
             }
-            ais.get(i).put('a', aiUniform);
-            ais.get(i).put('c', aiUniform);
-            ais.get(i).put('g', aiUniform);
-            ais.get(i).put('t', aiUniform);
+            ais.get(i).put('a', aiUniformLetter);
+            ais.get(i).put('c', aiUniformLetter);
+            ais.get(i).put('g', aiUniformLetter);
+            ais.get(i).put('t', aiUniformLetter);
         }
     }
 
@@ -82,6 +83,9 @@ public class RunningDistribution extends MutationBasedDistribution {
             for (Entry<Byte, Double> entry : localDist.entrySet()) {
                 Double p = entry.getValue();
                 entry.setValue(p - total);
+                if (p - total == Double.POSITIVE_INFINITY) {
+                    System.out.println("Here");
+                }
             }
         }
     }

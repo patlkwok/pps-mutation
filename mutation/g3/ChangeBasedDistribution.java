@@ -13,8 +13,15 @@ public class ChangeBasedDistribution implements RuleDistribution {
     private final List<RuleDistribution> distributions;
     private RuleDistribution hLLDistribution;
 
-    public ChangeBasedDistribution(List<RuleDistribution> distributions) {
+    public ChangeBasedDistribution(List<RuleDistribution> distributions) throws ZeroMassProbabilityException {
+        if (distributions == null || distributions.isEmpty()) {
+            throw new IllegalArgumentException("A non empty list of distributions must be provided");
+        }
         this.distributions = distributions;
+        this.distributions.removeIf((d) -> d.getHighestLogLikelihood() == LOG_ZERO_PROB);
+        if (this.distributions.isEmpty()) {
+            throw new ZeroMassProbabilityException();
+        }
         findDistHighestLikelihood();
     }
 

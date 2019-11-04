@@ -15,7 +15,7 @@ public class Player extends mutation.sim.Player {
     private final static double GUESSING_THRESHOLD = -150;
 
     private final Random random;
-    private final List<Mutation> expHistory;
+    private final List<ExperimentResult> expHistory;
     private final RuleInferenceEngine inferenceEngine;
     private final Set<Rule> ruledOutRules;
     private final List<ChangeBasedDistribution> changeDists;
@@ -45,7 +45,7 @@ public class Player extends mutation.sim.Player {
             }
             int q = console.getNumberOfMutations();
             recordMutations(genome, mutated, m, q);
-            Mutagen guess = makeGuess(q);
+            Mutagen guess = makeGuess();
             if (console.Guess(guess)) {
                 // we guessed right!
                 return guess;
@@ -53,7 +53,7 @@ public class Player extends mutation.sim.Player {
                 guessedWrong(guess);
             }
         }
-        return makeGuess(Integer.MAX_VALUE);  // use q=infinity to avoid changing the window size on the last guess
+        return makeGuess();
     }
 
     /**
@@ -104,8 +104,13 @@ public class Player extends mutation.sim.Player {
      */
     protected void recordMutations(String original, String mutated, int m, int q) {
         Mutation mutation = new Mutation(original, mutated);
-        expHistory.add(mutation);
-        updateBelieves(mutation, q);
+        ExperimentResult exp = new ExperimentResult(mutation, m, q);
+        expHistory.add(exp);
+        try {
+            updateBelieves(exp);
+        } catch (ZeroMassProbabilityException ex) {
+            increaseWindowSize();
+        }
     }
 
     /**
@@ -113,20 +118,19 @@ public class Player extends mutation.sim.Player {
      * guess the window size of the rule and skip / advance global considered
      * window size
      *
-     * @param mutation the observed mutation
-     * @param q number of mutations that could be applied
+     * @param experiment the observed experiment
      */
-    private void skipBadWindowSizes(Mutation mutation, int q) {
+    private void skipBadWindowSizes(ExperimentResult experiment) {
         // the length of getPossibleMutations is the number of times we propose a mutation happened
         // we now check this against q, the number of actual mutations.  If q is smaller, we need to
         // bump up our window size; we might be counting 1 mutation as 2 or 3.
         int localWindowSize = consideredWindowSize;
         while (localWindowSize < 10) {
             List<HashSet<Mutation>> mutations
-                    = getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), localWindowSize, false);
-            if (mutations.size() > q) {
+                    = getPossibleMutations(experiment, localWindowSize, false);
+            if (mutations.size() > experiment.appliedMutations) {
                 localWindowSize += 1;  // increment global window size to save time considering too small windows
-                System.out.println("considered widow size increased to: " + String.valueOf(localWindowSize));
+                //System.out.println("considered widow size increased to: " + String.valueOf(localWindowSize));
             } else {
                 break;
             }
@@ -148,16 +152,17 @@ public class Player extends mutation.sim.Player {
      * Given a mutation (of the whole genome), updates the believes on the
      * possible rules that could generate such mutation
      *
-     * @param mutation the observed mutation
-     * @param q number of mutations that could be applied
+     * @param experiment the observed experiment
+     * @throws ZeroMassProbabilityException if such mutation is not possible
+     * under the current constraints
      */
-    protected void updateBelieves(Mutation mutation, int q) {
+    protected void updateBelieves(ExperimentResult experiment) throws ZeroMassProbabilityException {
         // skip window sizes that are too small to explain the number of mutations actually applied
-        skipBadWindowSizes(mutation, q);
+        skipBadWindowSizes(experiment);
 
         // now we getPossibleMutations with ignoreCollisions = true so we don't soil our evidence with compositions of rules
         List<HashSet<Mutation>> mutations
-                = getPossibleMutations(mutation.getOriginal(), mutation.getMutated(), consideredWindowSize, true);
+                = getPossibleMutations(experiment, consideredWindowSize, true);
         for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
             changeDists.add(changeDist);
@@ -173,8 +178,10 @@ public class Player extends mutation.sim.Player {
      *
      * @param world a set of possible mutations
      * @return a theory for the possible mutations
+     * @throws ZeroMassProbabilityException if the given world is not possible
+     * under current constraints
      */
-    protected ChangeBasedDistribution getChangeDistribution(HashSet<Mutation> world) {
+    protected ChangeBasedDistribution getChangeDistribution(HashSet<Mutation> world) throws ZeroMassProbabilityException {
         List<RuleDistribution> dists = new ArrayList<>();
         for (Mutation mut : world) {
             dists.add(inferenceEngine.getDistribution(mut.getOriginal(), mut.getMutated()));
@@ -189,7 +196,7 @@ public class Player extends mutation.sim.Player {
      *
      * @return the guess made
      */
-    protected Mutagen makeGuess(int q) {
+    protected Mutagen makeGuess() {
         Mutagen guess = null;
         do {
             try {
@@ -200,14 +207,9 @@ public class Player extends mutation.sim.Player {
                 // too small, we increase it and reevaluate the evidence so far
                 // if there is space to grow
                 if (consideredWindowSize < 10) {
-                    setConsideredWindowSize(consideredWindowSize + 1);
-                    for (Mutation m : expHistory) {
-                        updateBelieves(m, q);
-                    }
+                    increaseWindowSize();
                 } else if (ex instanceof NotConfidentEnoughException) {
                     guess = ((NotConfidentEnoughException) ex).getMostLikely();
-                } else {
-                    return null;
                 }
             }
         } while (guess == null);
@@ -280,6 +282,23 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+    protected void increaseWindowSize() {
+        if (consideredWindowSize < 10) {
+            setConsideredWindowSize(consideredWindowSize + 1);
+            try {
+                for (ExperimentResult er : expHistory) {
+                    updateBelieves(er);
+                }
+            } catch (ZeroMassProbabilityException ex) {
+                increaseWindowSize();
+            }
+        } else {
+            // restart
+            expHistory.clear();
+            setConsideredWindowSize(1);
+        }
+    }
+
     /**
      * Returns a randomly generated genome string
      *
@@ -297,28 +316,52 @@ public class Player extends mutation.sim.Player {
     /**
      * List all changes in the strings within a windows of the given length
      *
-     * @param original the original string
-     * @param mutated changed string
+     * @param experiment the experiment
      * @param windowSize size of the window
      * @param ignoreCollisions if true, only return sets of mutations far enough
      * away to avoid composition of mutations
      * @return list of all changed pieces
      */
-    private List<HashSet<Mutation>> getPossibleMutations(String original, String mutated, int windowSize, boolean ignoreCollisions) {
+    private List<HashSet<Mutation>> getPossibleMutations(ExperimentResult experiment, int windowSize, boolean ignoreCollisions) {
+        String original = experiment.mutation.getOriginal();
+        String mutated  = experiment.mutation.getMutated();
         // try checking size of list with m value, which would now need to be passed in
         // eliminate two colliding mutations from the list
         // we can also run this function with higher and higher window sizes to try to figure out
         // the best window size, taking m into account
         List<HashSet<Mutation>> mutations = new ArrayList<>();
 
-        List<Integer> changes = new ArrayList<>();
+        LinkedList<Integer> changes = new LinkedList<>();
+        
         for (int j = 0; j < original.length(); j++) {
             if (original.charAt(j) != mutated.charAt(j)) {
                 changes.add(j);
             }
         }
-
+        
         final int numChanges = changes.size();
+        int safeStart = -1; // where to start looking at changes
+        int lastChange = changes.getLast() - original.length();
+        for (Integer change : changes) {
+            if (safeStart == -1 && change - lastChange > windowSize) {
+                safeStart = change;
+            }
+            lastChange = change;
+        }
+        
+        // rotate the genome to start at safeStart
+        original = original.substring(safeStart) + original.substring(0, safeStart);
+        mutated = mutated.substring(safeStart) + mutated.substring(0, safeStart);
+        // adjust positions
+        final int strLen = original.length();
+        for (int j = 0; j < numChanges; j++) {
+            changes.set(j, (strLen + changes.get(j) - safeStart) % strLen);
+        }
+        // restore order after adjustment
+        while (changes.peek() > 0) {
+            changes.add(changes.pop());
+        }
+        
         for (int i = 0; i < numChanges;) {
             int curChangePos = changes.get(i);
             int nextChangePos;
