@@ -82,13 +82,8 @@ public class Player extends mutation.sim.Player {
         }
         
         String leftOne = "";
-		//System.out.println("leftis1: " + output);
 
-		for(Window w: winList) {
-            String t = getLeft(w, output);
-            if(!t.equals(""))
-                left.add(t);
-        }
+        getLeftHelper(winList, left, output);
 
         if(curr == 1) cumLeft.put(output, new HashSet<String>());
         cumLeft.get(output).addAll(left); 
@@ -100,19 +95,78 @@ public class Player extends mutation.sim.Player {
                 if(i < s.length())
                     c.add(s.charAt(i));
             }
-            leftOne += combine(c);
-            if(i != length -1) leftOne += ";";
+            if(c.size() != 0) {
+                leftOne += combine(c);
+                if(i != length -1) leftOne += ";";
+            }
         }
 
-        //System.out.println("mostOutput: " + mostOutput);
-        //System.out.println("current Output: " + output);
+        System.out.println("output: " + output);
+        System.out.println("maxOutput: " + output);
         result.add(leftOne, mostOutput);    
         return result;
+    }
+
+    public void getLeftHelper(List<Window> winList, Set<String> s, String output) { 
+        HashMap<Integer, Set<String>> map = new HashMap<>();
+        int[] count = new int[19];
+
+        //System.out.println("output: " + output);
+
+        for(Window w: winList) {
+            String left = w.getAfterString();
+            //System.out.println("right: " + left);
+            if(!LCSubStr(left, output, left.length(), output.length()).equals(output)) continue;
+            Element[] e = w.getWindow();
+            String out = "";
+            int start = -1;
+            if(output == "") continue;
+            for(int i = 0; i < 19; i++) {
+                if(e[i].getAfter() == output.charAt(0)) {
+                    start = i;
+                    out += Character.toString(e[i].getOG());
+                    boolean sub = true;
+                    for(int j = 1; j < output.length(); j++) {
+                        if(i+j > 18) {
+                            start = -1;
+                            break;
+                        }
+                        if(e[j+i].getAfter() != output.charAt(j)) {
+                            start = -1;
+                            sub = false;
+                            break;
+                        }
+                        else out += Character.toString(e[j+i].getOG());
+                    }
+                    if(!sub) {
+                        start = -1;
+                        out = "";
+                    }
+                }
+            }
+            if(start == -1) continue;
+            Set<String> temp = map.getOrDefault(start, new HashSet<>());
+            temp.add(out);
+            map.put(start, temp);
+            count[start]++;
+        }
+        int maxIndex = 0;
+        int max = 0;
+        for(int i = 0; i < 19; i++) {
+            if(count[i] > max) {
+                max = count[i];
+                maxIndex = i;
+            }
+        }
+        if(max == 0) return;
+        //System.out.println("Max: " + maxIndex);
+        s.addAll(map.get(maxIndex));
     }
 
     public String getLeft(Window w, String output) {
         String left = w.getAfterString();
         if(!LCSubStr(left, output, left.length(), output.length()).equals(output)) return "";
+        //System.out.println("before: " + left);
 
     	Element[] e = w.getWindow();
     	String out = "";
@@ -161,11 +215,11 @@ public class Player extends mutation.sim.Player {
                     max = currCount;
                     output = temp;
                 }
-                System.out.println(temp);
+                //System.out.println(temp);
                 map.put(temp, currCount);
             }
         }
-        System.out.println("final: " + output);
+        //System.out.println("final: " + output);
         return output;
     }
 
