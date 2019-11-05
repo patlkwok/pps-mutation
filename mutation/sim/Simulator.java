@@ -62,6 +62,7 @@ public class Simulator {
 
         Log.record("Player " + name + " starts!");
         thread.call_start(() -> {
+            console.setEndTime(System.currentTimeMillis() + timeLimit);
             return player.Play(console, m);
         });
         try {
@@ -84,9 +85,9 @@ public class Simulator {
                     ++ intersection;
             int union = s1.size() + s2.size() - intersection;
 
-            System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Timed out. Jaccard score: " + intersection + "/" + union);
-
+            double score = (double)intersection / (double) union;
+            System.out.println("Jaccard score is: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%).");
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%)");
             System.exit(-1);
         } catch (Exception e) {
             StringWriter errors = new StringWriter();
@@ -103,6 +104,12 @@ public class Simulator {
         } else {
             console.reportScore("", "", "Score pending");
             System.out.println("Failed, calculating Jaccard score.");
+            List<String> patterns = result.getPatterns();
+            List<String> actions = result.getActions();
+            System.out.println("Player's guess: ");
+            for (int i = 0; i < patterns.size(); ++ i)
+                System.out.println(patterns.get(i) + " => " + actions.get(i));
+
             char[] pool = {'a', 'c', 'g', 't'};
             char[] data = new char[1000000];
             random = new Random();
@@ -110,15 +117,18 @@ public class Simulator {
                 data[i] = pool[Math.abs(random.nextInt() % 4)];
             String testStr = String.valueOf(data);
             Set<Long> s1 = target.jaccardSet(testStr);
+            Log.record("Target mutations: " + s1.size());
             Set<Long> s2 = result.jaccardSet(testStr);
+            Log.record("Result mutations: " + s2.size());
             int intersection = 0;
             for (Long entry : s2)
                 if (s1.contains(entry))
                     ++ intersection;
             int union = s1.size() + s2.size() - intersection;
 
-            System.out.println("Jaccard score is: " + intersection + "/" + union + ".");
-            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union);
+            double score = (double)intersection / (double) union;
+            System.out.println("Jaccard score is: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%).");
+            console.reportScore(String.join("@", result.getPatterns()), String.join("@", result.getActions()), "Jaccard score: " + intersection + "/" + union + " (" + String.format("%.4f", score * 100.0) + "%)");
         }
 
         System.exit(0);

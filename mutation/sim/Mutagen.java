@@ -18,7 +18,7 @@ public class Mutagen {
                 Arrays.sort(arr);
                 l[i] = String.valueOf(arr);
             }
-            patterns.add(String.join(";", l));
+            this.patterns.add(String.join(";", l));
         }
         this.actions = new ArrayList<String>(actions);
     }
@@ -146,7 +146,6 @@ public class Mutagen {
                             break;
                     if (idx == 10) result.add((long)-1);
                     else {
-                        // entry += ((long)i) << 20l;
                         Long entry = 0l;
                         for (int j = 0; j < 10; ++ j) {
                             if (idx + j < 10)
@@ -154,6 +153,7 @@ public class Mutagen {
                             else
                                 entry = entry * 4l + translate(s.charAt((i + idx + j) % s.length()));
                         }
+                        entry += ((long)i) << 20l;
                         result.add(entry);
                     }
                 }

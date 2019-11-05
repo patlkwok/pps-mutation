@@ -12,6 +12,7 @@ public class Player extends mutation.sim.Player {
     private Map<Rule, Set<Mutation>> ruleMutationMap;
     private final int maxRuleLength = 10;
     private int suspectedOverlappingMutations = 0;
+    private Set<Rule> simpleRules = new HashSet<>();
 
     public Player() {
         random = new Random();
@@ -31,21 +32,31 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         Mutagen result = new Mutagen();
         for (int i = 0; i < 10; i++) {
+        	result = new Mutagen();
             String genome = randomString();
             String mutated = console.Mutate(genome);
             identifyMutations(genome, mutated);
             
-            Pair<String,String> guess;
-            for (Mutation mutation : this.mutations) {
-                guess = getSimpleGuess(mutation);
-                result.add(guess.getKey(), guess.getValue());
+            // Pair<String,String> guess;
+            // for (Mutation mutation : this.mutations) {
+            //     guess = getSimpleGuess(mutation);
+            //     result.add(guess.getKey(), guess.getValue());
                 
-                guess = getSimpleGuessBackOneIndex(mutation);
-                result.add(guess.getKey(), guess.getValue());
-                break;
+            //     guess = getSimpleGuessBackOneIndex(mutation);
+            //     result.add(guess.getKey(), guess.getValue());
+            //     break;
+            // }
+            Set<Rule> simpleRulesCopy = new HashSet<>(simpleRules);
+            System.out.println(simpleRules.size());
+            for (Rule simpleRule : simpleRulesCopy) {
+            	result = new Mutagen();
+            	simpleRules.remove(simpleRule);
+            	// System.out.println("Guessing: ");
+            	// System.out.println("Pattern: " + simpleRule.getPattern().toString());
+            	// System.out.println("Action: " + simpleRule.getAction().toString());
+      			result.add(simpleRule.getPattern().toString().toLowerCase(), simpleRule.getAction().toString().toLowerCase());
+            	console.Guess(result);
             }
-            
-            console.Guess(result);
         }
         
         return result;
@@ -106,9 +117,8 @@ public class Player extends mutation.sim.Player {
         Pair<String,String> guess = new Pair<>(pattern, action);
         return guess;
     }
-    
 
-    private void identifyMutations (String before, String after) {
+    private void identifyMutations(String before, String after) {
     	if (before.length() != after.length()) {
     		throw new RuntimeException("There can be neither deletions nor insertions");
     	}
@@ -128,6 +138,9 @@ public class Player extends mutation.sim.Player {
     				end = next;
     			}
     			if (end < start + maxRuleLength) {
+    				Rule rule = new Rule(before.substring(start, end+1), after.substring(start, end+1));
+    				System.out.println("Rule: \n" + rule);
+    				simpleRules.add(rule);
     				mutations.addAll(generateSlidingWindows(before, after, start, end));
     			} else {
     				suspectedOverlappingMutations++;
@@ -139,7 +152,7 @@ public class Player extends mutation.sim.Player {
     }
 
     private int getNextDifferenceWithinMaxRuleLength(String before, String after, int index) {
-    	for (int i = 1; i < 10; i++) {
+    	for (int i = 1; i < maxRuleLength; i++) {
     		if (before.charAt(index + i) != after.charAt(index + i)) return index + i;
     	}
     	return index;
