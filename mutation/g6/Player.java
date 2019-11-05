@@ -10,6 +10,11 @@ public class Player extends mutation.sim.Player {
     private int[] afterCounter;
     private Map<Character, Integer> hash;
     private Map<Integer, Character> antiHash;
+    private Map<String, Set<String>> cumLeft;
+    private Map<String, Integer> cumRight;
+    private int maxCount;
+    private String mostOutput;
+    private int numMutation;
     
     public Player() {
         random = new Random();
@@ -17,6 +22,10 @@ public class Player extends mutation.sim.Player {
         hash.put('a', 0); hash.put('c', 1); hash.put('g', 2); hash.put('t', 3);
         antiHash = new HashMap<>();
         antiHash.put(0, 'a'); antiHash.put(1, 'c'); antiHash.put(2, 'g'); antiHash.put(3, 't');
+        cumLeft = new HashMap<>();
+        cumRight = new HashMap<>();
+        maxCount = 0;
+        mostOutput = "";
     }
 
     private String randomString() {
@@ -39,6 +48,7 @@ public class Player extends mutation.sim.Player {
             char[] output = mutated.toCharArray();
             Element[] diff = checkDifference(input, output);
             result = getNaive(diff);
+            numMutation = console.getNumberOfMutations();
             console.Guess(result);
         }
         return result;
@@ -46,22 +56,6 @@ public class Player extends mutation.sim.Player {
 
     public Mutagen getNaive(Element[] diff) {
         Mutagen result = new Mutagen();
-        int[][] set = new int[4][4];
-
-        for(Element e : diff) {
-            if(e.isMutated()) {
-                set[hash.get(e.getOG())][hash.get(e.getAfter())]++;
-            }
-        }
-
-        /*for(int i = 0; i < 4; i++) {
-            for(int j = 0; j < 4; j++) {
-                if(set[i][j] > 0) {
-                    result.add(Character.toString(antiHash.get(i)), Character.toString(antiHash.get(j)));
-                }
-            }
-        }*/
-
         List<Window> winList = new ArrayList<>();
         for(int i = 0; i < 1000; i++) {
         	if(diff[i].isMutated()) {
@@ -70,48 +64,194 @@ public class Player extends mutation.sim.Player {
         		i+=10;
         	}
         }
-
+        if (winList.isEmpty())
+            return result;
         Window temp = winList.get(0);
         Set<String> left = new HashSet<>();
-        int length = getLength(winList);
-        length = length*2 - 1;
-        String output = "";
-        for(Window w: winList) {
-            String t = w.getOG();
-            System.out.println(length + " " + t.length());
-            if(t.length() == length) left.add(w.getOG());
-        }
+        int length = getLength(winList.get(0));
+        
+        String output;
+        if(numMutation <= 7) output = getWinInt(winList);
+        else output = getWinInt7(winList);
 
-        if(left.size() == 1) {
-            result.add(temp.getOG(), temp.getAfter());
-            return result;
+        int curr = cumRight.getOrDefault(output, 0) + 1;
+        cumRight.put(output, curr);
+        if(curr > maxCount) {
+            maxCount = curr;
+            mostOutput = output;
         }
         
-        else {
+        String leftOne = "";
 
-            for(int i = 0; i < length; i += 2) {
-                Set<Character> c = new HashSet<>();
-                for(String s: left) {
-                    System.out.println(s);
+        getLeftHelper(winList, left, output);
+
+        if(curr == 1) cumLeft.put(output, new HashSet<String>());
+        cumLeft.get(output).addAll(left); 
+
+        left = cumLeft.get(mostOutput);
+        for(int i = 0; i < length; i++) {
+            Set<Character> c = new HashSet<>();
+            for(String s: left) {
+                if(i < s.length())
                     c.add(s.charAt(i));
-                }
-                for(char curr : c) {
-                    System.out.println(curr+".");
-                    output = output.concat(Character.toString(curr));
-                }
-                if(i != length - 1) output = output.concat(";");
+            }
+            if(c.size() != 0) {
+                leftOne += combine(c);
+                if(i != length -1) leftOne += ";";
             }
         }
-        result.add(output, temp.getAfter());
+
+        System.out.println("output: " + output);
+        System.out.println("maxOutput: " + output);
+        result.add(leftOne, mostOutput);    
         return result;
     }
 
-    public int getLength(List<Window> winList) {
-        int length = 11;
+    public void getLeftHelper(List<Window> winList, Set<String> s, String output) { 
+        HashMap<Integer, Set<String>> map = new HashMap<>();
+        int[] count = new int[19];
+
+        //System.out.println("output: " + output);
+
         for(Window w: winList) {
-            if(w.getMutagenCount() < length) length = w.getMutagenCount();
+            String left = w.getAfterString();
+            //System.out.println("right: " + left);
+            if(!LCSubStr(left, output, left.length(), output.length()).equals(output)) continue;
+            Element[] e = w.getWindow();
+            String out = "";
+            int start = -1;
+            if(output == "") continue;
+            for(int i = 0; i < 19; i++) {
+                if(e[i].getAfter() == output.charAt(0)) {
+                    start = i;
+                    out += Character.toString(e[i].getOG());
+                    boolean sub = true;
+                    for(int j = 1; j < output.length(); j++) {
+                        if(i+j > 18) {
+                            start = -1;
+                            break;
+                        }
+                        if(e[j+i].getAfter() != output.charAt(j)) {
+                            start = -1;
+                            sub = false;
+                            break;
+                        }
+                        else out += Character.toString(e[j+i].getOG());
+                    }
+                    if(!sub) {
+                        start = -1;
+                        out = "";
+                    }
+                }
+            }
+            if(start == -1) continue;
+            Set<String> temp = map.getOrDefault(start, new HashSet<>());
+            temp.add(out);
+            map.put(start, temp);
+            count[start]++;
         }
-        return length;
+        int maxIndex = 0;
+        int max = 0;
+        for(int i = 0; i < 19; i++) {
+            if(count[i] > max) {
+                max = count[i];
+                maxIndex = i;
+            }
+        }
+        if(max == 0) return;
+        //System.out.println("Max: " + maxIndex);
+        s.addAll(map.get(maxIndex));
+    }
+
+    public String getLeft(Window w, String output) {
+        String left = w.getAfterString();
+        if(!LCSubStr(left, output, left.length(), output.length()).equals(output)) return "";
+        //System.out.println("before: " + left);
+
+    	Element[] e = w.getWindow();
+    	String out = "";
+    	if(output == "") return "";
+    	for(int i = 0; i < 19; i++) {
+    		if(e[i].getAfter() == output.charAt(0)) {
+    			out += Character.toString(e[i].getOG());
+    			boolean sub = true;
+    			for(int j = 1; j < output.length(); j++) {
+    				if(i+j > 18) break;
+    				if(e[j+i].getAfter() != output.charAt(j)) {
+    					sub = false;
+    					break;
+    				}
+    				else out += Character.toString(e[j+i].getOG());
+    			}
+    			if(sub) return out;
+    			else out = "";
+    		}
+    	}
+    	return out;
+    }
+    //if m <= 7
+    public String getWinInt(List<Window> list){
+        String output = list.get(0).getAfterString();
+        for(Window w: list) {
+            String other = w.getAfterString();
+            output = LCSubStr(output, other, output.length(), other.length());
+        }
+        //System.out.println(output);
+    	return output;
+    }
+
+    //if m > 7
+    public String getWinInt7(List<Window> list) {
+        HashMap<String, Integer> map = new HashMap<>();
+        int max = 0;
+        String output = "";
+        for(int i = 0; i < list.size() - 1; i++) {
+            String outside = list.get(i).getAfterString();
+            for(int j = 0; j < list.size(); j++) {
+                String inside = list.get(j).getAfterString();
+                String temp = LCSubStr(outside, inside, outside.length(), inside.length());
+                int currCount = map.getOrDefault(temp, 0) + 1;
+                if(currCount > max) {
+                    max = currCount;
+                    output = temp;
+                }
+                //System.out.println(temp);
+                map.put(temp, currCount);
+            }
+        }
+        //System.out.println("final: " + output);
+        return output;
+    }
+
+    public String getLeftInt(List<Window> list){
+        String output = list.get(0).getAfterString();
+        for(Window w: list) {
+            String other = w.getBeforeString();
+            output = LCSubStr(output, other, output.length(), other.length());
+        }
+        //System.out.println(output);
+        return output;
+    }
+
+    public String combine(Set<Character> input) {
+        String output = "";
+        for(char c: input) {
+            output += Character.toString(c);
+        }
+        return output;
+    }
+
+    public String putSemi(String s) {
+        String output = "";
+        for(int i = 0; i < s.length(); i++) {
+            output = output + Character.toString(s.charAt(i));
+            if(i != s.length()-1) output += ";";
+        }
+        return output;
+    }
+
+    public int getLength(Window w) {
+        return w.mutEnd - w.mutStart + 1;
     }
 
     public Element[] checkDifference(char[] input, char[] output) {
@@ -127,6 +267,46 @@ public class Player extends mutation.sim.Player {
             else diff[i] = new Element(input[i]);
         }
         return diff;
+    }
+
+    private String LCSubStr(String X, String Y, int m, int n)
+    {
+        int[][] LCSuff = new int[m + 1][n + 1];
+        int len = 0;
+        int row = 0, col = 0;
+
+        for (int i = 0; i <= m; i++) {
+            for (int j = 0; j <= n; j++) {
+                if (i == 0 || j == 0)
+                    LCSuff[i][j] = 0;
+
+                else if (X.charAt(i - 1) == Y.charAt(j - 1)) {
+                    LCSuff[i][j] = LCSuff[i - 1][j - 1] + 1;
+                    if (len < LCSuff[i][j]) {
+                        len = LCSuff[i][j];
+                        row = i;
+                        col = j;
+                    }
+                }
+                else
+                    LCSuff[i][j] = 0;
+            }
+        }
+
+        if (len == 0) {
+            return "";
+        }
+
+        String resultStr = "";
+        while (LCSuff[row][col] != 0) {
+            resultStr = X.charAt(row - 1) + resultStr; // or Y[col-1]
+            --len;
+
+            row--;
+            col--;
+        }
+
+        return resultStr;
     }
 
     public class Element {
@@ -148,6 +328,7 @@ public class Player extends mutation.sim.Player {
             this.mutated = mutated;
             this.og = og;
             this.after = after;
+            if(!this.mutated) this.after = og;
         }
 
         public boolean isMutated() {
@@ -174,6 +355,8 @@ public class Player extends mutation.sim.Player {
     public class Window {
     	public int start;
     	public int end;
+        public int mutStart;
+        public int mutEnd;
     	public int mutagenCount;
     	public Element[] window;
 
@@ -184,13 +367,18 @@ public class Player extends mutation.sim.Player {
     	public Window(int left, int right, Element[] input) {
     		start = left;
     		end = right;
+            mutStart = -1;
+            mutEnd = -1;
     		mutagenCount = 0;
-    		window = new Element[10];
+    		window = new Element[19];
     		int index = 0;
-    		for(int i = left; i <= right; i++) {
-    			window[index++] = input[i];
-    			if(input[i].isMutated()) {
+
+    		for(int i = left-9+1000; i <= right+1000; i++) {
+    			window[index++] = input[i%1000];
+    			if(input[i%1000].isMutated()) {
+                    if(mutStart == -1) mutStart = index-1;
     				mutagenCount++;
+                    mutEnd = index-1;
     			}
     		}
     	}
@@ -215,29 +403,41 @@ public class Player extends mutation.sim.Player {
 
         public String getAfter(){
             String temp = "";
-            for(int i = 0; i < 10; i++) {
-                if(window[i].isMutated()) {
-                    temp = temp.concat(Character.toString(window[i].getAfter()));
-                }
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = mutStart; i <= mutEnd; i++) {
+                temp = temp.concat(Character.toString(window[i].getAfter()));
             }
             return temp;
         }
 
+        public String getAfterString() {
+            String temp = "";
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = 0; i < 19; i++) {
+                temp = temp.concat(Character.toString(window[i].getAfter()));
+            }
+            return temp;
+        }
+
+        public String getBeforeString() {
+            String temp = "";
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = 0; i < 19; i++) {
+                temp = temp.concat(Character.toString(window[i].getOG()));
+            }
+            return temp;
+        }
+
+
         public String getOG(){
             String temp = "";
             boolean first = true;
-            for(int i = 0; i < 10; i++) {
-                if(window[i].isMutated()) {
-                    if(first) {
-                        temp = temp.concat(Character.toString(window[i].getOG()));
-                        first = false;
-                    }
-                    else {
-                        temp = temp.concat(";").concat(Character.toString(window[i].getOG()));
-                    }
-                }
+            for(int i = mutStart; i <= mutEnd; i++) {
+                temp = temp.concat(Character.toString(window[i].getOG()));
             }
-
             return temp;
         }
     }
