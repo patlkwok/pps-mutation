@@ -10,6 +10,11 @@ public class Player extends mutation.sim.Player {
     private int[] afterCounter;
     private Map<Character, Integer> hash;
     private Map<Integer, Character> antiHash;
+    private Map<String, Set<String>> cumLeft;
+    private Map<String, Integer> cumRight;
+    private int maxCount;
+    private String mostOutput;
+    private int numMutation;
     
     public Player() {
         random = new Random();
@@ -17,6 +22,10 @@ public class Player extends mutation.sim.Player {
         hash.put('a', 0); hash.put('c', 1); hash.put('g', 2); hash.put('t', 3);
         antiHash = new HashMap<>();
         antiHash.put(0, 'a'); antiHash.put(1, 'c'); antiHash.put(2, 'g'); antiHash.put(3, 't');
+        cumLeft = new HashMap<>();
+        cumRight = new HashMap<>();
+        maxCount = 0;
+        mostOutput = "";
     }
 
     private String randomString() {
@@ -39,6 +48,7 @@ public class Player extends mutation.sim.Player {
             char[] output = mutated.toCharArray();
             Element[] diff = checkDifference(input, output);
             result = getNaive(diff);
+            numMutation = console.getNumberOfMutations();
             console.Guess(result);
         }
         return result;
@@ -60,44 +70,50 @@ public class Player extends mutation.sim.Player {
         Set<String> left = new HashSet<>();
         int length = getLength(winList.get(0));
         
-        String output = getWinInt(winList);
+        String output;
+        if(numMutation <= 7) output = getWinInt(winList);
+        else output = getWinInt7(winList);
+
+        int curr = cumRight.getOrDefault(output, 0) + 1;
+        cumRight.put(output, curr);
+        if(curr > maxCount) {
+            maxCount = curr;
+            mostOutput = output;
+        }
+        
         String leftOne = "";
-		System.out.println("leftis1: " + output);
+		//System.out.println("leftis1: " + output);
 
 		for(Window w: winList) {
             String t = getLeft(w, output);
-            System.out.println("left: " + t);
-            left.add(t);
+            if(!t.equals(""))
+                left.add(t);
         }
 
-        if(left.size() == 1) {
-        	String out = "";
-            for(String s: left) out = putSemi(s);
-            result.add(out, output);
-            return result;
-        }
-        
-        else {
-        	
-        	System.out.println("flag");
-            //System.out.println("length " + length );
-            for(int i = 0; i < length; i++) {
-                Set<Character> c = new HashSet<>();
-                for(String s: left) {
-                    if(i < s.length())
-                        c.add(s.charAt(i));
-                }
-                leftOne += combine(c);
-                //System.out.println("c: " + c);
-                //System.out.println(output);
-                if(i != length -1) leftOne += ";";
+        if(curr == 1) cumLeft.put(output, new HashSet<String>());
+        cumLeft.get(output).addAll(left); 
+
+        left = cumLeft.get(mostOutput);
+        for(int i = 0; i < length; i++) {
+            Set<Character> c = new HashSet<>();
+            for(String s: left) {
+                if(i < s.length())
+                    c.add(s.charAt(i));
             }
+            leftOne += combine(c);
+            if(i != length -1) leftOne += ";";
         }
-        result.add(leftOne, getWinInt(winList));
+
+        //System.out.println("mostOutput: " + mostOutput);
+        //System.out.println("current Output: " + output);
+        result.add(leftOne, mostOutput);    
         return result;
     }
 
     public String getLeft(Window w, String output) {
+        String left = w.getAfterString();
+        if(!LCSubStr(left, output, left.length(), output.length()).equals(output)) return "";
+
     	Element[] e = w.getWindow();
     	String out = "";
     	if(output == "") return "";
@@ -119,15 +135,48 @@ public class Player extends mutation.sim.Player {
     	}
     	return out;
     }
-
+    //if m <= 7
     public String getWinInt(List<Window> list){
         String output = list.get(0).getAfterString();
         for(Window w: list) {
             String other = w.getAfterString();
             output = LCSubStr(output, other, output.length(), other.length());
         }
-        System.out.println(output);
+        //System.out.println(output);
     	return output;
+    }
+
+    //if m > 7
+    public String getWinInt7(List<Window> list) {
+        HashMap<String, Integer> map = new HashMap<>();
+        int max = 0;
+        String output = "";
+        for(int i = 0; i < list.size() - 1; i++) {
+            String outside = list.get(i).getAfterString();
+            for(int j = 0; j < list.size(); j++) {
+                String inside = list.get(j).getAfterString();
+                String temp = LCSubStr(outside, inside, outside.length(), inside.length());
+                int currCount = map.getOrDefault(temp, 0) + 1;
+                if(currCount > max) {
+                    max = currCount;
+                    output = temp;
+                }
+                System.out.println(temp);
+                map.put(temp, currCount);
+            }
+        }
+        System.out.println("final: " + output);
+        return output;
+    }
+
+    public String getLeftInt(List<Window> list){
+        String output = list.get(0).getAfterString();
+        for(Window w: list) {
+            String other = w.getBeforeString();
+            output = LCSubStr(output, other, output.length(), other.length());
+        }
+        //System.out.println(output);
+        return output;
     }
 
     public String combine(Set<Character> input) {
@@ -168,24 +217,10 @@ public class Player extends mutation.sim.Player {
 
     private String LCSubStr(String X, String Y, int m, int n)
     {
-        // Create a table to store lengths of longest common
-        // suffixes of substrings.   Note that LCSuff[i][j]
-        // contains length of longest common suffix of X[0..i-1]
-        // and Y[0..j-1]. The first row and first column entries
-        // have no logical meaning, they are used only for
-        // simplicity of program
         int[][] LCSuff = new int[m + 1][n + 1];
-
-        // To store length of the longest common substring
         int len = 0;
-
-        // To store the index of the cell which contains the
-        // maximum value. This cell's index helps in building
-        // up the longest common substring from right to left.
         int row = 0, col = 0;
 
-        /* Following steps build LCSuff[m+1][n+1] in bottom
-           up fashion. */
         for (int i = 0; i <= m; i++) {
             for (int j = 0; j <= n; j++) {
                 if (i == 0 || j == 0)
@@ -204,27 +239,19 @@ public class Player extends mutation.sim.Player {
             }
         }
 
-        // if true, then no common substring exists
         if (len == 0) {
-            System.out.println("No Common Substring");
             return "";
         }
 
-        // allocate space for the longest common substring
         String resultStr = "";
-
-        // traverse up diagonally form the (row, col) cell
-        // until LCSuff[row][col] != 0
         while (LCSuff[row][col] != 0) {
             resultStr = X.charAt(row - 1) + resultStr; // or Y[col-1]
             --len;
 
-            // move diagonally up to previous cell
             row--;
             col--;
         }
 
-        // required longest common substring
         return resultStr;
     }
 
@@ -336,6 +363,16 @@ public class Player extends mutation.sim.Player {
             //System.out.println("mutEnd!: " + mutEnd);
             for(int i = 0; i < 19; i++) {
                 temp = temp.concat(Character.toString(window[i].getAfter()));
+            }
+            return temp;
+        }
+
+        public String getBeforeString() {
+            String temp = "";
+            //System.out.println("mutStart!: " + mutStart);
+            //System.out.println("mutEnd!: " + mutEnd);
+            for(int i = 0; i < 19; i++) {
+                temp = temp.concat(Character.toString(window[i].getOG()));
             }
             return temp;
         }
