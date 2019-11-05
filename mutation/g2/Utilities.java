@@ -106,7 +106,10 @@ public class Utilities {
 		}
 		Map.Entry<E, Integer> maxEntry = null;
 		for (Map.Entry<E, Integer> entry : counts.entrySet()) {
-			if (!discard.contains(entry) && entry.getValue() < upperBound && (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)) {
+			if(entry.getValue() >= upperBound) {
+				discard.add(entry.getKey());
+			}
+			if (!discard.contains(entry.getKey()) && (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)) {
 				maxEntry = entry;
 			}
 		}
