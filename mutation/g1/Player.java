@@ -11,6 +11,9 @@ import javafx.util.Pair;
 
 public class Player extends mutation.sim.Player {
     private Random random;
+    public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
+    public double guessNumericProbability = 0.75;
+    public double supportCoeff = 0.8;
 
     public Player() {
         random = new Random();
@@ -26,12 +29,11 @@ public class Player extends mutation.sim.Player {
 
     public void mergeTrees(HashMap<String, MyTree> trees) {
         // Merge tree a into tree b iff a --> <x>;(acgt)@<y> and b --> <x>@<y>(acgt)
-        ArrayList<String>actionsToRemove = new ArrayList<String>();
+        ArrayList<String>actionsToRemove = new ArrayList<>();
 
         for(Map.Entry<String, MyTree> entry : trees.entrySet()) {
             String action = entry.getKey();
             MyTree t = entry.getValue();
-            Pair<String, Double> p = t.computeBestPattern(new HashSet<String>());
             for(Map.Entry<String, MyTree> otherEntry : trees.entrySet()) {
                 String otherAction = otherEntry.getKey();
                 MyTree otherT = otherEntry.getValue();
@@ -41,7 +43,9 @@ public class Player extends mutation.sim.Player {
                 }
 
                 int alignIdx = otherAction.indexOf(action);
-                boolean ambiguousAlignIdx = otherAction.length() > 1 && otherAction.substring(1).contains(action);
+                // TODO figure out why I had this
+//                boolean ambiguousAlignIdx = otherAction.length() > 1 && otherAction.substring(1).contains(action);
+                boolean ambiguousAlignIdx = false;
                 if(alignIdx == 0 && ! ambiguousAlignIdx) {
                     boolean isValid = true;
                     for(int i = action.length(); i < otherAction.length(); i++) {
@@ -53,7 +57,7 @@ public class Player extends mutation.sim.Player {
 
                     if(isValid) {
                         // merge entry into otherEntry
-                        System.out.println("Merging " + action + " into " + otherAction);
+//                        System.out.println("Merging " + action + " into " + otherAction);
                         otherT.mergeTree(t, alignIdx);
                         actionsToRemove.add(action);
                     }
@@ -64,19 +68,6 @@ public class Player extends mutation.sim.Player {
         for(String action: actionsToRemove) {
             trees.remove(action);
         }
-    }
-
-    private String defaultString() {
-        return "aaaaaaaaaaccccccccccggggggggggttttttttttacacacacacacacacacacagagagagagagagagagagatatatatatatatatatat" +
-                "cgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgtacgacgacgaacgacgacgaacgacgacgaacgacgacga" +
-                "acgacgacgaacgacgacgaactactactaactactactaactactactaactactactaactactactaactactactaagtagtagtaagtagtagta" +
-                "agtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtccgtcgtcgtc" +
-                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
-                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtacacgtacgtac" +
-                "acgtacgtacacgtacgtacacgtacgtacacgtacgtacaaaaaaaaaaccccccccccggggggggggttttttttttacacacacacacacacacac" +
-                "agagagagagagagagagagatatatatatatatatatatcgcgcgcgcgcgcgcgcgcgctctctctctctctctctctgtgtgtgtgtgtgtgtgtgt" +
-                "acgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaacgacgacgaactactactaactactactaactactactaactactacta" +
-                "actactactaactactactaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtaagtagtagtacgtcgtcgtccgtcgtcgtc";
     }
 
     public Integer getWrappedIdx(int idx, int n) {
@@ -179,6 +170,121 @@ public class Player extends mutation.sim.Player {
         }
     }
 
+    public Pair<String, ArrayList<MyTree>> proposeAlphaNumericAction(String pattern, ArrayList<MyTree> trees) {
+        HashMap<Integer, ArrayList<MyTree>> numericActionToTrees = new HashMap<>();
+        HashMap<Integer, Integer> combinedSupport = new HashMap<>();
+        int biggestLengthSupport = -1;
+        int targetActionLen = -1;
+        for(MyTree t : trees) {
+            int key = t.action.length();
+            if(numericActionToTrees.containsKey(key)) {
+                numericActionToTrees.get(key).add(t);
+                combinedSupport.put(key, combinedSupport.get(key) + t.support);
+            } else {
+                ArrayList<MyTree>tmp = new ArrayList<>();
+                tmp.add(t);
+                numericActionToTrees.put(key, tmp);
+                combinedSupport.put(key, t.support);
+            }
+
+            if(combinedSupport.get(key) >= biggestLengthSupport) {
+                targetActionLen = key;
+                biggestLengthSupport = combinedSupport.get(key);
+            }
+        }
+
+        ArrayList<MyTree> candidateTrees = numericActionToTrees.get(targetActionLen);
+        String newAction = this.attemptNumericMerge(candidateTrees);
+
+        if(newAction.matches(".*\\d.*")) {
+            double n = (double) candidateTrees.size();
+            double score = 0.0;
+            for(MyTree t : candidateTrees) {
+                for(int a = 0; a < newAction.length(); a++) {
+                    char c = newAction.charAt(a);
+                    int charIdx = this.bases.indexOf(c);
+                    if(charIdx == -1) {
+                        score += t.actionIndexCounts.get(a).get(Character.getNumericValue(c)) / (double) t.support;
+                    } else {
+                        if(t.action.charAt(a) == c) {
+                            score += 1.0;
+                        }
+                    }
+                }
+            }
+
+            double confidence = score / (n * newAction.length());
+            if(confidence >= 0.75) {
+                return new Pair(newAction, numericActionToTrees.get(targetActionLen));
+            } else {
+                return new Pair(null, null);
+            }
+        } else {
+            return new Pair(null, null);
+        }
+    }
+
+    public String attemptNumericMerge(ArrayList<MyTree> trees) {
+        int n = trees.get(0).action.length();
+        ArrayList<ArrayList<Integer>> combinedActionIndexCounts = new ArrayList<>();
+        for(int i = 0; i < n; i++) {
+            ArrayList<Integer>ac = new ArrayList<>();
+            for(int j = 0; j < 10; j++) {
+                ac.add(0);
+            }
+            combinedActionIndexCounts.add(ac);
+        }
+
+        ArrayList<ArrayList<Integer>>currentActionCharCounts = new ArrayList<>();
+        for(int z = 0; z < n; z++) {
+            ArrayList<Integer>tmp = new ArrayList<>();
+            for(int p = 0; p < 4; p++) {
+                tmp.add(0);
+            }
+            currentActionCharCounts.add(tmp);
+        }
+
+        for(MyTree t : trees) {
+            for(int z = 0; z < n; z++) {
+                char actionChar = t.action.charAt(z);
+                int charIdx = this.bases.indexOf(actionChar);
+                currentActionCharCounts.get(z).set(charIdx, currentActionCharCounts.get(z).get(charIdx) + t.support);
+            }
+
+            for(int r = 0; r <  t.actionIndexCounts.size(); r++) {
+                for(int c = 0; c < t.actionIndexCounts.get(0).size(); c++) {
+                    combinedActionIndexCounts.get(r).set(
+                            c, combinedActionIndexCounts.get(r).get(c) + t.actionIndexCounts.get(r).get(c));
+                }
+            }
+        }
+
+        String newAction = "";
+        for(int i=0; i < n; i++) {
+            String maxChar = null;
+            int maxCount = -1;
+            for(int actionIdx = 0; actionIdx < 10; actionIdx++) {
+                int count = combinedActionIndexCounts.get(i).get(actionIdx);
+                if(count >= maxCount) {
+                    maxChar = Integer.toString(actionIdx);
+                    maxCount = count;
+                }
+            }
+
+            for(int charIdx = 0; charIdx < 4; charIdx++) {
+                int count = currentActionCharCounts.get(i).get(charIdx);
+                if(count >= maxCount) {
+                    maxChar = Character.toString(this.bases.get(charIdx));
+                    maxCount = count;
+                }
+            }
+
+            newAction += maxChar;
+        }
+
+        return newAction;
+    }
+
     public Mutagen generateGuess(ArrayList<Pair<String, String>>guesses) {
         Mutagen m = new Mutagen();
         for(Pair p : guesses) {
@@ -187,21 +293,27 @@ public class Player extends mutation.sim.Player {
         return m;
     }
 
+    public String proposeNewPattern(ArrayList<MyTree> trees) {
+        MyTree firstTree = trees.get(0);
+        MyTree mergedTree = new MyTree(firstTree.patternCounts, firstTree.actionIndexCounts, firstTree.action);
+        for(int i=1; i < trees.size(); i++) {
+            mergedTree.mergeTree(trees.get(i), 0);
+        }
+        return mergedTree.computeBestPattern(new HashSet<>());
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
         HashMap<String,MyTree>trees = new HashMap<>();
 
         boolean isCorrect;
         ArrayList<Pair<String, String>>guesses = new ArrayList<>();
+        ArrayList<Pair<String, String>>firstGuesses = new ArrayList<>();
         Set<String>incorrectGuesses = new HashSet<String>();
-
-        int numMutations = 0;
 
         for (int iter = 0; iter < 100; iter++) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
-
-            numMutations += m;
 
             ArrayList<ArrayList<Integer>> possibleWindows = this.getPossibleWindows(genome, mutated, m);
             if(possibleWindows.size() == 0) {
@@ -217,6 +329,7 @@ public class Player extends mutation.sim.Player {
                     if(trees.containsKey(action)) {
                         MyTree tree = trees.get(action);
                         tree.addPattern(beforeMutation);
+                        tree.addActionIndices(beforeMutation);
                     } else {
                         MyTree tree = new MyTree(beforeMutation, action);
                         trees.put(action, tree);
@@ -230,18 +343,31 @@ public class Player extends mutation.sim.Player {
                 maxSupport = Math.max(t.support, maxSupport);
             }
 
-            int supportThreshold = (int) Math.round(maxSupport * 0.8);
+            int supportThreshold = (int) Math.round(maxSupport * this.supportCoeff);
             guesses = new ArrayList<>();
 
             ArrayList<String> actionCandidates = new ArrayList<>();
             ArrayList<String> patternCandidates = new ArrayList<>();
+            ArrayList<Integer> supportCandidates = new ArrayList<>();
+
+            HashMap<String, ArrayList<MyTree>> patternToTrees = new HashMap<>();
+            HashSet<String> repeatedPatterns = new HashSet<>();
 
             for(MyTree t: trees.values()) {
+                String pattern = t.computeBestPattern(incorrectGuesses);
+
+                if(patternToTrees.containsKey(pattern)) {
+                    patternToTrees.get(pattern).add(t);
+                    repeatedPatterns.add(pattern);
+                } else {
+                    ArrayList<MyTree> tmp = new ArrayList<>();
+                    tmp.add(t);
+                    patternToTrees.put(pattern, tmp);
+                }
                 if(t.support >= supportThreshold) {
-                    Pair<String, Double> p = t.computeBestPattern(incorrectGuesses);
-                    String pattern = p.getKey();
                     actionCandidates.add(t.action);
                     patternCandidates.add(pattern);
+                    supportCandidates.add(t.support);
                 }
             }
 
@@ -260,24 +386,85 @@ public class Player extends mutation.sim.Player {
                 }
             }
 
-            String resultStr = "\n";
-            for(int gIdx=0; gIdx < guesses.size(); gIdx++) {
-                resultStr += guesses.get(gIdx).getKey() + "@" + guesses.get(gIdx).getValue();
-                if(gIdx < guesses.size() - 1) {
-                    resultStr += "\n";
+            ArrayList<Pair<String, String>>alphaNumericGuesses = new ArrayList<>();
+            ArrayList<Integer>numericSupports = new ArrayList<>();
+            ArrayList<String>guessesToRemove = new ArrayList<>();
+
+            boolean guessNumeric = Math.random() < guessNumericProbability;
+            int maxNumericSupport = 0;
+            if(guessNumeric) {
+                for(String pattern : patternToTrees.keySet()) {
+                    ArrayList<MyTree> potentialNumericTrees = patternToTrees.get(pattern);
+                    if(potentialNumericTrees.size() > 1) {
+                        Pair<String, ArrayList<MyTree>> tmp = this.proposeAlphaNumericAction(pattern, potentialNumericTrees);
+                        String alphaAction = tmp.getKey();
+                        ArrayList<MyTree>contributingTrees = tmp.getValue();
+                        int combinedSupport = 0;
+                        if(contributingTrees != null) {
+                            for(MyTree ct : contributingTrees) {
+                                combinedSupport += ct.support;
+                            }
+                            maxNumericSupport = Math.max(maxNumericSupport, combinedSupport);
+                            if(combinedSupport >= supportThreshold) {
+                                String proposedNewPattern = this.proposeNewPattern(contributingTrees);
+                                Pair<String, String>p = new Pair<>(proposedNewPattern, alphaAction);
+                                alphaNumericGuesses.add(p);
+                                for(MyTree ct : contributingTrees) {
+                                    guessesToRemove.add(pattern + "@" + ct.action);
+                                }
+                                numericSupports.add(combinedSupport);
+                            }
+                        }
+                    }
                 }
             }
 
-            isCorrect = console.Guess(this.generateGuess(guesses));
+            String resultStr = "\n";
+            guesses.addAll(alphaNumericGuesses);
+            supportCandidates.addAll(numericSupports);
+            int updatedSupportThreshold = (int) Math.round(Math.max(maxNumericSupport, maxSupport) * this.supportCoeff);
+            ArrayList<Pair<String, String>>finalGuesses = new ArrayList<>();
+
+            int mostConfidentGuessSupport = -1;
+            Pair<String, String> mostConfidentGuess = null;
+
+            for(int gIdx=0; gIdx < guesses.size(); gIdx++) {
+                String guess = guesses.get(gIdx).getKey() + "@" + guesses.get(gIdx).getValue();
+                if(! guessesToRemove.contains(guess) && supportCandidates.get(gIdx) >= updatedSupportThreshold) {
+                    resultStr += guess;
+                    if(gIdx < guesses.size() - 1) {
+                        resultStr += "\n";
+                    }
+                    finalGuesses.add(guesses.get(gIdx));
+                }
+
+                if(supportCandidates.get(gIdx) >= mostConfidentGuessSupport) {
+                    mostConfidentGuessSupport = supportCandidates.get(gIdx);
+                    mostConfidentGuess = guesses.get(gIdx);
+                }
+            }
+
+            if(finalGuesses.size() == 0) {
+                ArrayList<Pair<String, String>>tmp = new ArrayList<>();
+                tmp.add(mostConfidentGuess);
+                finalGuesses = tmp;
+            }
+
+            if(iter < 10 && guessNumeric) {
+                firstGuesses = finalGuesses;
+            }
+
+            isCorrect = console.Guess(this.generateGuess(finalGuesses));
+            String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
-                System.out.println("Correct: " + resultStr);
+                System.out.println("Correct: " + numericMsg + resultStr);
                 break;
             } else {
-                System.out.println("Incorrect: " + resultStr);
+                System.out.println("Incorrect: " + numericMsg + resultStr);
                 incorrectGuesses.add(resultStr);
             }
         }
 
-        return this.generateGuess(guesses);
+        return this.generateGuess(firstGuesses);
     }
 }
