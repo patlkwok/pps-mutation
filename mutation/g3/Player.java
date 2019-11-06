@@ -2,6 +2,7 @@ package mutation.g3;
 
 import java.util.*;
 import java.util.Map.Entry;
+import static mutation.g3.LogProbability.LOG_ZERO_PROB;
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
@@ -19,8 +20,9 @@ public class Player extends mutation.sim.Player {
     private final RuleInferenceEngine inferenceEngine;
     private final Set<Rule> ruledOutRules;
     private final List<ChangeBasedDistribution> changeDists;
-    private RunningDistribution distribution;
+    private List<RunningDistribution> distributions;
     private int consideredWindowSize = 1;
+    private int numberOfRulesConsidered = 1;
     private int windowCleared = 0;
 
     public Player() {
@@ -29,8 +31,10 @@ public class Player extends mutation.sim.Player {
         inferenceEngine = new RuleInferenceEngine();
         ruledOutRules = new HashSet<>();
         changeDists = new ArrayList<>();
-        distribution = new RunningDistribution(consideredWindowSize);
-        inferenceEngine.setPriorDistribution(distribution);
+        distributions = new ArrayList<>();
+        for (int i = 0; i < numberOfRulesConsidered; i++) {
+            distributions.add(new RunningDistribution(consideredWindowSize));
+        }
     }
 
     @Override
@@ -137,6 +141,7 @@ public class Player extends mutation.sim.Player {
         }
         if (localWindowSize != consideredWindowSize) {
             setConsideredWindowSize(localWindowSize);
+            System.out.println("Skipped to window size" + localWindowSize);
         }
     }
 
@@ -144,8 +149,10 @@ public class Player extends mutation.sim.Player {
         this.consideredWindowSize = size;
         ruledOutRules.clear();
         changeDists.clear();
-        distribution = new RunningDistribution(consideredWindowSize);
-        inferenceEngine.setPriorDistribution(distribution);
+        distributions = new ArrayList<>();
+        for (int i = 0; i < numberOfRulesConsidered; i++) {
+            distributions.add(new RunningDistribution(consideredWindowSize));
+        }
     }
 
     /**
@@ -163,12 +170,37 @@ public class Player extends mutation.sim.Player {
         // now we getPossibleMutations with ignoreCollisions = true so we don't soil our evidence with compositions of rules
         List<HashSet<Mutation>> mutations
                 = getPossibleMutations(experiment, consideredWindowSize, true);
+
         for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
             changeDists.add(changeDist);
-            distribution.aggregate(changeDist);
-            inferenceEngine.setPriorDistribution(distribution);
+            int ruleNumber = chooseRuleToAggregrate(changeDist);
+            distributions.get(ruleNumber).aggregate(changeDist);
         }
+    }
+
+    protected int chooseRuleToAggregrate(RuleDistribution changeDist) throws ZeroMassProbabilityException {
+        int chosenRule = -1;
+        double increase = Double.NEGATIVE_INFINITY;
+        int zeroProbCount = 0;
+        try {
+            for (int i = 0; i < numberOfRulesConsidered; i++) {
+                RunningDistribution d = distributions.get(i).clone();
+                double hLBefore = d.getHighestLogLikelihood();
+                d.aggregate(changeDist);
+                double hLAfter = d.getHighestLogLikelihood();
+                if (hLAfter == LOG_ZERO_PROB) zeroProbCount++;
+                if (increase < hLAfter - hLBefore) { // better
+                    chosenRule = i;
+                    increase = hLAfter - hLBefore;
+                }
+            }
+            if (zeroProbCount == numberOfRulesConsidered)
+                throw new ZeroMassProbabilityException("No rule distribution is consistent with this change");
+        } catch (CloneNotSupportedException e) {
+            System.out.println("This should not happen");
+        }
+        return chosenRule;
     }
 
     /**
@@ -183,8 +215,12 @@ public class Player extends mutation.sim.Player {
      */
     protected ChangeBasedDistribution getChangeDistribution(HashSet<Mutation> world) throws ZeroMassProbabilityException {
         List<RuleDistribution> dists = new ArrayList<>();
+        int ruleNumber = 0;
         for (Mutation mut : world) {
-            dists.add(inferenceEngine.getDistribution(mut.getOriginal(), mut.getMutated()));
+            dists.add(inferenceEngine.getDistribution(
+                    mut.getOriginal(),
+                    mut.getMutated(),
+                    distributions.get(ruleNumber)));
         }
         return new ChangeBasedDistribution(dists);
     }
@@ -239,45 +275,22 @@ public class Player extends mutation.sim.Player {
      * @throws NoMoreCandidateRulesException if we run out of rules to guess
      */
     protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException, NoMoreCandidateRulesException {
-        Set<Rule> candidateRules = new HashSet<>();
-        //distribution.ruleOut(ruledOutRules);
-        candidateRules.addAll(distribution.getMostLikelyRules(ruledOutRules));
-        if (candidateRules.isEmpty()) {
-            throw new NoMoreCandidateRulesException();
-        }
-        Rule mlRule = candidateRules.iterator().next();
-        double mlRuleLL = distribution.getLogLikelihood(mlRule);
-//        do {
-//            candidateRules.clear();
-//            for (ChangeBasedDistribution t : changeDists) {
-//                t.ruleOut(ruledOutRules);
-//                candidateRules.addAll(t.getMostLikelyRules(ruledOutRules));
-//            }
-//            for (Rule r : candidateRules) {
-//                double likelihood = 0;
-//                for (ChangeBasedDistribution t : changeDists) {
-//                    double likelihoodInTheory = t.getLogLikelihood(r);
-//                    if (likelihoodInTheory == Double.NEGATIVE_INFINITY) {
-//                        likelihood = Double.NEGATIVE_INFINITY;
-//                        ruledOutRules.add(r);
-//                        break;
-//                    }
-//                    likelihood += likelihoodInTheory;
-//                    if (likelihood < mlRuleLL) {
-//                        break;
-//                    }
-//                }
-//                if (likelihood > mlRuleLL) {
-//                    mlRule = r;
-//                    mlRuleLL = likelihood;
-//                }
-//            }
-//        } while (!candidateRules.isEmpty() && mlRule == null);
-
         Mutagen result = new Mutagen();
-        result.add(mlRule.getPatternString(), mlRule.getAction());
-        if (mlRuleLL < GUESSING_THRESHOLD) {
-            throw new NotConfidentEnoughException(result);
+
+        for (int i = 0; i < numberOfRulesConsidered; i++) {
+            Set<Rule> candidateRules = new HashSet<>();
+            //distribution.ruleOut(ruledOutRules);
+            candidateRules.addAll(distributions.get(0).getMostLikelyRules(ruledOutRules));
+            if (candidateRules.isEmpty()) {
+                throw new NoMoreCandidateRulesException();
+            }
+            Rule mlRule = candidateRules.iterator().next();
+            double mlRuleLL = distributions.get(0).getLogLikelihood(mlRule);
+
+            result.add(mlRule.getPatternString(), mlRule.getAction());
+            if (mlRuleLL < GUESSING_THRESHOLD) {
+                throw new NotConfidentEnoughException(result);
+            }
         }
         return result;
     }
@@ -324,7 +337,7 @@ public class Player extends mutation.sim.Player {
      */
     private List<HashSet<Mutation>> getPossibleMutations(ExperimentResult experiment, int windowSize, boolean ignoreCollisions) {
         String original = experiment.mutation.getOriginal();
-        String mutated  = experiment.mutation.getMutated();
+        String mutated = experiment.mutation.getMutated();
         // try checking size of list with m value, which would now need to be passed in
         // eliminate two colliding mutations from the list
         // we can also run this function with higher and higher window sizes to try to figure out
@@ -332,13 +345,13 @@ public class Player extends mutation.sim.Player {
         List<HashSet<Mutation>> mutations = new ArrayList<>();
 
         LinkedList<Integer> changes = new LinkedList<>();
-        
+
         for (int j = 0; j < original.length(); j++) {
             if (original.charAt(j) != mutated.charAt(j)) {
                 changes.add(j);
             }
         }
-        
+
         final int numChanges = changes.size();
         int safeStart = -1; // where to start looking at changes
         int lastChange = changes.getLast() - original.length();
@@ -348,7 +361,7 @@ public class Player extends mutation.sim.Player {
             }
             lastChange = change;
         }
-        
+
         // rotate the genome to start at safeStart
         original = original.substring(safeStart) + original.substring(0, safeStart);
         mutated = mutated.substring(safeStart) + mutated.substring(0, safeStart);
@@ -361,7 +374,7 @@ public class Player extends mutation.sim.Player {
         while (changes.peek() > 0) {
             changes.add(changes.pop());
         }
-        
+
         for (int i = 0; i < numChanges;) {
             int curChangePos = changes.get(i);
             int nextChangePos;

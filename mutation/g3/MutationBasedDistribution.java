@@ -51,14 +51,14 @@ public class MutationBasedDistribution implements RuleDistribution {
             }
             Double prob = pis.get(i).get(piByte);
             if (prob == null) {
-                return Double.NEGATIVE_INFINITY;
+                return LOG_ZERO_PROB;
             }
             lp += prob; //multiplying in log space
         }
         for (int i = 0; i < action.length; i++) {
             Double prob = ais.get(i).get(action[i]);
             if (prob == null) {
-                return Double.NEGATIVE_INFINITY;
+                return LOG_ZERO_PROB;
             }
             lp += prob; //multiplying in log space
         }

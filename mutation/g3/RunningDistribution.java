@@ -13,7 +13,7 @@ import static mutation.g3.LogProbability.*;
  *
  * @author juand.correa
  */
-public class RunningDistribution extends MutationBasedDistribution {
+public class RunningDistribution extends MutationBasedDistribution implements Cloneable {
 
     private static final Comparator<Pair<? extends Object, Double>> PROB_COMPARATOR = (
             Pair<? extends Object, Double> e1,
@@ -126,6 +126,25 @@ public class RunningDistribution extends MutationBasedDistribution {
         Collections.sort(pairs, PROB_COMPARATOR);
         map.clear();
         pairs.forEach((p) -> map.put(p.getFirst(), p.getSecond()));
+    }
+
+    @Override
+    protected RunningDistribution clone() throws CloneNotSupportedException {
+        final List<Map<Byte, Double>> nPis = new ArrayList<>();
+        final List<Map<Character, Double>> nAis = new ArrayList<>();
+        for (int i = 0; i < this.pis.size(); i++) {
+            nPis.add(new LinkedHashMap<>());
+            for (Entry<Byte, Double> entry : this.pis.get(i).entrySet()) {
+                nPis.get(i).put(entry.getKey(), entry.getValue());
+            }
+        }
+        for (int i = 0; i < this.ais.size(); i++) {
+            nAis.add(new LinkedHashMap<>());
+            for (Entry<Character, Double> entry : this.ais.get(i).entrySet()) {
+                nAis.get(i).put(entry.getKey(), entry.getValue());
+            }
+        }
+        return new RunningDistribution(nPis, nAis);
     }
 
 }

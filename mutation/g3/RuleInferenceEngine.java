@@ -14,8 +14,6 @@ import static mutation.g3.LogProbability.*;
  */
 public class RuleInferenceEngine {
 
-    private RuleDistribution priorDist;
-
     private static final Comparator<Pair<? extends Object, Double>> PROB_COMPARATOR = (
             Pair<? extends Object, Double> e1,
             Pair<? extends Object, Double> e2) -> {
@@ -24,10 +22,6 @@ public class RuleInferenceEngine {
 
     public RuleInferenceEngine() {
 
-    }
-
-    public void setPriorDistribution(RuleDistribution prior) {
-        this.priorDist = prior;
     }
 
     /**
@@ -40,15 +34,15 @@ public class RuleInferenceEngine {
      * @param mutated window after change
      * @return a distribution over the rule space based on the given evidence
      */
-    public RuleDistribution getDistribution(String original, String mutated) {
+    public RuleDistribution getDistribution(String original, String mutated, RuleDistribution prior) {
         // iterate over all possible pattern positions and values they could have
         // and compute their likelihood, keep those with non-zero probability
-        List<Map<Byte, Double>> pis = getPis(original);
-        List<Map<Character, Double>> ais = getAis(original, mutated);
+        List<Map<Byte, Double>> pis = getPis(original, prior);
+        List<Map<Character, Double>> ais = getAis(original, mutated, prior);
         return new MutationBasedDistribution(pis, ais);
     }
 
-    private List<Map<Character, Double>> getAis(String original, String mutated) {
+    private List<Map<Character, Double>> getAis(String original, String mutated, RuleDistribution prior) {
         final List<Map<Character, Double>> ais = new ArrayList<>();
         for (int i = 0; i < mutated.length(); i++) {
             // get all possible (ai, prob) pair for each Ti
@@ -56,7 +50,7 @@ public class RuleInferenceEngine {
             char ti = mutated.charAt(i);
             String actionSet = getActionSet(original.length());
             for (char ai : actionSet.toCharArray()) {
-                double prob = probabilityAi(i, ai, original, ti);
+                double prob = probabilityAi(i, ai, original, ti, prior);
                 if (prob > LOG_ZERO_PROB) {
                     entries.add(new Pair(ai, prob));
                 }
@@ -79,14 +73,14 @@ public class RuleInferenceEngine {
         return actionSet;
     }
 
-    protected List<Map<Byte, Double>> getPis(String original) {
+    protected List<Map<Byte, Double>> getPis(String original, RuleDistribution prior) {
         final List<Map<Byte, Double>> pis = new ArrayList<>();
         for (int i = 0; i < original.length(); i++) {
             // get all possible (pi, prob) pair for each Si
             final List<Pair<Byte, Double>> entries = new ArrayList<>();
             final char si = original.charAt(i);
             for (byte pi = 0b1; pi <= 0b1111; pi++) {
-                double prob = probabilityPi(i, pi, Rule.baseCharToByte(si));
+                double prob = probabilityPi(i, pi, Rule.baseCharToByte(si), prior);
                 if (prob > LOG_ZERO_PROB) {
                     entries.add(new Pair(pi, prob));
                 }
@@ -111,7 +105,7 @@ public class RuleInferenceEngine {
      * @param si character in the ith position of the original string
      * @return the computed probability (in logarithmic space)
      */
-    protected double probabilityPi(int i, byte pi, byte si) {
+    protected double probabilityPi(int i, byte pi, byte si, RuleDistribution priorDist) {
         // if it pi and si do not have common bits then the probability is zero
         if ((pi & si) == 0) {
             return LOG_ZERO_PROB;
@@ -158,7 +152,7 @@ public class RuleInferenceEngine {
      * @param ti the character at the ith position of the mutated string
      * @return the computed probability (in logarithmic space)
      */
-    protected double probabilityAi(int i, char ai, String s, char ti) {
+    protected double probabilityAi(int i, char ai, String s, char ti, RuleDistribution priorDist) {
         // the possibilities for the action are the letter ti itself, or any number that corresponds to
         // the letter ti in S
         final double aiUniform = p2log(1.0 / (4 + s.length()));
