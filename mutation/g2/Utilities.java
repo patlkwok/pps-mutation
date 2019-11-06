@@ -88,9 +88,9 @@ public class Utilities {
 						Change c = new Change(b, a, start);
 						changes.add(c);
 						locations.add(start);
-						System.out.println(c.before);
-						System.out.println(c.after);
-						System.out.println(c.location);
+//						System.out.println(c.before);
+//						System.out.println(c.after);
+//						System.out.println(c.location);
 					}
 				}
 			}
@@ -106,10 +106,10 @@ public class Utilities {
 		}
 		Map.Entry<E, Integer> maxEntry = null;
 		for (Map.Entry<E, Integer> entry : counts.entrySet()) {
-			if(entry.getValue() >= upperBound) {
+			if(entry.getValue() > upperBound) {
 				discard.add(entry.getKey());
 			}
-			if (!discard.contains(entry.getKey()) && (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)) {
+			else if (!discard.contains(entry.getKey()) && (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)) {
 				maxEntry = entry;
 			}
 		}
@@ -215,7 +215,7 @@ public class Utilities {
 	// compare two mutations and output all possible combinations of these two
 	public static List<String> compareTwoMutations(Mutation mutation1, Mutation mutation2, String before, String after) {
 		int index = 0;
-		while(before.charAt(mutation1.location+index) == after.charAt(mutation1.location+index) && before.charAt(mutation2.location+index) == after.charAt(mutation2.location+index))
+		while(before.charAt((mutation1.location+index)%1000) == after.charAt((mutation1.location+index)%1000) && before.charAt((mutation2.location+index)%1000) == after.charAt((mutation2.location+index)%1000))
 			index++;
 		List<List<Character>> possibleBases = new ArrayList<List<Character>>();
 		for(int i = 0; i < 10; i++) {
