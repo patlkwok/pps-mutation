@@ -24,6 +24,7 @@ public class Player extends mutation.sim.Player {
     private int consideredWindowSize = 1;
     private int numberOfRulesConsidered = 1;
     private int windowCleared = 0;
+    private int randomExperiments = 3;
 
     public Player() {
         random = new Random();
@@ -41,7 +42,14 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         //final int numExps = console.getNumExps();
         while (true) {
-            String genome = designExperiment();
+            String genome;
+            if (expHistory.size() < randomExperiments) {
+                //System.out.println("Generate Random");
+                genome = generateRandomGenome();
+            } else {
+                //System.out.println("Generate Designed");
+                genome = designExperiment();
+            }
             String mutated = console.Mutate(genome);
             // check if we ran out of experiments to run
             if (mutated.equals("")) {
@@ -86,15 +94,6 @@ public class Player extends mutation.sim.Player {
             newScores.put(s.getKey(), s.getValue());
         }
         return newScores;
-    }
-
-    /**
-     * Based on the internal state, the player generates the best experiment
-     *
-     * @return a string to be submitted to the mutagen's effect
-     */
-    protected String designExperiment() {
-        return generateRandomGenome();
     }
 
     /**
@@ -355,6 +354,112 @@ public class Player extends mutation.sim.Player {
             result += pool[Math.abs(random.nextInt() % 4)];
         }
         return result;
+    }
+    
+    // Pick a random character from a string
+    public static char selectAChar(String s) {
+        Random random = new Random();
+        int index = random.nextInt(s.length());
+        return s.charAt(index);
+    }
+
+    // Generate a random string matching the pattern
+    public String getMatchingPattern(String pattern) {
+        return getMatchingPattern(pattern, 10);
+    }
+
+    // Generate a random string matching the pattern (any length)
+    public String getMatchingPattern(String pattern, int minLength) {
+        String[] patternParts = pattern.split(";");
+        String result = "";
+        for (String p : patternParts) {
+            result += selectAChar(p);
+        }
+        int currLength = result.length();
+        for (int i = currLength; i < minLength; ++i) {
+            result += selectAChar("acgt");
+        }
+        return result;
+    }
+    
+    // Generate a random string of certain length
+    public String getRandomString() {
+        return getRandomString(10);
+    }
+
+    // Generate a random string of certain length (any length)
+    public String getRandomString(int minLength) {
+        char[] pool = {'a', 'c', 'g', 't'};
+        String result = "";
+        for (int i = 0; i < minLength; ++i) {
+            result += pool[Math.abs(random.nextInt() % 4)];
+        }
+        return result;
+    }
+    
+    // Pick a random rule from the set of rules
+    public Rule pickRandomFromSet(Set<Rule> rules) {
+        int size = rules.size();
+        int item = random.nextInt(size);
+        int i = 0;
+        for (Rule r: rules) {
+            if (i == item) {
+                return r;
+            }
+            i++;
+        }
+        return null;
+    }
+
+    // Design experiment given two sets of likely rules
+    // mostLikely1: Set of most likely rules
+    // mostLikely2: Set of second most likely rules
+    public String generateExperiment(Set<Rule> mostLikely1, Set<Rule> mostLikely2, double propExp) {
+        if (propExp > 1.0) {
+            propExp = 1.0;
+        } else if (propExp < 0.0) {
+            propExp = 0.0;
+        }
+        int cycles = (int) (propExp * 25);
+        //System.out.println(cycles);
+        String result = "";
+        for (int i = 0; i < cycles; i++) {
+            if (!mostLikely1.isEmpty()) {
+                Rule rule1 = pickRandomFromSet(mostLikely1);
+                String pattern1 = rule1.getPatternString();
+                result += getMatchingPattern(pattern1, 10);
+                result += getRandomString(10);
+            } else {
+                result += getRandomString(20);
+            }
+            if (!mostLikely2.isEmpty()) {
+                Rule rule2 = pickRandomFromSet(mostLikely2);
+                String pattern2 = rule2.getPatternString();
+                result += getMatchingPattern(pattern2, 10);
+                result += getRandomString(10);
+            } else {
+                result += getRandomString(20);
+            }
+        }
+        return result;
+    }
+
+    // Design experiments
+    protected String designExperiment() {
+        return designExperiment(1, 1.0);
+    }
+    
+    // Design experiments (more options)
+    protected String designExperiment(int mode, double propExp) {
+        Set<Rule> mostLikely1 = changeDists.get(changeDists.size() - 1).getMostLikelyRules();
+        Set<Rule> mostLikely2 = changeDists.get(changeDists.size() - 1).getMostLikelyRules(mostLikely1);
+        if (mode == 0) {
+            return generateRandomGenome();
+        } else if (mode == 1) {
+            return generateExperiment(mostLikely1, mostLikely2, propExp);
+        } else {
+            return generateRandomGenome();
+        }
     }
 
     /**
