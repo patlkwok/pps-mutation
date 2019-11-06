@@ -44,44 +44,47 @@ public class Player extends mutation.sim.Player {
 		return result;
 	}
 
-	public Mutagen Play(Console console, int m){
+    public Mutagen Play(Console console, int m){
+      List<Change> changes = new ArrayList<Change>();
+      HashMap<String, List<Change>> actionInstances = new HashMap<>();
 
-      for(int i = 0; i < 1; ++ i){
+      for(int i = 0; i < 10; ++ i){
         Mutagen result = new Mutagen();
         String genome = randomString();
         String mutated = console.Mutate(genome);
-        List<Change> changes = Utilities.diff(genome, mutated);
-        System.out.println(changes);
+        changes.addAll(Utilities.diff(genome, mutated));
       }
+      System.out.println(changes);
+
+      for(Change c: changes){
+        String after = c.after;
+        if(!actionInstances.containsKey(after)){
+          actionInstances.put(after, new ArrayList<Change>());
+        }
+        actionInstances.get(after).add(c);
+      }
+
+      List<String> uniqueActions = new ArrayList<String>(actionInstances.keySet());
+
+      // after contexts
+
+      for(String action: uniqueActions){
+        List<Change> relatedChanges = actionInstances.get(action);
+        System.out.println(action +" : "+relatedChanges.size());
+        HashMap<Integer, List<String>> indexedAfterContext = new HashMap<>(); // {0:[changes at 0], 1:[changes at 1]}
+        List<Integer> contextPoints = new ArrayList<Integer>(relatedChanges.get(0).afterContext.keySet());
+
+        for(Integer index: contextPoints){
+          List<String> contextsAtIndex = new ArrayList<String>();
+          for(Change c: relatedChanges){
+            contextsAtIndex.add(c.afterContext.get(index));
+          }
+          System.out.println(Utilities.collapseStrings(contextsAtIndex));
+        }
+
+      }
+
       return new Mutagen();
     }
-
-    // public Mutagen Play(Console console, int m){
-    //
-    //   HashMap<String, Integer> evidence = new HashMap<>();
-    //   Mutagen result = new Mutagen();;
-    //   for (int i = 0; i < 10; ++ i){
-    //     result = new Mutagen();
-    //     // run a random experiment
-    //     String genome = randomString();
-    //     String mutated = console.Mutate(genome);
-    //     List<Change> changes = Utilities.diff(genome, mutated);
-    //     System.out.println("RULES:");
-    //     List<Rule> rules = Utilities.generateRules(changes);
-    //     for(Rule r: rules) {
-    //         System.out.println(r.formatBefore());
-    //         System.out.println(r.after);
-    //         result.add(r.formatBefore(), r.after);
-    //     }
-    //     boolean guess = console.Guess(result);
-    //     if(guess){
-    //         Utilities.alert("Correct!");
-    //         break;
-    //     }
-    //   }
-    //
-    //   Utilities.alert(evidence);
-    //   return result;
-    // }
 
 }

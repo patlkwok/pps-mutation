@@ -40,13 +40,13 @@ public class Utilities {
     if(startingPosition < 0){
       startingPosition = 1000 - startingPosition; //wrap around
     }
-    System.out.println("lookupLength "+lookupLength);
-    System.out.println("startingPosition "+startingPosition);
-    System.out.println("changeLength "+changeLength);
-    System.out.println("Location "+c.location);
+    // System.out.println("lookupLength "+lookupLength);
+    // System.out.println("startingPosition "+startingPosition);
+    // System.out.println("changeLength "+changeLength);
+    // System.out.println("Location "+c.location);
     for(int i = 0; i <= lookupLength; i++){
       int start = (startingPosition + i) % 1000;
-      System.out.println("Start "+start);
+      // System.out.println("Start "+start);
       String beforeContext = "";
       String afterContext = "";
       for(int j = 0; j < 10; j++){
@@ -109,6 +109,26 @@ public class Utilities {
         }
     }
     return maxEntry.getKey();
+  }
+
+  public static String collapseStrings(List<String> listStrings){
+    String collapsed = "";
+    int strLength = listStrings.get(0).length();
+    for(int i = 0; i < strLength; i++){
+      String chars = "";
+      for(String c: listStrings){
+        String currentChar = c.charAt(i)+"";
+        if(!inString(chars,currentChar)){
+          chars += currentChar;
+        }
+      }
+      collapsed += ";"+chars;
+    }
+    return collapsed.substring(1);
+  }
+
+  public static boolean inString(String haystack, String needle){
+    return (haystack.indexOf(needle) >= 0);
   }
 
   // format pattern
