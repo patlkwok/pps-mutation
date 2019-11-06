@@ -439,7 +439,7 @@ public class Player extends mutation.sim.Player {
 			for(Integer interestingPatternLocation : interestingPatternsMap.keySet())
 				interestingPatternLocations.add(interestingPatternLocation);
 			int currentLocation = interestingPatternLocations.get(0);
-			offsetForBaseMutationInAction = 9 - currentLocation;
+			offsetForBaseMutationInAction = 9 + 1 - mutationSize - currentLocation;
 			locationForFirstPattern = currentLocation;
 			firstPatternFound = true;
 
@@ -457,6 +457,8 @@ public class Player extends mutation.sim.Player {
 			}
 		}
 
+		System.out.println("Pattern: " + pattern);
+		System.out.println();
 
 		List<List<String>> actionElementsToAdd = new ArrayList<>();
 		for(int xyz = 0; xyz < mutationSize; xyz++) {
@@ -493,6 +495,12 @@ public class Player extends mutation.sim.Player {
 				else
 					actionElementsToAdd.get(xyz).add(letterMutation + "");
 	
+				System.out.println("Action: " + xyz);
+				System.out.println("Location for first pattern: " + locationForFirstPattern);
+				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+				System.out.println("Letter mutation: " + letterMutation);
+				System.out.println();
+
 			}
 	
 			// Either the mutation is numerical, or the mutation could be either base or numerical
@@ -536,7 +544,7 @@ public class Player extends mutation.sim.Player {
 			}
 			possibleLocationsForAction.add(patternInWindowMin);
 			possibleLocationsForAction.add(patternInWindowSecondMin);
-			possibleLocationsForAction.add(patternInWindowThirdMin);
+//			possibleLocationsForAction.add(patternInWindowThirdMin);
 	
 			/*
 			 * Add action element
@@ -563,7 +571,7 @@ public class Player extends mutation.sim.Player {
 				System.out.println("Possible location for action: " + locationForAction);
 				System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
 				System.out.println("Location for first pattern: " + locationForFirstPattern);
-				System.out.println("Offset for base mutation in action: " + offsetForNumberMutationInAction);
+				System.out.println("Offset for number mutation in action: " + offsetForNumberMutationInAction);
 				System.out.println("Number mutation: " + numberMutation);
 				System.out.println();
 
@@ -573,9 +581,10 @@ public class Player extends mutation.sim.Player {
 						for(int j = 0; j < offsetForNumberMutationInAction; j++)
 							actionElement += Integer.toString(j);
 						actionElement += Integer.toString(numberMutation);
-						actionElementsToAdd.get(xyz).add(actionElement);
+						if(actionElementsToAdd.get(xyz).size() < 2)
+							actionElementsToAdd.get(xyz).add(actionElement);
 					}
-					else
+					else if(actionElementsToAdd.get(xyz).size() < 2)
 						actionElementsToAdd.get(xyz).add(Integer.toString(numberMutation));	
 				}
 			}
