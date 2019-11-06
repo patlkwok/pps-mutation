@@ -39,7 +39,6 @@ public class Cluster{
                 temp.add(mutated_bases.get(item));
             }
             correct_indices.put(mutated_bases.get(index), temp);
-            System.out.println(mutated_bases.get(index));
         }
         return correct_indices;
     }

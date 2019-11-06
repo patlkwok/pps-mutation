@@ -21,12 +21,12 @@ public class Player extends mutation.sim.Player {
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
-    private int numTrials = 100;
+    private int numTrials = 200;
     private Double rulesLength = 0.0;
     private Double takeAChanceWithLength = 0.05;
 
     // Distribution increase parameters
-    private Double modifierStep = 1.5;
+    private Double modifierStep = 1.4;
     private Double initialStep = 1.0;
 
     // Time limit for when to break (in milliseconds)
@@ -89,7 +89,7 @@ public class Player extends mutation.sim.Player {
         }
         Vector<String> previousPatterns = new Vector<String>();
         for (int i = 0; i < numberOfRulesToCombine; i++) {
-            for (int j = 0; j < 2000; j++) {
+            for (int j = 0; j < 1000; j++) {
                 String pair = samplePair();
                 if (!previousPatterns.contains(pair)) {
                     String[] patternAction = pair.split("@");
@@ -248,7 +248,7 @@ public class Player extends mutation.sim.Player {
 
             // Get the genome
             String genome;
-            if(i == 0) genome = randomString();
+            if(i == 0 || i > 50) genome = randomString();
             else genome = createString();
             String mutated = console.Mutate(genome);
 
@@ -280,7 +280,6 @@ public class Player extends mutation.sim.Player {
                 }
                 changeWindows.add(new Pair<Integer, Integer>(overlap + start, overlap + finish));
             }
-            System.out.println(changeWindows);
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
             Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
@@ -288,9 +287,9 @@ public class Player extends mutation.sim.Player {
                 int start = window.getKey();
                 int finish = window.getValue();
                 String before = genome.substring(start, finish + 1);
+                String after = mutated.substring(start, finish + 1);
                 if (before.length() - 1 >= maxMutagenLength) continue;
-                System.out.println(before);
-                allPatterns.add(before);
+                allPatterns.add(before + "@" + after);
                 int windowLength = finish - start + 1;
                 windowSizesCounts[windowLength - 1]++;
                 if (windowLength == maxMutagenLength) {
@@ -321,21 +320,24 @@ public class Player extends mutation.sim.Player {
             Mutagen guess;
             if(i < 100){
                 guess = getFinalMutagen();
-            }
-            else{
+            } else {
                 // Sample a mutagen
                 boolean foundGuess = false;
                 guess = new Mutagen();
                 while (!foundGuess) {
                     guess = sampleMutagen();
-                    System.out.println("[>] Guessing");
                     if (!wrongMutagens.contains(guess)) {
                         foundGuess = true;
                     }
                 }
             }
 
-            boolean isCorrect = console.testEquiv(guess);
+            boolean isCorrect = false;
+            if(guess.getPatterns().size() < 5) {
+                isCorrect = console.testEquiv(guess);
+            } else {
+                isCorrect = console.Guess(guess);
+            }
             if (isCorrect) {
                 return guess;
             } else {
@@ -343,6 +345,6 @@ public class Player extends mutation.sim.Player {
                 wrongMutagens.add(guess);
             }
         }
-        return sampleMutagen();
+        return getFinalMutagen();
     }
 }
