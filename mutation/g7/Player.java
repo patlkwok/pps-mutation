@@ -21,7 +21,7 @@ public class Player extends mutation.sim.Player {
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
-    private int numTrials = 200;
+    private int numTrials = 1000;
     private Double rulesLength = 0.0;
     private Double takeAChanceWithLength = 0.05;
 
