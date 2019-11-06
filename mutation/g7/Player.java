@@ -236,21 +236,22 @@ public class Player extends mutation.sim.Player {
             mutated = mutated.substring(mutated.length() - overlap, mutated.length()) + mutated + mutated.substring(0, overlap);
             // Collect the change windows
             Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
-            for (int j = overlap; j < genome_length; j++) {
-                char before = genome.charAt(j);
-                char after = mutated.charAt(j);
-                if (before != after) {
-                    int finish = j;
-                    for (int forwardIndex = j + 1; forwardIndex < j + 10; forwardIndex++) {
-                        if (genome.charAt(forwardIndex) == mutated.charAt(forwardIndex)) {
-                            finish = forwardIndex - 1;
-                            break;
-                        }
+
+            Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
+            for (Integer centroid : sorted.keySet()){
+                int start = 1000;
+                int finish = 0;
+                for (Integer j : sorted.get(centroid)) {
+                    if(j < start) {
+                        start = j;
                     }
-                    changeWindows.add(new Pair<Integer, Integer>(j, finish));
-                    j = finish;
+                    if(j  > finish) {
+                        finish = j;
+                    }
                 }
+                changeWindows.add(new Pair<Integer, Integer>(overlap + start, overlap + finish));
             }
+            System.out.println(changeWindows);
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
             Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
@@ -259,6 +260,7 @@ public class Player extends mutation.sim.Player {
                 int finish = window.getValue();
                 String before = genome.substring(start, finish + 1);
                 if (before.length() - 1 >= maxMutagenLength) continue;
+                System.out.println(before);
                 allPatterns.add(before);
                 int windowLength = finish - start + 1;
                 windowSizesCounts[windowLength - 1]++;
@@ -284,7 +286,6 @@ public class Player extends mutation.sim.Player {
                 // Get the string after
                 String after = mutated.substring(start, finish + 1);
                 // Modify the distribution
-//                System.out.println(before + " / " + after);
                 modifyRuleDistribution(before, after);
             }
 
