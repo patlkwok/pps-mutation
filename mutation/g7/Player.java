@@ -335,7 +335,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
 
-            boolean isCorrect = console.Guess(guess);
+            boolean isCorrect = console.testEquiv(guess);
             if (isCorrect) {
                 return guess;
             } else {
