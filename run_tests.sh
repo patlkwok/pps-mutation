@@ -2,6 +2,7 @@
 
 # Compile the files in our directory 
 javac mutation/g7/*.java
+javac mutation/sim/*.java
 
 # Set path to tests 
 TESTS=config/g7/test_cases/* 
@@ -16,14 +17,14 @@ correct=0
 # Variable to keep track of total 
 total=0
 for config_file in $TESTS
-do 
+do
     res=$(java mutation.sim.Simulator -p g7 -m $m -c $config_file)
     test=$(echo $config_file | cut -f4 -d/ )
     let "total += 1"
     if [[ $res == *"Failed"* ]]; 
     then
         echo "Failed on test case "$test >> output.txt
-        jaccard=$(echo $res | cut -f2 -d: )
+        jaccard=$(echo $res | cut -f3 -d: )
         echo "Jaccard score was: "$jaccard >> output.txt
     else
         let "correct += 1"

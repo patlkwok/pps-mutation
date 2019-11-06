@@ -21,7 +21,7 @@ public class Player extends mutation.sim.Player {
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
-    private int numTrials = 1000;
+    private int numTrials = 100;
     private Double rulesLength = 0.0;
     private Double takeAChanceWithLength = 0.05;
 
@@ -199,7 +199,7 @@ public class Player extends mutation.sim.Player {
                 pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
             }
             pair = pair.split("@")[0];
-            result += pair;
+            result += String.join("", pair.split(";"));
             counter++;
         }
         return result.substring(0, 1000);
@@ -218,16 +218,14 @@ public class Player extends mutation.sim.Player {
             }
 
             // Get the genome
-            String genome = createString();
+            String genome;
+            if(i == 0) genome = randomString();
+            else genome = createString();
             String mutated = console.Mutate(genome);
 
             Cluster cluster = new Cluster(genome, mutated);
             Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(m);
             // This if statement is just to check if correctly identified windows
-            if (true) {
-                printWindows(mutations, genome, mutated);
-                return new Mutagen();
-            }
 
             int genome_length = genome.length();
 
