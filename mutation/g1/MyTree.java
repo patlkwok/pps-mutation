@@ -48,6 +48,10 @@ public class MyTree {
     }
 
     public MyTree(String pattern, String action) {
+        // mutated string up until the final observed change
+        // this is not a tree - just a matrix
+
+        // make matrix of all zeros 10x4 (10 = full pattern length, 4 = all bases)
         this.patternCounts = new ArrayList<>();
         for(int i = 0; i < 10; i++) {
             ArrayList<Integer>charCounts = new ArrayList<>();
@@ -57,6 +61,12 @@ public class MyTree {
             this.patternCounts.add(charCounts);
         }
 
+        // a;c;g;t;a;a;a;a;t --> t
+        // a;c;g;t --> 3
+        // |action| --> 1
+        // just instantiates: matrix of |action| x 10 where 10 is for every possible length
+        // [ith, jth] = for the ith position of the action,
+        // how many times can it be represented by the jth position in the pattern
         this.actionIndexCounts = new ArrayList<>();
         for(int i = 0; i < action.length(); i++) {
             ArrayList<Integer>ac = new ArrayList<>();
@@ -95,6 +105,9 @@ public class MyTree {
     }
 
     public void addActionIndices(String pattern) {
+        /*
+        Look at all possible index replacements and increment
+         */
         ArrayList<ArrayList<Integer>> charIdxs = new ArrayList<>();
         for(int i = 0; i < 4; i++) {
             charIdxs.add(new ArrayList<>());
@@ -222,6 +235,11 @@ public class MyTree {
     }
 
     public void addPattern(String newPattern) {
+        // ac
+        // 0, 0 ++
+        // 0, 1 ++
+        // first index of pattern counts is position and second is base index {a=0, c=1, g=2, t=3}
+        // matrix of 10 x numBases (4)
         this.support += 1;
         for(int positionIdx = 0; positionIdx < newPattern.length(); positionIdx++) {
             int charIdx = this.bases.indexOf(newPattern.charAt(positionIdx));

@@ -12,14 +12,14 @@ import javafx.util.Pair;
 public class Player extends mutation.sim.Player {
     private Random random;
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
-
+    public HashMap<String, Integer> guessCounts = new HashMap<>();
     /*
     HYPER-PARAMETERS
      */
     public double guessNumericProbability = 0.75; // percentage of the time we allow numbers in guesses
     // if we've seen the most popular rule 10 times,
     // we only accept other multiple rules if we've seen them 10 * supportCoeff or greater
-    public double supportCoeff = 0.8;
+    public double supportCoeff = 0.75;
     public boolean ignoreAmiguousCasesWhenMerging = false;
     // measure of how confident we need to be in this numeric action for it to be included in guess
     public double numericConfidence = 0.75;
@@ -38,6 +38,8 @@ public class Player extends mutation.sim.Player {
 
     public void mergeTrees(HashMap<String, MyTree> trees) {
         // Merge tree a into tree b iff a --> <x>;(acgt)@<y> and b --> <x>@<y>(acgt)
+
+        // a@tc  if you see "ac" you're going to incorrectly guess a;c@t.  Assume we are looking a@tc and not a;c@t
         ArrayList<String>actionsToRemove = new ArrayList<>();
 
         for(Map.Entry<String, MyTree> entry : trees.entrySet()) {
@@ -178,7 +180,10 @@ public class Player extends mutation.sim.Player {
     }
 
     public Pair<String, ArrayList<MyTree>> proposeAlphaNumericAction(String pattern, ArrayList<MyTree> trees) {
+        // group according to the length of the predicted action
         HashMap<Integer, ArrayList<MyTree>> numericActionToTrees = new HashMap<>();
+        // some patterns could be the same because of spuriousness.
+        // pick the one that is the most likely on basis of action length
         HashMap<Integer, Integer> combinedSupport = new HashMap<>();
         int biggestLengthSupport = -1;
         int targetActionLen = -1;
@@ -266,6 +271,11 @@ public class Player extends mutation.sim.Player {
             }
         }
 
+        // for each action index --> have we seen a number or a character more often?
+        // map action indices in pattern and action indices themselves (* support)
+        // trees are keyed by actual action we see. increment support by 1
+        // which is biggest?
+
         String newAction = "";
         for(int i=0; i < n; i++) {
             String maxChar = null;
@@ -309,15 +319,26 @@ public class Player extends mutation.sim.Player {
         return mergedTree.computeBestPattern(new HashSet<>());
     }
 
+    public ArrayList<Pair<String, String>>addRoundofGuesses(ArrayList<Pair<String, String>>currentGuesses) {
+        ArrayList<Pair<String, String>>filteredGuesses = currentGuesses;
+
+        // TODO
+        // increment guessCounts
+        // sample from guessCounts to get filtered Guesses
+
+        return filteredGuesses;
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
+        // key=action, value: MyTree --> 4x10 matrix of every pattern that generated that action
         HashMap<String,MyTree>trees = new HashMap<>();
-
         boolean isCorrect;
+        // Pair = pattern, action
         ArrayList<Pair<String, String>>guesses = new ArrayList<>();
         Set<String>incorrectGuesses = new HashSet<String>();
 
-        for (int iter = 0; iter < 100; iter++) {
+        for (int iter = 0; iter < 10000; iter++) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
 
@@ -349,17 +370,25 @@ public class Player extends mutation.sim.Player {
                 maxSupport = Math.max(t.support, maxSupport);
             }
 
+            // supportCoeff = 0.8
+            // if we've seen a rule 80% of the time that we've seen the most frequent rule, include it
+            // a@t, a;c;g;t;g;t;t;g;t@a --> second rule is going to be less
             int supportThreshold = (int) Math.round(maxSupport * this.supportCoeff);
             guesses = new ArrayList<>();
 
+            // only the non numeric patterns and actions - only observed things
             ArrayList<String> actionCandidates = new ArrayList<>();
             ArrayList<String> patternCandidates = new ArrayList<>();
             ArrayList<Integer> supportCandidates = new ArrayList<>();
 
+            // c@9 --> c@a, c@g, c@t
+            // c --> <c@a>, <c@g>, <c@t> --> attempt to merge them into alphanumeric
             HashMap<String, ArrayList<MyTree>> patternToTrees = new HashMap<>();
             HashSet<String> repeatedPatterns = new HashSet<>();
 
             for(MyTree t: trees.values()) {
+                // pattern counts for each and pick latest index which has an entropy < 0.8
+                // truly random (acgt) --> [25 25 25 25] --> [0.25, 0.25, 0.25] --> H(p) / log(2) [0, 1]
                 String pattern = t.computeBestPattern(incorrectGuesses);
 
                 if(patternToTrees.containsKey(pattern)) {
@@ -377,6 +406,9 @@ public class Player extends mutation.sim.Player {
                 }
             }
 
+            /*
+            * minor edge case - can ignore for you
+             */
             for(int cIdx = 0; cIdx < actionCandidates.size(); cIdx++) {
                 boolean isSubset = false;
                 for(int otherIdx = 0; otherIdx < actionCandidates.size(); otherIdx++) {
@@ -392,15 +424,20 @@ public class Player extends mutation.sim.Player {
                 }
             }
 
+            // 1. have we predicted the same pattern more than once? we might to merge these into alphanumeric action
+            // c@9 --> c@g, c@t, c@a is there a value that is longer than 1 in this hashmap?
             ArrayList<Pair<String, String>>alphaNumericGuesses = new ArrayList<>();
             ArrayList<Integer>numericSupports = new ArrayList<>();
             ArrayList<String>guessesToRemove = new ArrayList<>();
 
+            // flip a coin and attempt to guess numeric if less than guessNumericProbability
             boolean guessNumeric = Math.random() < guessNumericProbability;
             int maxNumericSupport = 0;
             if(guessNumeric) {
+                // guessed pattern --> all trees that have predicted this patterrn
                 for(String pattern : patternToTrees.keySet()) {
                     ArrayList<MyTree> potentialNumericTrees = patternToTrees.get(pattern);
+                    // if more than one tree has predicted a pattern, try to merge into a numeric
                     if(potentialNumericTrees.size() > 1) {
                         Pair<String, ArrayList<MyTree>> tmp = this.proposeAlphaNumericAction(pattern, potentialNumericTrees);
                         String alphaAction = tmp.getKey();
@@ -455,9 +492,8 @@ public class Player extends mutation.sim.Player {
                 tmp.add(mostConfidentGuess);
                 finalGuesses = tmp;
             }
-
-            guesses = finalGuesses;
-            isCorrect = console.Guess(this.generateGuess(guesses));
+            guesses = this.addRoundofGuesses(finalGuesses);
+            isCorrect = console.testEquiv(this.generateGuess(guesses));
             String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
                 System.out.println("Correct: " + numericMsg + resultStr);
@@ -466,8 +502,13 @@ public class Player extends mutation.sim.Player {
                 System.out.println("Incorrect: " + numericMsg + resultStr);
                 incorrectGuesses.add(resultStr);
             }
-        }
 
+            if(Math.floorMod(iter + 1, 100) == 0) {
+                System.out.println("Starting over!");
+                this.guessCounts = new HashMap<>();
+                trees = new HashMap<>();
+            }
+        }
         return this.generateGuess(guesses);
     }
 }
