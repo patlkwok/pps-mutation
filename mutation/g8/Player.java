@@ -1,5 +1,5 @@
 package mutation.g8;
-
+import java.lang.*;
 import java.util.*;
 import javafx.util.*;
 import mutation.sim.Console;
@@ -25,10 +25,23 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         HashMap<Pair<String,String>, Integer> rules = new HashMap<>();
         Mutagen result = new Mutagen();
-        for (int i = 0; i < 10; ++ i) {
+        for (int i = 0; i < 1; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
+
             ArrayList<Integer> mutationPositions = getMutationPositions(genome, mutated);
+
+            HashMap<String,String> map=windowSlideChar(genome, mutated);
+            map.entrySet().forEach(entry->{
+                System.out.println(entry.getKey() + " " + entry.getValue());  
+             });
+            System.out.println("//////now combine rules together//////////");
+
+            map=simplifyRules(map);
+            map.entrySet().forEach(entry->{
+                System.out.println(entry.getKey() + " " + entry.getValue());  
+             });
+            
             int lastMutationPosition = -11;
             int mutationRange = 10;
             for (int j = 0; j < mutationPositions.size(); j++){
@@ -130,4 +143,50 @@ public class Player extends mutation.sim.Player {
         }
         return false;
     }
+    public HashMap<String,String> windowSlideChar(String input,String output){
+        HashMap<String,String> ans= new HashMap<>();
+        for(int i=0;i<990;i++){
+            String og=input.substring(i, i + 10);
+            String after=output.substring(i, i + 10);
+            int begin=-1;
+            int end=begin;
+            for (int j=0;j<og.length();j++){
+                if (og.charAt(j)!=after.charAt(j)){
+                    if (begin==-1){begin=j;}
+                    end=j;
+                } 
+            }
+            if(begin!=-1){
+                for (int j=begin;j<=end;j++){
+                    ans.put(og.substring(j,end+1),after.substring(j,end+1));
+                }
+            }
+        }
+        return ans;
+    }
+    /*public HashMap<String,String> windowSlideIndex(String input,String output){
+        
+    }*/
+    public HashMap<String,String> simplifyRules(HashMap<String,String> rules){
+        List<String> ogs=new ArrayList<>();
+        for (String s : rules.keySet()) {ogs.add(s);}
+        //sort ogs by length 
+        Collections.sort(ogs, Comparator.comparing(String::length));
+        for(int i=0;i<ogs.size()-1;i++){
+            String og=ogs.get(i);
+            String after=rules.get(og);
+            for (int j=i+1;j<ogs.size();j++){
+                if (ogs.get(j).contains(og)){//if curr og is the substring of another rules 
+                    int idx=ogs.get(j).indexOf(og);
+                    if (rules.get(og).equals(rules.get(ogs.get(j)).substring(idx,idx+og.length()))){
+                        //combine rule
+                        rules.remove(og);
+                        break;
+                    }
+                }
+            }
+        }
+        return rules;
+    }
+    
 }
