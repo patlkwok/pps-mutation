@@ -12,8 +12,17 @@ import javafx.util.Pair;
 public class Player extends mutation.sim.Player {
     private Random random;
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
-    public double guessNumericProbability = 0.75;
+
+    /*
+    HYPER-PARAMETERS
+     */
+    public double guessNumericProbability = 0.75; // percentage of the time we allow numbers in guesses
+    // if we've seen the most popular rule 10 times,
+    // we only accept other multiple rules if we've seen them 10 * supportCoeff or greater
     public double supportCoeff = 0.8;
+    public boolean ignoreAmiguousCasesWhenMerging = false;
+    // measure of how confident we need to be in this numeric action for it to be included in guess
+    public double numericConfidence = 0.75;
 
     public Player() {
         random = new Random();
@@ -44,8 +53,7 @@ public class Player extends mutation.sim.Player {
 
                 int alignIdx = otherAction.indexOf(action);
                 // TODO figure out why I had this
-//                boolean ambiguousAlignIdx = otherAction.length() > 1 && otherAction.substring(1).contains(action);
-                boolean ambiguousAlignIdx = false;
+                boolean ambiguousAlignIdx = this.ignoreAmiguousCasesWhenMerging && otherAction.length() > 1 && otherAction.substring(1).contains(action);
                 if(alignIdx == 0 && ! ambiguousAlignIdx) {
                     boolean isValid = true;
                     for(int i = action.length(); i < otherAction.length(); i++) {
@@ -57,7 +65,6 @@ public class Player extends mutation.sim.Player {
 
                     if(isValid) {
                         // merge entry into otherEntry
-//                        System.out.println("Merging " + action + " into " + otherAction);
                         otherT.mergeTree(t, alignIdx);
                         actionsToRemove.add(action);
                     }
@@ -214,7 +221,7 @@ public class Player extends mutation.sim.Player {
             }
 
             double confidence = score / (n * newAction.length());
-            if(confidence >= 0.75) {
+            if(confidence >= this.numericConfidence) {
                 return new Pair(newAction, numericActionToTrees.get(targetActionLen));
             } else {
                 return new Pair(null, null);
@@ -308,7 +315,6 @@ public class Player extends mutation.sim.Player {
 
         boolean isCorrect;
         ArrayList<Pair<String, String>>guesses = new ArrayList<>();
-        ArrayList<Pair<String, String>>firstGuesses = new ArrayList<>();
         Set<String>incorrectGuesses = new HashSet<String>();
 
         for (int iter = 0; iter < 100; iter++) {
@@ -450,11 +456,8 @@ public class Player extends mutation.sim.Player {
                 finalGuesses = tmp;
             }
 
-            if(iter < 10 && guessNumeric) {
-                firstGuesses = finalGuesses;
-            }
-
-            isCorrect = console.Guess(this.generateGuess(finalGuesses));
+            guesses = finalGuesses;
+            isCorrect = console.Guess(this.generateGuess(guesses));
             String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
                 System.out.println("Correct: " + numericMsg + resultStr);
@@ -465,6 +468,6 @@ public class Player extends mutation.sim.Player {
             }
         }
 
-        return this.generateGuess(firstGuesses);
+        return this.generateGuess(guesses);
     }
 }

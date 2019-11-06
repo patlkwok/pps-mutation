@@ -6,11 +6,13 @@ import java.util.Set;
 
 
 public class MyTree {
-    // Entropy Hyperparameters
+    // Hyperparameters
     public final boolean useEntropy = true;
-    public final int supportBeforeEntropy = 20;
-    public final double lambda = 1.0;
-    public final double entropyThreshold = 0.8;
+    public final int supportBeforeEntropy = 20; // when to start using entropy
+    public final double lambda = 1.0; // smoothing factor (not really important)
+    public final double entropyThreshold = 0.8; // if entropy falls below this, it's likely to not be acgt
+    public final double minCharProb = 0.2; // percentage of character support to be included in guess
+    // if actual pattern is acgt then we would expect to see [0.25, 0.25, 0.25, 0.25].  Pick 0.2 for random noise buffer
 
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
     public String action;
@@ -132,7 +134,7 @@ public class MyTree {
           String posString = "";
           for(int charIdx = 0; charIdx < 4; charIdx++) {
               int charCount = charCounts.get(charIdx);
-              if(charCount >= 0.2 * this.support) {
+              if(charCount >= minCharProb * this.support) {
                   posString += this.bases.get(charIdx);
               }
           }
