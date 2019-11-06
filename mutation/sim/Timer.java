@@ -29,6 +29,7 @@ class Timer extends Thread {
             if (finished == false)
                 try {
                     wait(timeout);
+                    this.endTime = System.currentTimeMillis();
                 } catch (InterruptedException e) {
                 }
         }

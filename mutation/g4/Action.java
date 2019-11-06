@@ -30,4 +30,23 @@ public class Action {
 		}
 		return new String(charArray);
 	}
+
+	@Override
+	public boolean equals(Object object) {
+		if (object == null) return false;
+		if (!(object instanceof Action)) return false;
+		Action action = (Action) object;
+		return action.toString().equals(this.action.toString());
+	}
+
+	@Override
+	public int hashCode() {
+		String toString = this.toString();
+		char[] charArray = toString.toCharArray();
+		int result = 17;
+		for (int i = 0; i < charArray.length; i++) {
+			result += 31*Character.valueOf(charArray[i]).hashCode();
+		}
+		return result;
+	}
 }
