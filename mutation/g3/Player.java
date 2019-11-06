@@ -89,7 +89,7 @@ public class Player extends mutation.sim.Player {
     }
 
     /**
-     * Based on the internal state of the player generates the best experiment
+     * Based on the internal state, the player generates the best experiment
      *
      * @return a string to be submitted to the mutagen's effect
      */
@@ -134,7 +134,6 @@ public class Player extends mutation.sim.Player {
                     = getPossibleMutations(experiment, localWindowSize, false);
             if (mutations.size() > experiment.appliedMutations) {
                 localWindowSize += 1;  // increment global window size to save time considering too small windows
-                //System.out.println("considered widow size increased to: " + String.valueOf(localWindowSize));
             } else {
                 break;
             }
@@ -155,6 +154,37 @@ public class Player extends mutation.sim.Player {
         }
     }
 
+    private List<HashSet<Mutation>> filterCollisions(List<HashSet<Mutation>> mutations, int q) {
+        if (mutations.size() >= q) {
+            return mutations;
+        }
+
+        while (true) {  
+            // we may have a collision of mutations counting as 1
+            // check if there is a mutation set with significantly more windows than average and eliminate
+            int indexToRemove = 0;
+            int largestSize = 0;
+            double sumSizes = 0;
+            for (int i=0; i < mutations.size(); i++) {
+                int curSize = mutations.get(i).size();
+                sumSizes += curSize;
+                if (curSize > largestSize) {
+                    largestSize = curSize;
+                    indexToRemove = i;
+                }
+            }
+            double meanSize = sumSizes / mutations.size();
+            if (largestSize >= meanSize + 2) {  // not sure how to best define "significantly more than average", but let's say 2 for now
+                mutations.remove(indexToRemove);
+            }
+            else {
+                break;
+            }
+        }
+
+        return mutations;
+    }
+
     /**
      * Given a mutation (of the whole genome), updates the believes on the
      * possible rules that could generate such mutation
@@ -166,11 +196,10 @@ public class Player extends mutation.sim.Player {
     protected void updateBelieves(ExperimentResult experiment) throws ZeroMassProbabilityException {
         // skip window sizes that are too small to explain the number of mutations actually applied
         skipBadWindowSizes(experiment);
-
         // now we getPossibleMutations with ignoreCollisions = true so we don't soil our evidence with compositions of rules
         List<HashSet<Mutation>> mutations
                 = getPossibleMutations(experiment, consideredWindowSize, true);
-
+        mutations = filterCollisions(mutations, experiment.appliedMutations);
         for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
             changeDists.add(changeDist);
