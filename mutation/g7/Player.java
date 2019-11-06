@@ -163,14 +163,43 @@ public class Player extends mutation.sim.Player {
             numberOfRulesToCombine = 1;
         }
         List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
+        pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
+            System.out.println(pair);
+            System.out.println(patternActionPair.getValue());
             String[] patternAction = pair.split("@");
             String pattern = patternAction[0];
             String action = patternAction[1];
             mutagen.add(pattern, action);
         }
         return mutagen;
+    }
+
+    private List<Map.Entry<String, Double>> purge(List<Map.Entry<String, Double>> pairs){
+        Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+        int i = 1;
+        for(; i < pairs.size(); i++){
+            if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
+        }
+        Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                if(o1.getKey().length() == o2.getKey().length()) return 0;
+                if(o1.getKey().length() < o2.getKey().length()) return 1;
+                return -1;
+            }
+        });
+        i = 1;
+        for(; i < pairs.size(); i++){
+            if(pairs.get(i-1).getKey().length() != pairs.get(i).getKey().length()) break;
+        }
+        return pairs.subList(0, i);
     }
 
 
