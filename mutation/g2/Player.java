@@ -42,52 +42,42 @@ public class Player extends mutation.sim.Player {
 
     public Mutagen Play(Console console, int m){
 
-      HashMap<String, Integer> evidence = new HashMap<>();
-      Mutagen result = new Mutagen();;
-      for (int i = 0; i < 10; ++ i){
-        result = new Mutagen();
-        // run a random experiment
+      for(int i = 0; i < 1; ++ i){
+        Mutagen result = new Mutagen();
         String genome = randomString();
         String mutated = console.Mutate(genome);
         List<Change> changes = Utilities.diff(genome, mutated);
-        System.out.println("RULES:");
-        List<Rule> rules = Utilities.generateRules(changes);
-        for(Rule r: rules) {
-            System.out.println(r.formatBefore());
-            System.out.println(r.after);
-            result.add(r.formatBefore(), r.after);
-        }
-        boolean guess = console.Guess(result);
-        if(guess){
-            Utilities.alert("Correct!");
-            break;
-        }
-//        // collect evidence
-//        for(Change c: changes){
-//          String key = c.getChange();
-//          if(!evidence.containsKey(key)){
-//            evidence.put(key, 0);
-//          }
-//          evidence.put(key, evidence.get(key)+1);
-//        }
-
-        //guess strongest evidence
-//        String maxString = Utilities.argMax(evidence);
-//        if(maxString != null || evidence.get(maxString) == 1){
-//          Change maxEvidence = Change.fromChangeString(maxString);
-//
-//
-//          result.add(Utilities.formatPattern(maxEvidence.before),maxEvidence.after);
-//          boolean guess = console.Guess(result);
-//          if(guess){
-//            Utilities.alert("Correctly guessed");
-//            break;
-//          }
-//        }
+        System.out.println(changes);
       }
-
-      Utilities.alert(evidence);
-      return result;
+      return new Mutagen();
     }
+
+    // public Mutagen Play(Console console, int m){
+    //
+    //   HashMap<String, Integer> evidence = new HashMap<>();
+    //   Mutagen result = new Mutagen();;
+    //   for (int i = 0; i < 10; ++ i){
+    //     result = new Mutagen();
+    //     // run a random experiment
+    //     String genome = randomString();
+    //     String mutated = console.Mutate(genome);
+    //     List<Change> changes = Utilities.diff(genome, mutated);
+    //     System.out.println("RULES:");
+    //     List<Rule> rules = Utilities.generateRules(changes);
+    //     for(Rule r: rules) {
+    //         System.out.println(r.formatBefore());
+    //         System.out.println(r.after);
+    //         result.add(r.formatBefore(), r.after);
+    //     }
+    //     boolean guess = console.Guess(result);
+    //     if(guess){
+    //         Utilities.alert("Correct!");
+    //         break;
+    //     }
+    //   }
+    //
+    //   Utilities.alert(evidence);
+    //   return result;
+    // }
 
 }
