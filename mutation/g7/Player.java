@@ -163,11 +163,11 @@ public class Player extends mutation.sim.Player {
             numberOfRulesToCombine = 1;
         }
         List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
-        pairs = purge(pairs);
+        if(pairs.size() > 0) pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
-            System.out.println(pair);
-            System.out.println(patternActionPair.getValue());
+//            System.out.println(pair);
+//            System.out.println(patternActionPair.getValue());
             String[] patternAction = pair.split("@");
             String pattern = patternAction[0];
             String action = patternAction[1];
@@ -185,6 +185,8 @@ public class Player extends mutation.sim.Player {
         });
         int i = 1;
         for(; i < pairs.size(); i++){
+            System.out.println(pairs.get(i-1).getKey());
+            System.out.println(pairs.get(i-1).getValue());
             if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
         }
         Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
@@ -318,7 +320,7 @@ public class Player extends mutation.sim.Player {
             }
 
             Mutagen guess;
-            if(i < 100){
+            if(i < 50){
                 guess = getFinalMutagen();
             } else {
                 // Sample a mutagen
