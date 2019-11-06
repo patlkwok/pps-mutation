@@ -131,8 +131,8 @@ public class Player extends mutation.sim.Player {
         int localWindowSize = consideredWindowSize;
         while (localWindowSize < 10) {
             List<HashSet<Mutation>> mutations
-                    = getPossibleMutations(experiment, localWindowSize, false);
-            if (mutations.size() > experiment.appliedMutations) {
+                    = getPossibleMutations(experiment, localWindowSize);
+            if (mutations.size() > experiment.appliedMutations || mutations.isEmpty()) {
                 localWindowSize += 1;  // increment global window size to save time considering too small windows
             } else {
                 break;
@@ -159,13 +159,13 @@ public class Player extends mutation.sim.Player {
             return mutations;
         }
 
-        while (true) {  
+        while (true) {
             // we may have a collision of mutations counting as 1
             // check if there is a mutation set with significantly more windows than average and eliminate
             int indexToRemove = 0;
             int largestSize = 0;
             double sumSizes = 0;
-            for (int i=0; i < mutations.size(); i++) {
+            for (int i = 0; i < mutations.size(); i++) {
                 int curSize = mutations.get(i).size();
                 sumSizes += curSize;
                 if (curSize > largestSize) {
@@ -176,8 +176,7 @@ public class Player extends mutation.sim.Player {
             double meanSize = sumSizes / mutations.size();
             if (largestSize >= meanSize + 2) {  // not sure how to best define "significantly more than average", but let's say 2 for now
                 mutations.remove(indexToRemove);
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -198,7 +197,7 @@ public class Player extends mutation.sim.Player {
         skipBadWindowSizes(experiment);
         // now we getPossibleMutations with ignoreCollisions = true so we don't soil our evidence with compositions of rules
         List<HashSet<Mutation>> mutations
-                = getPossibleMutations(experiment, consideredWindowSize, true);
+                = getPossibleMutations(experiment, consideredWindowSize);
         mutations = filterCollisions(mutations, experiment.appliedMutations);
         for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
@@ -218,14 +217,17 @@ public class Player extends mutation.sim.Player {
                 double hLBefore = d.getHighestLogLikelihood();
                 d.aggregate(changeDist);
                 double hLAfter = d.getHighestLogLikelihood();
-                if (hLAfter == LOG_ZERO_PROB) zeroProbCount++;
+                if (hLAfter == LOG_ZERO_PROB) {
+                    zeroProbCount++;
+                }
                 if (increase < hLAfter - hLBefore) { // better
                     chosenRule = i;
                     increase = hLAfter - hLBefore;
                 }
             }
-            if (zeroProbCount == numberOfRulesConsidered)
+            if (zeroProbCount == numberOfRulesConsidered) {
                 throw new ZeroMassProbabilityException("No rule distribution is consistent with this change");
+            }
         } catch (CloneNotSupportedException e) {
             System.out.println("This should not happen");
         }
@@ -359,12 +361,11 @@ public class Player extends mutation.sim.Player {
      * List all changes in the strings within a windows of the given length
      *
      * @param experiment the experiment
-     * @param windowSize size of the window
-     * @param ignoreCollisions if true, only return sets of mutations far enough
-     * away to avoid composition of mutations
+     * @param windowSize size of the window away to avoid composition of
+     * mutations
      * @return list of all changed pieces
      */
-    private List<HashSet<Mutation>> getPossibleMutations(ExperimentResult experiment, int windowSize, boolean ignoreCollisions) {
+    private List<HashSet<Mutation>> getPossibleMutations(ExperimentResult experiment, int windowSize) {
         String original = experiment.mutation.getOriginal();
         String mutated = experiment.mutation.getMutated();
         // try checking size of list with m value, which would now need to be passed in
@@ -391,20 +392,21 @@ public class Player extends mutation.sim.Player {
             lastChange = change;
         }
 
+        final int rotateTo = (original.length() + safeStart - windowSize) % original.length();
         // rotate the genome to start at safeStart
-        original = original.substring(safeStart) + original.substring(0, safeStart);
-        mutated = mutated.substring(safeStart) + mutated.substring(0, safeStart);
+        original = original.substring(rotateTo) + original.substring(0, rotateTo);
+        mutated = mutated.substring(rotateTo) + mutated.substring(0, rotateTo);
         // adjust positions
         final int strLen = original.length();
         for (int j = 0; j < numChanges; j++) {
-            changes.set(j, (strLen + changes.get(j) - safeStart) % strLen);
+            changes.set(j, (strLen + changes.get(j) - rotateTo) % strLen);
         }
         // restore order after adjustment
-        while (changes.peek() > 0) {
+        while (changes.peek() > windowSize) {
             changes.add(changes.pop());
         }
-
-        for (int i = 0; i < numChanges;) {
+        int i = 0;
+        while (i < numChanges) {
             int curChangePos = changes.get(i);
             int nextChangePos;
             int j = i;
@@ -416,15 +418,19 @@ public class Player extends mutation.sim.Player {
                 }
             } while (nextChangePos - curChangePos < windowSize);
             j--;
-            nextChangePos = changes.get(j % numChanges);
-            if (nextChangePos < curChangePos) {
-                nextChangePos += original.length();
-            }
-            int margin = windowSize - (nextChangePos - curChangePos + 1);
-            mutations.add(extractWindows(original, mutated, curChangePos, margin, windowSize));
-            if (ignoreCollisions) {
-                i = j + windowSize;  // look for more mutations far enough away to avoid composition of mutations
+            if (nextChangePos - curChangePos < 2 * windowSize - 1) {
+                int k = j + 1;
+                while (k < numChanges && changes.get(k) - changes.get(k - 1) <= windowSize) {
+                    k++;
+                }
+                i = k;
             } else {
+                nextChangePos = changes.get(j % numChanges);
+                if (nextChangePos < curChangePos) {
+                    nextChangePos += original.length();
+                }
+                int margin = windowSize - (nextChangePos - curChangePos + 1);
+                mutations.add(extractWindows(original, mutated, curChangePos, margin, windowSize));
                 i = j + 1;
             }
         }

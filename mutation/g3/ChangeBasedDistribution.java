@@ -1,5 +1,6 @@
 package mutation.g3;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import static mutation.g3.LogProbability.*;
@@ -17,7 +18,8 @@ public class ChangeBasedDistribution implements RuleDistribution {
         if (distributions == null || distributions.isEmpty()) {
             throw new IllegalArgumentException("A non empty list of distributions must be provided");
         }
-        this.distributions = distributions;
+        this.distributions = new ArrayList<>();
+        this.distributions.addAll(distributions);
         this.distributions.removeIf((d) -> d.getHighestLogLikelihood() == LOG_ZERO_PROB);
         if (this.distributions.isEmpty()) {
             throw new ZeroMassProbabilityException();
