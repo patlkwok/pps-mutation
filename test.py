@@ -6,7 +6,7 @@ config_path = 'config/g1'
 config_files = glob.glob(config_path + '/*.cfg')
 config_files.sort()
 
-# output = subprocess.Popen(['javac', 'mutation/sim/*.java'], cwd='../',
+# output = subprocess.Popen(['javac', 'mutation/sim/*.java'], cwd='./',
 #                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 # stdout, stderr = output.communicate()
 # print(stdout.decode("utf-8"))
@@ -22,7 +22,7 @@ for config_file in config_files:
         for line in f:
             print(line, end="")
     print()
-    
+
     start_print = False
     out_string = stdout.decode("utf-8")
     for line in out_string.split('\n'):
@@ -32,3 +32,4 @@ for config_file in config_files:
             print(line)
     
     print()
+    break

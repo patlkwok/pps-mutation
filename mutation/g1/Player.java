@@ -396,7 +396,7 @@ public class Player extends mutation.sim.Player {
         ArrayList<Pair<String, String>>guesses = new ArrayList<>();
         Set<String>incorrectGuesses = new HashSet<String>();
 
-        for (int iter = 0; iter < 10000; iter++) {
+        for (int iter = 0; iter < 299; iter++) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
 
@@ -559,15 +559,15 @@ public class Player extends mutation.sim.Player {
             isCorrect = console.testEquiv(this.generateGuess(guesses));
             String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
-                System.out.println("Correct: " + numericMsg + resultStr);
+                //System.out.println("Correct: " + numericMsg + resultStr);
                 break;
             } else {
-                System.out.println("Incorrect: " + numericMsg + resultStr);
+                //System.out.println("Incorrect: " + numericMsg + resultStr);
                 incorrectGuesses.add(resultStr);
             }
 
             if(Math.floorMod(iter + 1, this.startOverFreq) == 0) {
-                System.out.println("Starting over!");
+                //System.out.println("Starting over!");
                 this.guessCounts = new HashMap<>();
                 trees = new HashMap<>();
             }
