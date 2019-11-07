@@ -48,4 +48,4 @@ for config_file in config_files:
 
 print("=" * 40)
 print("Correctly guessed: {} rules out of {} rules".format(correct_count, n))
-print("Failed: {} rule with average jaccard score of {:.5%}".format(failed_count, average_jaccard / n))
+print("Failed: {} rule with average jaccard score of {:.5%}".format(failed_count, average_jaccard / failed_count))
