@@ -185,8 +185,8 @@ public class Player extends mutation.sim.Player {
         });
         int i = 1;
         for(; i < pairs.size(); i++){
-            System.out.println(pairs.get(i-1).getKey());
-            System.out.println(pairs.get(i-1).getValue());
+           // System.out.println(pairs.get(i-1).getKey());
+           // System.out.println(pairs.get(i-1).getValue());
             if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
         }
         Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
@@ -255,7 +255,12 @@ public class Player extends mutation.sim.Player {
             String mutated = console.Mutate(genome);
 
             Cluster cluster = new Cluster(genome, mutated);
-            Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(m);
+            Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(console.getNumberOfMutations());
+            // if (true){
+            //     System.out.println(console.getNumberOfMutations());
+            // printWindows(mutations, genome, mutated);
+            // return new Mutagen();
+            // }
             // This if statement is just to check if correctly identified windows
 
             int genome_length = genome.length();
