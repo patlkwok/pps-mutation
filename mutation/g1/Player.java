@@ -12,7 +12,7 @@ import javafx.util.Pair;
 public class Player extends mutation.sim.Player {
     private Random random;
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
-    public HashMap<String, Integer> guessCounts = new HashMap<>();
+    public HashMap<Pair<String, String>, Integer> guessCounts = new HashMap<>();
     /*
     HYPER-PARAMETERS
      */
@@ -319,12 +319,67 @@ public class Player extends mutation.sim.Player {
         return mergedTree.computeBestPattern(new HashSet<>());
     }
 
+    //a function that clean up trailing acgt in the pattern
+    public String cleanPattern(String pat){
+        String[] colonArray = pat.split(";");
+        int stop = colonArray.length-1;
+        while (stop >= 0){
+            if (colonArray[stop].length() == 4) {
+                stop-=1;
+            }
+            else{
+                break;
+            }
+        }
+        String out = "";
+        for (int i = 0; i < stop+1; i++){
+            out+=colonArray[i];
+            if (i!=stop && stop!=0){
+                out+=";";
+            }
+        }
+        return out;
+    }
+
+
     public ArrayList<Pair<String, String>>addRoundofGuesses(ArrayList<Pair<String, String>>currentGuesses) {
-        ArrayList<Pair<String, String>>filteredGuesses = currentGuesses;
+        ArrayList<Pair<String, String>>filteredGuesses = new ArrayList<>();
+        int count;
+
+        for (int i  = 0; i<currentGuesses.size();i++){
+        count = guessCounts.containsKey(currentGuesses.get(i)) ? guessCounts.get(currentGuesses.get(i)) : 0;
+        guessCounts.put(currentGuesses.get(i), count + 1);
+
+        }
+        //this is a parameter we can tune
+        double keep_top = 0.75;
+        //find max count
+        Map.Entry<Pair<String,String>, Integer> maxEntry = null;
+
+        for (Map.Entry<Pair<String,String>, Integer> entry : guessCounts.entrySet())
+        {
+            if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)
+            {
+                maxEntry = entry;
+            }
+        }
+        //find patterns that are in current guesses and occurs frequently enough
+        for(Map.Entry<Pair<String,String>, Integer> other_entry : guessCounts.entrySet()){
+            Pair<String,String> pa_ac_pair = other_entry.getKey();
+            int num = other_entry.getValue();
+            if (num > maxEntry.getValue()*keep_top && currentGuesses.contains(pa_ac_pair)){
+                filteredGuesses.add(pa_ac_pair);
+            }
+
+
+        }
+
+
 
         // TODO
         // increment guessCounts
         // sample from guessCounts to get filtered Guesses
+
 
         return filteredGuesses;
     }
@@ -472,7 +527,8 @@ public class Player extends mutation.sim.Player {
             Pair<String, String> mostConfidentGuess = null;
 
             for(int gIdx=0; gIdx < guesses.size(); gIdx++) {
-                String guess = guesses.get(gIdx).getKey() + "@" + guesses.get(gIdx).getValue();
+                String concise_guess = cleanPattern(guesses.get(gIdx).getKey());
+                String guess = concise_guess + "@" + guesses.get(gIdx).getValue();
                 if(! guessesToRemove.contains(guess) && supportCandidates.get(gIdx) >= updatedSupportThreshold) {
                     resultStr += guess;
                     if(gIdx < guesses.size() - 1) {
