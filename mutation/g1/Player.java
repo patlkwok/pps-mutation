@@ -13,6 +13,8 @@ public class Player extends mutation.sim.Player {
     private Random random;
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
     public HashMap<Pair<String, String>, Integer> guessCounts = new HashMap<>();
+    public double rareFactorThreshold = 0.02;
+    public int startOverFreq = 100;
     /*
     HYPER-PARAMETERS
      */
@@ -34,6 +36,16 @@ public class Player extends mutation.sim.Player {
         for (int i = 0; i < 1000; ++ i)
             result += pool[Math.abs(random.nextInt() % 4)];
         return result;
+    }
+
+    public double rareFactor(String pattern) {
+        double rf = 1.0;
+        for(String s : pattern.split(";")) {
+            if(s.length() < 4)
+                rf *= 1.0 / (4 - s.length());
+        }
+
+        return rf;
     }
 
     public void mergeTrees(HashMap<String, MyTree> trees) {
@@ -370,16 +382,7 @@ public class Player extends mutation.sim.Player {
             if (num > maxEntry.getValue()*keep_top && currentGuesses.contains(pa_ac_pair)){
                 filteredGuesses.add(pa_ac_pair);
             }
-
-
         }
-
-
-
-        // TODO
-        // increment guessCounts
-        // sample from guessCounts to get filtered Guesses
-
 
         return filteredGuesses;
     }
@@ -446,6 +449,7 @@ public class Player extends mutation.sim.Player {
                 // truly random (acgt) --> [25 25 25 25] --> [0.25, 0.25, 0.25] --> H(p) / log(2) [0, 1]
                 String pattern = t.computeBestPattern(incorrectGuesses);
 
+                double rareFactor = this.rareFactor(pattern);
                 if(patternToTrees.containsKey(pattern)) {
                     patternToTrees.get(pattern).add(t);
                     repeatedPatterns.add(pattern);
@@ -454,7 +458,7 @@ public class Player extends mutation.sim.Player {
                     tmp.add(t);
                     patternToTrees.put(pattern, tmp);
                 }
-                if(t.support >= supportThreshold) {
+                if(t.support >= supportThreshold || rareFactor < rareFactorThreshold) {
                     actionCandidates.add(t.action);
                     patternCandidates.add(pattern);
                     supportCandidates.add(t.support);
@@ -503,8 +507,9 @@ public class Player extends mutation.sim.Player {
                                 combinedSupport += ct.support;
                             }
                             maxNumericSupport = Math.max(maxNumericSupport, combinedSupport);
-                            if(combinedSupport >= supportThreshold) {
-                                String proposedNewPattern = this.proposeNewPattern(contributingTrees);
+                            String proposedNewPattern = this.proposeNewPattern(contributingTrees);
+                            double rareFactor = this.rareFactor(proposedNewPattern);
+                            if(combinedSupport >= supportThreshold || rareFactor < rareFactorThreshold) {
                                 Pair<String, String>p = new Pair<>(proposedNewPattern, alphaAction);
                                 alphaNumericGuesses.add(p);
                                 for(MyTree ct : contributingTrees) {
@@ -529,7 +534,9 @@ public class Player extends mutation.sim.Player {
             for(int gIdx=0; gIdx < guesses.size(); gIdx++) {
                 String concise_guess = cleanPattern(guesses.get(gIdx).getKey());
                 String guess = concise_guess + "@" + guesses.get(gIdx).getValue();
-                if(! guessesToRemove.contains(guess) && supportCandidates.get(gIdx) >= updatedSupportThreshold) {
+                boolean rare = this.rareFactor(concise_guess) < this.rareFactorThreshold;
+                if(! guessesToRemove.contains(guess) &&
+                        (rare || supportCandidates.get(gIdx) >= updatedSupportThreshold)) {
                     resultStr += guess;
                     if(gIdx < guesses.size() - 1) {
                         resultStr += "\n";
@@ -559,7 +566,7 @@ public class Player extends mutation.sim.Player {
                 incorrectGuesses.add(resultStr);
             }
 
-            if(Math.floorMod(iter + 1, 100) == 0) {
+            if(Math.floorMod(iter + 1, this.startOverFreq) == 0) {
                 System.out.println("Starting over!");
                 this.guessCounts = new HashMap<>();
                 trees = new HashMap<>();
