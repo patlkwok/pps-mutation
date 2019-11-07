@@ -13,11 +13,11 @@ public class Player extends mutation.sim.Player {
     private Random random;
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
     public HashMap<Pair<String, String>, Integer> guessCounts = new HashMap<>();
-    public double rareFactorThreshold = 0.02;
-    public int startOverFreq = 100;
     /*
     HYPER-PARAMETERS
      */
+    public int startOverFreq = 100;
+    public double rareFactorThreshold = 0.02;
     public double guessNumericProbability = 0.75; // percentage of the time we allow numbers in guesses
     // if we've seen the most popular rule 10 times,
     // we only accept other multiple rules if we've seen them 10 * supportCoeff or greater
@@ -191,7 +191,7 @@ public class Player extends mutation.sim.Player {
         }
     }
 
-    public Pair<String, ArrayList<MyTree>> proposeAlphaNumericAction(String pattern, ArrayList<MyTree> trees) {
+    public Pair<String, ArrayList<MyTree>> proposeAlphaNumericAction(ArrayList<MyTree> trees) {
         // group according to the length of the predicted action
         HashMap<Integer, ArrayList<MyTree>> numericActionToTrees = new HashMap<>();
         // some patterns could be the same because of spuriousness.
@@ -379,7 +379,7 @@ public class Player extends mutation.sim.Player {
         for(Map.Entry<Pair<String,String>, Integer> other_entry : guessCounts.entrySet()){
             Pair<String,String> pa_ac_pair = other_entry.getKey();
             int num = other_entry.getValue();
-            if (num > maxEntry.getValue()*keep_top && currentGuesses.contains(pa_ac_pair)){
+            if (num > maxEntry.getValue() * keep_top && currentGuesses.contains(pa_ac_pair)){
                 filteredGuesses.add(pa_ac_pair);
             }
         }
@@ -498,7 +498,7 @@ public class Player extends mutation.sim.Player {
                     ArrayList<MyTree> potentialNumericTrees = patternToTrees.get(pattern);
                     // if more than one tree has predicted a pattern, try to merge into a numeric
                     if(potentialNumericTrees.size() > 1) {
-                        Pair<String, ArrayList<MyTree>> tmp = this.proposeAlphaNumericAction(pattern, potentialNumericTrees);
+                        Pair<String, ArrayList<MyTree>> tmp = this.proposeAlphaNumericAction(potentialNumericTrees);
                         String alphaAction = tmp.getKey();
                         ArrayList<MyTree>contributingTrees = tmp.getValue();
                         int combinedSupport = 0;
@@ -526,27 +526,105 @@ public class Player extends mutation.sim.Player {
             guesses.addAll(alphaNumericGuesses);
             supportCandidates.addAll(numericSupports);
             int updatedSupportThreshold = (int) Math.round(Math.max(maxNumericSupport, maxSupport) * this.supportCoeff);
-            ArrayList<Pair<String, String>>finalGuesses = new ArrayList<>();
 
+            // Merge guesses of the form 4x <acgt>;x@<acgt>y
+            HashMap<String, ArrayList<Pair<String, String>>> weirdCases = new HashMap<>();
+            HashMap<String, Integer> weirdCaseSupport = new HashMap<>();
+            for(int gIdx = 0; gIdx < guesses.size(); gIdx++) {
+                Pair<String, String> guess = guesses.get(gIdx);
+                int support = supportCandidates.get(gIdx);
+                String pattern = guess.getKey();
+                String action = guess.getValue();
+
+                String key = pattern.substring(1) + "|" + action.substring(1);
+                if(pattern.length() > 1 && pattern.charAt(1) == ';') {
+                    key = key.substring(1);
+                }
+
+                if(action.length() == 1) {
+                    key += action;
+                }
+
+                if(weirdCases.containsKey(key)) {
+                    weirdCases.get(key).add(guess);
+                    weirdCaseSupport.put(key, weirdCaseSupport.get(key) + support);
+                } else {
+                    ArrayList<Pair<String, String>> tmp = new ArrayList<>();
+                    tmp.add(guess);
+                    weirdCases.put(key, tmp);
+                    weirdCaseSupport.put(key, support);
+                }
+            }
+
+            ArrayList<Pair<String, String>>mergedGuesses = new ArrayList<>();
+            ArrayList<Integer> mergedSupportCandidates = new ArrayList<>();
+            for(String key : weirdCases.keySet()) {
+                ArrayList<Pair<String, String>> wc = weirdCases.get(key);
+                mergedSupportCandidates.add(weirdCaseSupport.get(key));
+                if(wc.size() == 1) {
+                    mergedGuesses.addAll(wc);
+                } else if(wc.size() < 4) {
+                    // Merge
+                    String [] split = key.split("[|]");
+                    String pattern = split[0];
+                    String action = split[1];
+
+                    String firstPosChars = "";
+                    for(Pair<String, String> p : wc) {
+                        firstPosChars += p.getKey().substring(0, 1);
+                    }
+                    if(pattern.length() == 0) {
+                        pattern = firstPosChars;
+                    } else {
+                        pattern = firstPosChars + ";" + pattern;
+                    }
+                    action = "0" + action;
+                    Pair<String, String> newGuess = new Pair<>(pattern, action);
+                    mergedGuesses.add(newGuess);
+                } else {
+                    // Merge
+                    String [] split = key.split("[|]");
+                    String pattern = split[0];
+                    String action = split[1];
+                    String adjustedAction = "";
+                    for(int cIdx = 0; cIdx < action.length(); cIdx++) {
+                        String subString = action.substring(cIdx, cIdx + 1);
+                        if(subString.matches(".*\\d.*")) {
+                            int newInt = Math.max(Integer.parseInt(subString) - 1, 0);
+                            adjustedAction += Integer.toString(newInt);
+                        } else {
+                            adjustedAction += subString;
+                        }
+                    }
+
+                    if(pattern.length() == 0) {
+                        pattern = "acgt";
+                    }
+                    Pair<String, String> newGuess = new Pair<>(pattern, adjustedAction);
+                    mergedGuesses.add(newGuess);
+                }
+            }
+
+            ArrayList<Pair<String, String>>finalGuesses = new ArrayList<>();
             int mostConfidentGuessSupport = -1;
             Pair<String, String> mostConfidentGuess = null;
 
-            for(int gIdx=0; gIdx < guesses.size(); gIdx++) {
-                String concise_guess = cleanPattern(guesses.get(gIdx).getKey());
-                String guess = concise_guess + "@" + guesses.get(gIdx).getValue();
+            for(int gIdx=0; gIdx < mergedGuesses.size(); gIdx++) {
+                String concise_guess = cleanPattern(mergedGuesses.get(gIdx).getKey());
+                String guess = concise_guess + "@" + mergedGuesses.get(gIdx).getValue();
                 boolean rare = this.rareFactor(concise_guess) < this.rareFactorThreshold;
                 if(! guessesToRemove.contains(guess) &&
-                        (rare || supportCandidates.get(gIdx) >= updatedSupportThreshold)) {
+                        (rare || mergedSupportCandidates.get(gIdx) >= updatedSupportThreshold)) {
                     resultStr += guess;
                     if(gIdx < guesses.size() - 1) {
                         resultStr += "\n";
                     }
-                    finalGuesses.add(guesses.get(gIdx));
+                    finalGuesses.add(mergedGuesses.get(gIdx));
                 }
 
                 if(supportCandidates.get(gIdx) >= mostConfidentGuessSupport) {
                     mostConfidentGuessSupport = supportCandidates.get(gIdx);
-                    mostConfidentGuess = guesses.get(gIdx);
+                    mostConfidentGuess = mergedGuesses.get(gIdx);
                 }
             }
 
@@ -555,19 +633,25 @@ public class Player extends mutation.sim.Player {
                 tmp.add(mostConfidentGuess);
                 finalGuesses = tmp;
             }
-            guesses = this.addRoundofGuesses(finalGuesses);
+
+            ArrayList<Pair<String, String>> sampledGuesses = this.addRoundofGuesses(finalGuesses);
+            if(Math.random() < 0.5) {
+                guesses = sampledGuesses;
+            } else {
+                guesses = finalGuesses;
+            }
             isCorrect = console.testEquiv(this.generateGuess(guesses));
             String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
-                //System.out.println("Correct: " + numericMsg + resultStr);
+                System.out.println("Correct: " + numericMsg + resultStr);
                 break;
             } else {
-                //System.out.println("Incorrect: " + numericMsg + resultStr);
+                System.out.println("Incorrect: " + numericMsg + resultStr);
                 incorrectGuesses.add(resultStr);
             }
 
             if(Math.floorMod(iter + 1, this.startOverFreq) == 0) {
-                //System.out.println("Starting over!");
+                System.out.println("Starting over!");
                 this.guessCounts = new HashMap<>();
                 trees = new HashMap<>();
             }
