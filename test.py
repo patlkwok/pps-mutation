@@ -32,4 +32,3 @@ for config_file in config_files:
             print(line)
     
     print()
-    break
