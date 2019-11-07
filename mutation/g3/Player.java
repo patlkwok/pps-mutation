@@ -24,7 +24,7 @@ public class Player extends mutation.sim.Player {
     private int consideredWindowSize = 1;
     private int numberOfRulesConsidered = 1;
     private int windowCleared = 0;
-    private int randomExperiments = 3;
+    private int randomExperiments = 5;  // changed from 3
 
     public Player() {
         random = new Random();
@@ -58,8 +58,8 @@ public class Player extends mutation.sim.Player {
             int q = console.getNumberOfMutations();
             recordMutations(genome, mutated, m, q);
             Mutagen guess = makeGuess();
-            if (console.Guess(guess)) {
-                // we guessed right!
+            if (console.testEquiv(guess)) {
+                // we guessed right! (equivalence test)
                 return guess;
             } else {
                 guessedWrong(guess);
@@ -139,7 +139,7 @@ public class Player extends mutation.sim.Player {
         }
         if (localWindowSize != consideredWindowSize) {
             setConsideredWindowSize(localWindowSize);
-            System.out.println("Skipped to window size" + localWindowSize);
+            System.out.println("Skipped to window size " + localWindowSize);
         }
     }
 
@@ -369,14 +369,14 @@ public class Player extends mutation.sim.Player {
     }
 
     // Generate a random string matching the pattern (any length)
-    public String getMatchingPattern(String pattern, int minLength) {
+    public String getMatchingPattern(String pattern, int length) {
         String[] patternParts = pattern.split(";");
         String result = "";
         for (String p : patternParts) {
             result += selectAChar(p);
         }
         int currLength = result.length();
-        for (int i = currLength; i < minLength; ++i) {
+        for (int i = currLength; i < length; ++i) {
             result += selectAChar("acgt");
         }
         return result;
@@ -388,10 +388,10 @@ public class Player extends mutation.sim.Player {
     }
 
     // Generate a random string of certain length (any length)
-    public String getRandomString(int minLength) {
+    public String getRandomString(int length) {
         char[] pool = {'a', 'c', 'g', 't'};
         String result = "";
-        for (int i = 0; i < minLength; ++i) {
+        for (int i = 0; i < length; ++i) {
             result += pool[Math.abs(random.nextInt() % 4)];
         }
         return result;
@@ -420,27 +420,31 @@ public class Player extends mutation.sim.Player {
         } else if (propExp < 0.0) {
             propExp = 0.0;
         }
-        int cycles = (int) (propExp * 25);
-        //System.out.println(cycles);
+        double lenDesign = propExp * 1000;
         String result = "";
-        for (int i = 0; i < cycles; i++) {
+        while (result.length() < lenDesign) {
             if (!mostLikely1.isEmpty()) {
                 Rule rule1 = pickRandomFromSet(mostLikely1);
                 String pattern1 = rule1.getPatternString();
-                result += getMatchingPattern(pattern1, 10);
-                result += getRandomString(10);
+                result += getMatchingPattern(pattern1, consideredWindowSize);
+                result += getRandomString(Math.max(10, 2 * consideredWindowSize));
             } else {
-                result += getRandomString(20);
+                result += getRandomString(Math.max(10, 2 * consideredWindowSize));
             }
             if (!mostLikely2.isEmpty()) {
                 Rule rule2 = pickRandomFromSet(mostLikely2);
                 String pattern2 = rule2.getPatternString();
-                result += getMatchingPattern(pattern2, 10);
-                result += getRandomString(10);
+                result += getMatchingPattern(pattern2, consideredWindowSize);
+                result += getRandomString(Math.max(10, 2 * consideredWindowSize));
             } else {
-                result += getRandomString(20);
+                result += getRandomString(Math.max(10, 2 * consideredWindowSize));
             }
         }
+        int currLength = result.length();
+        if (currLength >= 1000) {
+            return result.substring(0, 1000);
+        }
+        result += getRandomString(1000 - currLength);
         return result;
     }
 
@@ -451,8 +455,8 @@ public class Player extends mutation.sim.Player {
     
     // Design experiments (more options)
     protected String designExperiment(int mode, double propExp) {
-        Set<Rule> mostLikely1 = changeDists.get(changeDists.size() - 1).getMostLikelyRules();
-        Set<Rule> mostLikely2 = changeDists.get(changeDists.size() - 1).getMostLikelyRules(mostLikely1);
+        Set<Rule> mostLikely1 = distributions.get(0).getMostLikelyRules();
+        Set<Rule> mostLikely2 = distributions.get(0).getMostLikelyRules(mostLikely1);
         if (mode == 0) {
             return generateRandomGenome();
         } else if (mode == 1) {
