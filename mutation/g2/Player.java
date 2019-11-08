@@ -203,7 +203,7 @@ public class Player extends mutation.sim.Player {
             }
           }
 
-
+          sol = new Mutagen();
           for(List<String> s : solution.keySet()){
             if(solution.get(s) < mean){
               continue;
