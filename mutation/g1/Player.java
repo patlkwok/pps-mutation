@@ -16,15 +16,19 @@ public class Player extends mutation.sim.Player {
     HYPER-PARAMETERS
      */
     public int startOverFreq = 100;
+    public int[] startOverFreqlist = {60, 80, 120};
     public double rareFactorThreshold = 0.02;
     public double guessNumericProbability = 0.75; // percentage of the time we allow numbers in guesses
+    public double[] guessNumericProbabilitylist= {0.7, 0.75, 0,8};
+
+
     // if we've seen the most popular rule 10 times,
     // we only accept other multiple rules if we've seen them 10 * supportCoeff or greater
     public double supportCoeff = 0.75;
     public boolean ignoreAmiguousCasesWhenMerging = false;
     public boolean shouldMergeTrees = true;
     // measure of how confident we need to be in this numeric action for it to be included in guess
-    public double numericConfidence = 0.75;
+    public double numericConfidence = 0.9;
 
     public Player() {
         random = new Random();
@@ -423,6 +427,9 @@ public class Player extends mutation.sim.Player {
         Set<String>incorrectGuesses = new HashSet<String>();
 
         for (int iter = 0; iter < 299; iter++) {
+            guessNumericProbability = guessNumericProbabilitylist[random.nextInt(3)];
+            startOverFreq = startOverFreqlist[random.nextInt(3)];
+
             String genome = randomString();
             String mutated = console.Mutate(genome);
 
@@ -518,6 +525,7 @@ public class Player extends mutation.sim.Player {
             ArrayList<String>guessesToRemove = new ArrayList<>();
 
             // flip a coin and attempt to guess numeric if less than guessNumericProbability
+
             boolean guessNumeric = Math.random() < guessNumericProbability;
             int maxNumericSupport = 0;
             if(guessNumeric) {
