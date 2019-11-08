@@ -123,10 +123,10 @@ public class Player extends mutation.sim.Player {
         }
     }
 
-    private String randomString() {
+    private String randomString(int n) {
         char[] pool = {'a', 'c', 'g', 't'};
         String result = "";
-        for (int i = 0; i < 1000; ++i)
+        for (int i = 0; i < n; ++i)
             result += pool[Math.abs(random.nextInt() % 4)];
         return result;
     }
@@ -223,14 +223,20 @@ public class Player extends mutation.sim.Player {
         int counter = 0;
         while(result.length() < 1000){
             String pair;
-            if(counter % 2 == 0){
+            if(counter % 3 == 0){
                 pair = greatest.get((int) Math.floor(Math.random() * n)).getKey();
+                pair = pair.split("@")[0];
+                pair = String.join("", pair.split(";"));
+            }
+            else if(counter % 2 == 0){
+                pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
+                pair = pair.split("@")[0];
+                pair = String.join("", pair.split(";"));
             }
             else{
-                pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
+                pair = randomString(20);
             }
-            pair = pair.split("@")[0];
-            result += String.join("", pair.split(";"));
+            result += pair;
             counter++;
         }
         return result.substring(0, 1000);
@@ -250,7 +256,7 @@ public class Player extends mutation.sim.Player {
 
             // Get the genome
             String genome;
-            if(i == 0 || i > 50) genome = randomString();
+            if(i == 0 || i > 50) genome = randomString(1000);
             else genome = createString();
             String mutated = console.Mutate(genome);
 
