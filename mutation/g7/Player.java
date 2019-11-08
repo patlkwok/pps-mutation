@@ -286,6 +286,9 @@ public class Player extends mutation.sim.Player {
                 mutations.remove(centroid);
                 mutations.remove(end+1);
             }
+        }
+    }
+
     private void purgeRules(){
         for(String pattern : discardedRules){
             if(rules.containsKey(pattern)) rules.remove(pattern);
