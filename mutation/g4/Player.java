@@ -52,13 +52,25 @@ public class Player extends mutation.sim.Player {
                 // System.out.println("PlayEthan");
                 if (j==0 && i < 2) {
                     // System.out.println("PlayTanmay");
-                    PlayTanmay(mutationsSet, genome, mutated);
+                    try {
+                        PlayTanmay(mutationsSet, genome, mutated);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 if (i % 50 == 0) {
                     // System.out.println("PlayRebecca");
-                    PlayRebecca(m);
+                    try {
+                        PlayRebecca(m);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-                PlayEthan(mutationsSet, i);
+                try {
+                    PlayEthan(mutationsSet, i);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             if (console.isCorrect()) return result;
         }
@@ -72,7 +84,7 @@ public class Player extends mutation.sim.Player {
     }
 
     public void PlayEthan(Set<List<Mutation>> mutationsSet, int iter) {
-        System.out.println("" + iter);
+        // System.out.println("" + iter);
         for (List<Mutation> mutations : mutationsSet) {
             assignAMutationToAMutationGroup(mutations);
         }
@@ -87,7 +99,7 @@ public class Player extends mutation.sim.Player {
     }
 
     public void mergeMutations() {
-        System.out.println("Size Before: " + mutationGroups.size());
+        // System.out.println("Size Before: " + mutationGroups.size());
         List<MutationGroup> newMutationGroups = new ArrayList<>();
         for (int i = 0; i < mutationGroups.size(); i++) {
             boolean isContained = false;
@@ -103,7 +115,7 @@ public class Player extends mutation.sim.Player {
             if (!isContained) newMutationGroups.add(mutationGroups.get(i));
         }
         mutationGroups = newMutationGroups;
-        System.out.println("Size After: " + mutationGroups.size());
+        // System.out.println("Size After: " + mutationGroups.size());
     }
 
     private boolean contains(String[] p1, String[] p2) {
@@ -380,10 +392,10 @@ public class Player extends mutation.sim.Player {
             for (int j = 0; j < len; j++) sum += counts[i][j];
             sums[i] = sum;
         }
-        System.out.println();
-        System.out.print("+: ");
-        for (int s : sums) System.out.print(String.format("% 3d ", s));
-        System.out.println();
+        // System.out.println();
+        // System.out.print("+: ");
+        // for (int s : sums) System.out.print(String.format("% 3d ", s));
+        // System.out.println();
 
         // find std-dev for each position
         double[] stds = new double[counts.length];
@@ -395,23 +407,23 @@ public class Player extends mutation.sim.Player {
             }
             stds[i] = Math.sqrt(((double) sum) /(len*len)) /sums[i];
         }
-        System.out.println();
-        System.out.print("s: ");
-        for (int i = 0; i < stds.length; i++) System.out.print(String.format("%.2f ", stds[i]));
-        System.out.println();
+        // System.out.println();
+        // System.out.print("s: ");
+        // for (int i = 0; i < stds.length; i++) System.out.print(String.format("%.2f ", stds[i]));
+        // System.out.println();
 
         String ref = ""; for (int i = 0; i < len -4; i++) ref += Integer.toString(i); ref += POOL;
 
-        System.out.println();
+        // System.out.println();
         for (int j = 0; j < len; j++) {
-            System.out.print(ref.charAt(j) + ": ");
+            // System.out.print(ref.charAt(j) + ": ");
             for (int i = 0; i < counts.length; i++) {
                 int x = counts[i][j];
-                System.out.print(String.format("% 4d ", x));
+                // System.out.print(String.format("% 4d ", x));
             }
-            System.out.println();
+            // System.out.println();
         }
-        System.out.println();
+        // System.out.println();
 
         return stds;
     }
@@ -426,7 +438,7 @@ public class Player extends mutation.sim.Player {
                 counts[i][POOL.indexOf(action.charAt(i))] += 1;
             }
         }
-        System.out.println("ACTIONS:");
+        // System.out.println("ACTIONS:");
         double[] stds = getStds(counts);
 
         String action = "";
@@ -441,7 +453,7 @@ public class Player extends mutation.sim.Player {
             }
             action += POOL.charAt(max_j);
         }
-        System.out.println(action);
+        // System.out.println(action);
 
         return action;
     }
@@ -462,7 +474,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
         }
-        System.out.println("ACTIONS:");
+        // System.out.println("ACTIONS:");
         double[] stds = getStds(counts);
 
         String action = "";
@@ -477,7 +489,7 @@ public class Player extends mutation.sim.Player {
             }
             action += reference.charAt(max_j);
         }
-        System.out.println(action);
+        // System.out.println(action);
 
         return action;
     }
@@ -512,7 +524,7 @@ public class Player extends mutation.sim.Player {
 
             String pat = new String(pattern);
             if (pat.indexOf('x') == -1) {
-                System.out.println("Pattern: " + pat);
+                // System.out.println("Pattern: " + pat);
                 break;
             }
 
@@ -540,7 +552,7 @@ public class Player extends mutation.sim.Player {
             // return if nothing else found
             if (max_ind == -1) break;
             pattern[max_ind] = max_nuc;
-            System.out.print(new String(pattern));
+            // System.out.print(new String(pattern));
 
             // separate matching rules
             for (int i : new HashSet<Integer>(patterns.keySet())) {
@@ -551,7 +563,7 @@ public class Player extends mutation.sim.Player {
             }
 
             pattern = Arrays.copyOfRange(pattern, index_start, index_end);
-            System.out.println("\t\t" + new String(pattern));
+            // System.out.println("\t\t" + new String(pattern));
         }
 
         // return pattern and used indices
@@ -671,6 +683,9 @@ public class Player extends mutation.sim.Player {
         for (int i = 0; i < rules.size(); i++) {
             patternActions.add(new Pair<String, String>(rules.get(i), actions.get(i)));
         }
+        if (patternActions.size() > 20) {
+            patternActions = patternActions.subList(0, 20);
+        }
         guessOneRule(patternActions);
         guessTwoRules(patternActions);
         guessThreeRules(patternActions);
@@ -755,7 +770,7 @@ public class Player extends mutation.sim.Player {
         }
         else
         {
-            System.out.println("No Useful Guesses Found.");
+            // System.out.println("No Useful Guesses Found.");
             //don't waste your guess, attempt something else
         }
     }

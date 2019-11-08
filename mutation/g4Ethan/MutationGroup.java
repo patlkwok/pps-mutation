@@ -136,7 +136,9 @@ public class MutationGroup {
 			actionEnd--;
 			patternEnd--;
 		}
-		while (ANY.equals(patternArray[patternEnd])) {
+		System.out.println("start: " + start);
+		System.out.println("patternEnd: " + patternEnd);
+		while (ANY.equals(patternArray[patternEnd]) && patternEnd > start) {
 			patternEnd--;
 		}
 		if (patternEnd < start) {
