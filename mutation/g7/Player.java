@@ -1,197 +1,305 @@
 package mutation.g7;
 
 import java.util.*;
+
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
 import javafx.util.Pair;
 
+import java.util.Map;
+import static java.util.stream.Collectors.*;
+import static java.util.Map.Entry.*;
+
 
 public class Player extends mutation.sim.Player {
 
     private Random random;
-    private Map<String, Double> lhs;
-    private Map<String, Double> rhs;
+    private Map<String, Double> rules = new HashMap<>();
+
     private Map<Integer, Double> lengthMap;
     private double numPerm = 0.0;
     private String[] genes = "acgt".split("");
 
     private int numTrials = 1000;
-    private Double modifierStep = 0.05;
-    private Double lhsLength = 1.0;
-    private Double rhsLength = 1.0;
+    private Double rulesLength = 0.0;
+    private Double takeAChanceWithLength = 0.05;
+
+    // Distribution increase parameters
+    private Double modifierStep = 1.4;
+    private Double initialStep = 1.0;
+
+    // Time limit for when to break (in milliseconds)
+    private long timeLimit = 1000;
 
     // An array to record the wrong guesses so we don't repeat them
     private Vector<Mutagen> wrongMutagens = new Vector<>();
 
-    private int maxMutagenLength = 2;
-    private Vector<HashSet<String>> allPatterns = new Vector<>();
+    private int maxMutagenLength = 10;
+
+    // An array of all patterns that happened
+    private HashSet<String> allPatterns = new HashSet<>();
 
     public Player() {
         random = new Random();
-        lhs = new HashMap<>();
-        rhs = new HashMap<>();
-        lengthMap = new HashMap<>();
-        setNumPerm(2);
-        generateDistributionMap("", 2);
-        for(int i = 1; i <= 10; i++){
-            lengthMap.put(i, 0.01);
-        }
-        for (int i = 0; i < maxMutagenLength; i++) {
-            allPatterns.add(new HashSet<>());
-        }
     }
 
-    private void setNumPerm(int n){
-        for(int i = 1; i <= n; i++){
-            numPerm += Math.pow(4, i);
+    private String samplePair() {
+        Double random = Math.random() * rulesLength;
+        Double cummulative = 0.0;
+        Iterator it = rules.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
+            cummulative += pair.getValue();
+            if (random < cummulative) {
+                return pair.getKey();
+            }
         }
+        it = rules.entrySet().iterator();
+        Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
+        return pair.getKey();
     }
 
-    private void generateDistributionMap(String result, int n){
-        if(n == 0){
-            lhs.put(result, 1 / numPerm);
-            rhs.put(result, 1 / numPerm);
-            return;
-        }
-        String tmp = result;
-        for(String c : genes){
-            if(!result.equals("")) tmp = result + ";";
-            generateDistributionMap(tmp + c, n - 1);
-        }
-        if(!result.equals("")) {
-            lhs.put(result, 1 / numPerm);
-            rhs.put(result, 1 / numPerm);
-        }
-    }
-
-    private String samplePattern(int length) {
-        while(true) {
-            Double random = Math.random() * lhsLength;
+    private String samplePairOfLength(int length) {
+        for (int i = 0; i < 1000; i++) {
+            Double random = Math.random() * rulesLength;
             Double cummulative = 0.0;
-            Iterator it = lhs.entrySet().iterator();
+            Iterator it = rules.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<String, Double> pair = (Map.Entry<String, Double>)it.next();
+                Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
                 cummulative += pair.getValue();
-                if(random < cummulative) {
-                    String pattern = pair.getKey();
-                    String patternNo = pattern.replaceAll(";", "");
-                    if(patternNo.length() == length) {
-                        return pattern;
+                if (random < cummulative) {
+                    String actionPatternPair = pair.getKey();
+                    if (actionPatternPair.length() == length) {
+                        return actionPatternPair;
                     } else {
                         break;
                     }
                 }
             }
         }
-    }
-
-    private String sampleAction() {
-        Double random = Math.random() * rhsLength;
-        Double cummulative = 0.0;
-        Iterator it = rhs.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Double> pair = (Map.Entry<String, Double>)it.next();
-            cummulative += pair.getValue();
-            if(random < cummulative) {
-                return pair.getKey();
-            }
-        }
-        it = rhs.entrySet().iterator();
-        Map.Entry<String, Double> pair = (Map.Entry<String, Double>)it.next();
-        return pair.getKey();
+        return samplePair();
     }
 
     private Mutagen sampleMutagen() {
         Mutagen mutagen = new Mutagen();
-        // Sample action
-        String action = sampleAction();
-        action = action.replaceAll(";", "");
-        int ruleLength = action.length();
-        int numberOfRulesToCombine = allPatterns.get(ruleLength-1).size();
-        // Sample patterns of same length as action
+        int numberOfRulesToCombine = allPatterns.size();
+        if (numberOfRulesToCombine == 0) {
+            numberOfRulesToCombine = 1;
+        }
+        Vector<String> previousPatterns = new Vector<String>();
         for (int i = 0; i < numberOfRulesToCombine; i++) {
-            String pattern = samplePattern(ruleLength);
-            mutagen.add(pattern, action);
+            for (int j = 0; j < 1000; j++) {
+                String pair = samplePair();
+                if (!previousPatterns.contains(pair)) {
+                    String[] patternAction = pair.split("@");
+                    String pattern = patternAction[0];
+                    String action = patternAction[1];
+                    mutagen.add(pattern, action);
+                    previousPatterns.add(pair);
+                    break;
+                }
+            }
         }
         return mutagen;
     }
 
-    private void modifyPatternDistribution(String pattern, Double modifier) {
+    private void modifyRuleDistribution(String pattern, String action) {
         String[] patternArr = pattern.split("");
         String patternKey = patternArr[0];
-        for(int i = 1; i < patternArr.length; i++){
+        for (int i = 1; i < patternArr.length; i++) {
             patternKey += ";" + patternArr[i];
         }
-        lhsLength += modifier;
-        lhs.put(patternKey,lhs.get(patternKey) + modifier);
-    }
-
-    private void modifyActionDistribution(String action, Double modifier) {
-        String[] actionArr = action.split("");
-        String actionKey = actionArr[0];
-        for(int i = 1; i < actionArr.length; i++){
-            actionKey += ";" + actionArr[i];
+        String rule = patternKey + "@" + action;
+        if (rules.containsKey(rule)) {
+            Double prevProbability = rules.get(rule);
+            Double newProbability = prevProbability * modifierStep;
+            Double diff = newProbability - prevProbability;
+            rulesLength += diff;
+            rules.put(rule, newProbability);
+        } else {
+            rulesLength += initialStep;
+            rules.put(rule, initialStep);
         }
-        rhsLength += modifier;
-        // System.out.println(actionKey + modifier + rhs.get(actionKey) + rhs.containsKey(actionKey));
-        rhs.put(actionKey, rhs.get(actionKey) + modifier);
-    }
-
-    private void modifyMutagenLengthDistribution(Integer mutagenLength, Double modifier) {
-        lengthMap.put(mutagenLength, lengthMap.get(mutagenLength) + modifier);
     }
 
     private String randomString() {
         char[] pool = {'a', 'c', 'g', 't'};
         String result = "";
-        for (int i = 0; i < 1000; ++ i)
+        for (int i = 0; i < 1000; ++i)
             result += pool[Math.abs(random.nextInt() % 4)];
         return result;
     }
 
+
+    private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n, boolean isMinHeap) {
+        Comparator<? super Map.Entry<K, V>> comparator = new Comparator<Map.Entry<K, V>>() {
+            @Override
+            public int compare(Map.Entry<K, V> e0, Map.Entry<K, V> e1) {
+                V v0 = e0.getValue();
+                V v1 = e1.getValue();
+                if(isMinHeap) return v0.compareTo(v1);
+                return v1.compareTo(v0);
+            }
+        };
+        PriorityQueue<Map.Entry<K, V>> highest = new PriorityQueue<>(n, comparator);
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            highest.offer(entry);
+            while (highest.size() > n) {
+                highest.poll();
+            }
+        }
+        List<Map.Entry<K, V>> result = new ArrayList<>();
+        while (highest.size() > 0) {
+            result.add(highest.poll());
+        }
+        return result;
+    }
+
+    private Mutagen getFinalMutagen() {
+        Mutagen mutagen = new Mutagen();
+        int numberOfRulesToCombine = allPatterns.size();
+        if (numberOfRulesToCombine == 0) {
+            numberOfRulesToCombine = 1;
+        }
+        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
+        if(pairs.size() > 0) pairs = purge(pairs);
+        for (Map.Entry<String, Double> patternActionPair : pairs) {
+            String pair = patternActionPair.getKey();
+//            System.out.println(pair);
+//            System.out.println(patternActionPair.getValue());
+            String[] patternAction = pair.split("@");
+            String pattern = patternAction[0];
+            String action = patternAction[1];
+            mutagen.add(pattern, action);
+        }
+        return mutagen;
+    }
+
+    private List<Map.Entry<String, Double>> purge(List<Map.Entry<String, Double>> pairs){
+        Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+        int i = 1;
+        for(; i < pairs.size(); i++){
+            System.out.println(pairs.get(i-1).getKey());
+            System.out.println(pairs.get(i-1).getValue());
+            if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
+        }
+        Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                if(o1.getKey().length() == o2.getKey().length()) return 0;
+                if(o1.getKey().length() < o2.getKey().length()) return 1;
+                return -1;
+            }
+        });
+        i = 1;
+        for(; i < pairs.size(); i++){
+            if(pairs.get(i-1).getKey().length() != pairs.get(i).getKey().length()) break;
+        }
+        return pairs.subList(0, i);
+    }
+
+
+    private static void printWindows( Map<Integer, LinkedList<Integer>> mutations, String genome, String mutant){
+        Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
+        for (Integer i : sorted.keySet()){
+            // I is current centroid
+            System.out.println("Mutation " + i);
+            for (Integer j : sorted.get(i))
+                System.out.println(genome.charAt(j) + " ->" +mutant.charAt(j) );
+        }
+    }
+
+    private String createString(){
+        int n = allPatterns.size() != 0 ? allPatterns.size() : 1;
+        List<Map.Entry<String, Double>> greatest = findGreatest(rules, n, true);
+        List<Map.Entry<String, Double>> lowest = findGreatest(rules, n, false);
+        String result = "";
+        int counter = 0;
+        while(result.length() < 1000){
+            String pair;
+            if(counter % 2 == 0){
+                pair = greatest.get((int) Math.floor(Math.random() * n)).getKey();
+            }
+            else{
+                pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
+            }
+            pair = pair.split("@")[0];
+            result += String.join("", pair.split(";"));
+            counter++;
+        }
+        return result.substring(0, 1000);
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
-        for (int i = 0; i < numTrials; ++ i) {
-            // Get the genome
-            String genome = randomString();
-            String mutated = console.Mutate(genome);
-            // Collect the change windows
-            Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
-            for (int j = 0; j < genome.length(); j++) {
-                char before = genome.charAt(j);
-                char after = mutated.charAt(j);
-                if(before != after) {
-                    int finish = j;
-                    for(int forwardIndex = j + 1; forwardIndex < j + 10; forwardIndex++) {
-                        // TODO: Handle the case when we are at the end of the genome (i.e. when j is 999)
-                        if(genome.charAt(forwardIndex) == mutated.charAt(forwardIndex)) {
-                            finish = forwardIndex - 1;
-                            break;
-                        }
-                    }
-                    changeWindows.add(new Pair<Integer, Integer>(j, finish));
-                }
+
+        for (int i = 0; i < numTrials; ++i) {
+            // Check if we should terminate and return the final mutagen
+            int numExpsLeft = console.getNumExpsLeft();
+            long timeLeft = console.getTimeLeft();
+            if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
+                System.out.println("Returning final Mutagen");
+                return getFinalMutagen();
             }
 
+            // Get the genome
+            String genome;
+            if(i == 0 || i > 50) genome = randomString();
+            else genome = createString();
+            String mutated = console.Mutate(genome);
+
+            Cluster cluster = new Cluster(genome, mutated);
+            Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(m);
+            // This if statement is just to check if correctly identified windows
+
+            int genome_length = genome.length();
+
+            // Add 10 last characters to beginning and 10 first characters to end of genome before / after mutation 
+            // To simulate wrapping around 
+            int overlap = 9;
+            genome = genome.substring(genome_length - overlap, genome_length) + genome + genome.substring(0, overlap);
+            mutated = mutated.substring(mutated.length() - overlap, mutated.length()) + mutated + mutated.substring(0, overlap);
+            // Collect the change windows
+            Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
+
+            Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
+            for (Integer centroid : sorted.keySet()){
+                int start = 1000;
+                int finish = 0;
+                for (Integer j : sorted.get(centroid)) {
+                    if(j < start) {
+                        start = j;
+                    }
+                    if(j  > finish) {
+                        finish = j;
+                    }
+                }
+                changeWindows.add(new Pair<Integer, Integer>(overlap + start, overlap + finish));
+            }
             // Get the window sizes distribution and generate all possible windows
             int[] windowSizesCounts = new int[maxMutagenLength];
             Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
-            for (Pair<Integer, Integer> window: changeWindows) {
+            for (Pair<Integer, Integer> window : changeWindows) {
                 int start = window.getKey();
                 int finish = window.getValue();
                 String before = genome.substring(start, finish + 1);
-                allPatterns.get(before.length() - 1).add(before);
+                String after = mutated.substring(start, finish + 1);
+                if (before.length() - 1 >= maxMutagenLength) continue;
+                allPatterns.add(before + "@" + after);
                 int windowLength = finish - start + 1;
-                windowSizesCounts[windowLength-1]++;
-                if(windowLength == maxMutagenLength) {
-                    // TODO: Handle the case if two smaller mutations occured side by side
+                windowSizesCounts[windowLength - 1]++;
+                if (windowLength == maxMutagenLength) {
                     possibleWindows.add(window);
                 } else {
                     for (int proposedWindowLength = windowLength; proposedWindowLength <= maxMutagenLength; proposedWindowLength++) {
                         int diff = proposedWindowLength - windowLength;
-                        // TODO: Handle the edge cases (i.e. start = 0 || 999)
-                        for(int offset = -diff; offset <= 0; offset++) {
+                        for (int offset = -diff; offset <= 0; offset++) {
                             int newStart = start + offset;
                             int newFinish = newStart + proposedWindowLength - 1;
                             possibleWindows.add(new Pair<Integer, Integer>(newStart, newFinish));
@@ -199,47 +307,46 @@ public class Player extends mutation.sim.Player {
                     }
                 }
             }
-
-            // Modify the distributions for length
-            // for (int j = 0; j < maxMutagenLength; j++) {
-            //    Double modifier = windowSizesCounts[j] * 1.0 / (changeWindows.size() / maxMutagenLength);
-            //    modifyMutagenLengthDistribution(j + 1, modifier);
-            //}
-
             // Modify the distributions for pattens and actions
-            for (Pair<Integer, Integer> window: possibleWindows) {
+            for (Pair<Integer, Integer> window : possibleWindows) {
                 int start = window.getKey();
                 int finish = window.getValue();
-                // System.out.println(start + " " + finish);
                 // Get the string from
                 String before = genome.substring(start, finish + 1);
                 // Get the string after
                 String after = mutated.substring(start, finish + 1);
                 // Modify the distribution
-                // System.out.println("Modifying the pattern distribution: " + before);
-                modifyPatternDistribution(before, modifierStep);
-                // System.out.println("Modifying the action distribution: " + after);
-                modifyActionDistribution(after, modifierStep);
+                modifyRuleDistribution(before, after);
             }
 
-            // Sample a mutagen
-            boolean foundGuess = false;
-            Mutagen guess = new Mutagen();
-            while (!foundGuess) {
-                guess = sampleMutagen();
-                System.out.println("Guessing");
-                if(!wrongMutagens.contains(guess)) {
-                    foundGuess = true;
+            Mutagen guess;
+            if(i < 50){
+                guess = getFinalMutagen();
+            } else {
+                // Sample a mutagen
+                boolean foundGuess = false;
+                guess = new Mutagen();
+                while (!foundGuess) {
+                    guess = sampleMutagen();
+                    if (!wrongMutagens.contains(guess)) {
+                        foundGuess = true;
+                    }
                 }
             }
-            boolean isCorrect = console.Guess(guess);
-            if(isCorrect) {
+
+            boolean isCorrect = false;
+            if(guess.getPatterns().size() < 5) {
+                isCorrect = console.testEquiv(guess);
+            } else {
+                isCorrect = console.Guess(guess);
+            }
+            if (isCorrect) {
                 return guess;
             } else {
                 // Record that this is not a correct mutagen
                 wrongMutagens.add(guess);
             }
         }
-        return sampleMutagen();
+        return getFinalMutagen();
     }
 }

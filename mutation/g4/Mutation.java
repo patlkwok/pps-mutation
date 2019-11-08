@@ -23,10 +23,14 @@ public class Mutation {
 	}
 
 	@Override
+	public String toString() {
+		return "Before: " + before + "\n After: " + after.toString() + "\n";
+	}
+
+	@Override
 	public boolean equals(Object object) {
-		if (!(object instanceof Mutation)) {
-			return false;
-		}
+		if (object == null) return false;
+		if (!(object instanceof Mutation)) return false;
 		Mutation objectMutation = (Mutation) object;
 		return this.before.equals(objectMutation.getBefore()) && this.after.equals(objectMutation.getAfter());
 	}
