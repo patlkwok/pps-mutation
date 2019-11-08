@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Utilities {
+  static String noSignal = "acgt";
 
   // Wrapper around SOPln to improve readability
   public static <E> void alert(E ... content){
@@ -24,7 +25,6 @@ public class Utilities {
     return withContext;
   }
 
-
   public static List<Change> generateContexts(List<Change> changes, String before, String after){
     List<Change> withContext = new ArrayList<Change>();
     for(Change change: changes){
@@ -38,15 +38,11 @@ public class Utilities {
     int lookupLength = 10 - changeLength;
     int startingPosition = c.location - lookupLength;
     if(startingPosition < 0){
-      startingPosition = 1000 - startingPosition; //wrap around
+      startingPosition = 1000 + startingPosition; //wrap around
     }
-    // System.out.println("lookupLength "+lookupLength);
-    // System.out.println("startingPosition "+startingPosition);
-    // System.out.println("changeLength "+changeLength);
-    // System.out.println("Location "+c.location);
+
     for(int i = 0; i <= lookupLength; i++){
       int start = (startingPosition + i) % 1000;
-      // System.out.println("Start "+start);
       String beforeContext = "";
       String afterContext = "";
       for(int j = 0; j < 10; j++){
@@ -54,10 +50,96 @@ public class Utilities {
         beforeContext += ""+before.charAt(current);
         afterContext += ""+after.charAt(current);
       }
+
+      // weird bug bypass for now
+      if(afterContext.indexOf(c.after) == -1 || afterContext == null){
+        // System.out.println(c +","+ before +","+ after +","+ i +","+ start);
+        System.out.println("lookupLength "+lookupLength);
+        System.out.println("startingPosition "+startingPosition);
+        System.out.println("changeLength "+changeLength);
+        System.out.println("Location "+c.location);
+        System.out.println("Start "+start);
+        System.out.println("Before "+before);
+        System.out.println("After, "+after);
+        System.out.println("AfterContext "+afterContext);
+        System.exit(9);
+        continue;
+      }
+      // weird bug bypass for now
+      if(beforeContext.equals(null)){
+        System.exit(0);
+      }
+      if(beforeContext.indexOf(c.before) == -1 || beforeContext == null){
+        System.out.println("lookupLength "+lookupLength);
+        System.out.println("startingPosition "+startingPosition);
+        System.out.println("changeLength "+changeLength);
+        System.out.println("Location "+c.location);
+        System.out.println("Start "+start);
+        System.out.println("Before "+before);
+        System.out.println("After, "+after);
+        System.out.println("AfterContext "+afterContext);
+        System.exit(9);
+        continue;
+      }
       c.beforeContext.put((i-lookupLength), beforeContext);
       c.afterContext.put((i-lookupLength), afterContext);
     }
     return c;
+  }
+
+
+  // best window is the one with the earliest nondisjunction and ties broken by least ACGTs;
+  public static int bestWindow(HashMap<Integer, String> windows){
+
+    Integer best = -1;
+    int bestND = 10;
+    int bestTrailingACGT = 10;
+    for(Integer loc: new ArrayList<Integer>(windows.keySet())){
+      String[] window = windows.get(loc).split(";");
+
+      //find earliest nondisjunctive element
+      int earliestNondisjunction = 10;
+      for(int i = 0; i < window.length; i++){
+        if(window[i].length() == 1){
+          earliestNondisjunction = i;
+          break;
+        }
+      }
+
+      //find trailing acgt's
+      int trailingACGTs = 0;
+      for(int i = 9; i >= 0; i--){
+        if(!window[i].equals(noSignal)){
+          break;
+        }
+        trailingACGTs+=1;
+      }
+
+      if(earliestNondisjunction < bestND){
+        best = loc;
+        bestND = earliestNondisjunction;
+        bestTrailingACGT = trailingACGTs;
+      }
+
+      if(earliestNondisjunction == bestND && trailingACGTs < bestTrailingACGT){
+        best = loc;
+        bestND = earliestNondisjunction;
+        bestTrailingACGT = trailingACGTs;
+      }
+    }
+    return best;
+  }
+
+  // get last non nondisjunctive element idx
+  public static int getLastNondisjunctive(String swindow){
+    int lastNd = 0;
+    String[] window = swindow.split(";");
+    for(int i = 0; i < window.length; i++){
+      if(window[i].length() == 1){
+        lastNd = i;
+      }
+    }
+    return lastNd;
   }
 
   // consolidate a bunch of single letter changes by location
@@ -70,7 +152,12 @@ public class Utilities {
     Change ongoing = changes.get(0);
     for(Change current : changes.subList(1,changes.size())){
       if(current.location == ongoing.location+ongoing.before.length()){
+        String beforeGenome = ongoing.beforeGenome;
+        String afterGenome = ongoing.afterGenome;
         ongoing = new Change(ongoing.before + current.before, ongoing.after + current.after, ongoing.location);
+        ongoing.beforeGenome = beforeGenome;
+        ongoing.afterGenome = afterGenome;
+
       } else {
         consolidated.add(ongoing);
         ongoing = current;
@@ -91,6 +178,8 @@ public class Utilities {
     for(int ctr = 0; ctr < len; ctr++){
       if(before.charAt(ctr) != after.charAt(ctr)){
         Change c = new Change(before.charAt(ctr)+"", after.charAt(ctr)+"", ctr);
+        c.beforeGenome = before;
+        c.afterGenome = after;
         changes.add(c);
       }
     }
@@ -111,6 +200,62 @@ public class Utilities {
     return maxEntry.getKey();
   }
 
+  // pivot data by after artifact
+  public static HashMap<String, List<Change>> sortByAfterArtifact(List<Change> changes){
+    HashMap<String, List<Change>> actionInstances = new HashMap<>();
+    //sort experimental data by after artifact
+    for(Change c: changes){
+      String after = c.after;
+      if(!actionInstances.containsKey(after)){
+        actionInstances.put(after, new ArrayList<Change>());
+      }
+      actionInstances.get(after).add(c);
+    }
+    return actionInstances;
+  }
+
+  // get hash of after contexts by reference point
+  public static HashMap<Integer, List<String>> getAfterContextByReferencePoint(List<Change> relatedChanges){
+    HashMap<Integer, List<String>> contextsByReferencePoint = new HashMap<>();
+    List<Integer> contextPoints = new ArrayList<Integer>(relatedChanges.get(0).afterContext.keySet());
+    for(Integer index: contextPoints){
+      List<String> contextsAtIndex = new ArrayList<String>();
+      for(Change c: relatedChanges){
+        contextsAtIndex.add(c.afterContext.get(index));
+      }
+      contextsByReferencePoint.put(index, contextsAtIndex);
+      // System.out.println(Utilities.collapseStrings(contextsByReferencePoint.get(index)));
+    }
+    return contextsByReferencePoint;
+  }
+
+  // get hash of before contexts by reference point
+  public static HashMap<Integer, List<String>> getBeforeContextByReferencePoint(List<Change> relatedChanges){
+    HashMap<Integer, List<String>> contextsByReferencePoint = new HashMap<>();
+    List<Integer> contextPoints = new ArrayList<Integer>(relatedChanges.get(0).beforeContext.keySet());
+    for(Integer index: contextPoints){
+      List<String> contextsAtIndex = new ArrayList<String>();
+      for(Change c: relatedChanges){
+        contextsAtIndex.add(c.beforeContext.get(index));
+      }
+      contextsByReferencePoint.put(index, contextsAtIndex);
+      // System.out.println(Utilities.collapseStrings(contextsByReferencePoint.get(index)));
+    }
+    return contextsByReferencePoint;
+  }
+
+  // get hash of collapsed contexts by reference point
+  public static HashMap<Integer, String> collapseContexts(HashMap<Integer, List<String>> contexts){
+
+    List<Integer> contextPoints = new ArrayList<Integer>(contexts.keySet());
+    HashMap<Integer, String> collapsedContexts = new HashMap<>();
+    for(Integer i: contextPoints){
+      collapsedContexts.put(i, collapseStrings(contexts.get(i)));
+    }
+    return collapsedContexts;
+  }
+
+  // collapse a string to its barebones representation
   public static String collapseStrings(List<String> listStrings){
     String collapsed = "";
     int strLength = listStrings.get(0).length();
@@ -122,7 +267,7 @@ public class Utilities {
           chars += currentChar;
         }
       }
-      collapsed += ";"+chars;
+      collapsed += ";"+sortString(chars);
     }
     return collapsed.substring(1);
   }
@@ -130,6 +275,27 @@ public class Utilities {
   public static boolean inString(String haystack, String needle){
     return (haystack.indexOf(needle) >= 0);
   }
+
+  public static String sortString(String inputString) {
+    char tempArray[] = inputString.toCharArray();
+    Arrays.sort(tempArray);
+    return new String(tempArray);
+  }
+
+  //
+  public static List<Change> deduplicateListChanges(List<Change> changes){
+    HashSet<String> seenBefores = new HashSet<String>();
+    List<Change> dedup = new ArrayList<Change>();
+    for(Change c: changes){
+      if(seenBefores.contains(c.beforeGenome)){
+        continue;
+      }
+      dedup.add(c);
+      seenBefores.add(c.beforeGenome);
+    }
+    return dedup;
+  }
+
 
   // format pattern
   public static String formatPattern(String pattern){
@@ -170,244 +336,11 @@ public class Utilities {
     return rules;
   }
 
+  // scoring function
+  public static int getScore(HashMap<Integer, List<String>> patternContext, int bestWindowReference){
+    return patternContext.get(bestWindowReference).size();
+  }
 
-	// A list of before, after and location after each mutation
-	public static List<Change> diff(String before, String after){
-		List<Change> changeWindows = getChangeWindow(before, after);
-		//    Collections.sort(changeWindows);
-		return changeWindows;
-	}
-
-	// consolidate a bunch of single letter changes by location
-	public static List<Change> consolidateChanges (List<Change> changes) {
-		if(changes.size() == 0){
-			return changes;
-		}
-		List<Change> consolidated = new ArrayList<>();
-		int ctr = 1;
-		Change ongoing = changes.get(0);
-		for(Change current : changes.subList(1,changes.size())){
-			if(current.location == ongoing.location+ongoing.before.length()){
-				ongoing = new Change(ongoing.before + current.before, ongoing.after + current.after, ongoing.location);
-			} else {
-				consolidated.add(ongoing);
-				ongoing = current;
-			}
-		}
-		consolidated.add(ongoing);
-		return consolidated;
-	}
-
-	public static List<Integer> getChangeLocations(List<Change> changes) {
-		return changes.stream().map(c -> c.location).collect(Collectors.toList());
-	}
-
-	// get single character changes and locations
-	public static List<Change> getSingleChanges(String before, String after){
-		int len = before.length();
-		ArrayList<Change> changes = new ArrayList<>();
-		for(int ctr = 0; ctr < len; ctr++){
-			if(before.charAt(ctr) != after.charAt(ctr)){
-				Change c = new Change(before.charAt(ctr)+"", after.charAt(ctr)+"", ctr);
-				changes.add(c);
-			}
-		}
-		return changes;
-	}
-
-	// find 10 change windows for each one base change
-	public static List<Change> getChangeWindow(String before, String after){
-		System.out.println("Start finding windows...");
-		int len = before.length();
-		Set<Integer> locations = new HashSet<>();
-		List<Change> changes = new ArrayList<>();
-		for(int ctr = 0; ctr < len; ctr++){
-			if(before.charAt(ctr) != after.charAt(ctr)){
-				for(int i = 0; i < 10; i++) {
-					String b, a;
-					int start = ctr-9+i;
-					int end = ctr+i+1;
-					if(start < 0) {
-						b = before.substring(start+1000, 1000) + before.substring(0, end);
-						a = after.substring(start+1000, 1000) + after.substring(0, end);
-					}
-					else if(end > 1000) {
-						b = before.substring(start, 1000) + before.substring(0, end-1000);
-						a = after.substring(start, 1000) + after.substring(0, end-1000);
-					}
-					else {
-						b = before.substring(start, end);
-						a = after.substring(start, end);
-					}
-					start = start < 0 ? start+1000 : start;
-					if(!locations.contains(start)) {
-						Change c = new Change(b, a, start);
-						changes.add(c);
-						locations.add(start);
-//						System.out.println(c.before);
-//						System.out.println(c.after);
-//						System.out.println(c.location);
-					}
-				}
-			}
-		}
-		System.out.println("Windows: " + changes.size());
-		return changes;
-	}
-
-	// get maximum key in a counting hashmap
-	public static <E> E argMax(HashMap<E, Integer> counts, Set<E> discard, int upperBound){
-		if(counts.size() == 0){
-			return null;
-		}
-		Map.Entry<E, Integer> maxEntry = null;
-		for (Map.Entry<E, Integer> entry : counts.entrySet()) {
-			if(entry.getValue() > upperBound) {
-				discard.add(entry.getKey());
-			}
-			else if (!discard.contains(entry.getKey()) && (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)) {
-				maxEntry = entry;
-			}
-		}
-		return maxEntry.getKey();
-	}
-
-	// format pattern
-	public static String formatPattern(String pattern){
-		String f = "";
-		for(int i = 0; i<pattern.length()-1; i++){
-			f+=""+pattern.charAt(i);
-			f+=";";
-		}
-		f+=pattern.charAt(pattern.length()-1);
-		return f;
-	}
-
-	public static List<Rule> generateRules(List<Change> changes) {
-		List<Rule> rules = new ArrayList<Rule>();
-		for(Change change:changes) {
-			boolean matchesRule = false;
-			for(Rule rule: rules) {
-				if(change.after.equals(rule.after)) {
-					matchesRule = true;
-					for(int i = 0; i<rule.before.length; i++) {
-						if(rule.before[i].indexOf(change.before.charAt(i)) < 0) {
-							//rule missing this possibility -- i.e. given gat -> ccc, if the rule was previously ac;a;t -> ccc make it gac;a;t -> ccc
-							rule.before[i] += change.before.charAt(i);
-						}
-					}
-					break;
-				}
-			}
-			if(!matchesRule) {
-				//Create new rule
-				String[] arr = new String[change.before.length()];
-				for(int i = 0; i<change.before.length(); i++) {
-					arr[i] = "" + change.before.charAt(i);
-				}
-				rules.add(new Rule(arr, change.after));
-			}
-		}
-		return rules;
-	}
-
-	// find indexes of one base in a gene of length 10
-	private static Set<Character> getIndexes(String genome, char base) {
-		Set<Character> results = new HashSet<Character>();
-		char[] bases = genome.toCharArray();
-		for(int i = 0; i < bases.length; i++) {
-			if(bases[i] == base) {
-				results.add((char)(i + '0'));
-			}
-		}
-		return results;
-	}
-
-	// find possible indexes of one base in the "after" string
-	private static Set<Character> singlePossibleChar(Map<Character, Set<Character>> indexSets, char base) {
-		Set<Character> indexes = new HashSet<Character>(indexSets.get(base));
-		indexes.add(base);
-		return indexes;
-	}
-
-	// convert "after" string to Mutation
-	public static Mutation toSets(String before, String after, int location) {
-		char[] pool = {'a', 'c', 'g', 't'};
-		Map<Character, Set<Character>> indexSets = new HashMap<>();
-		for(char c: pool) {
-			indexSets.put(c, getIndexes(before, c));
-		}
-		Mutation results = new Mutation(location);
-		for(int i = 0; i < 10; i++) {
-			results.indexSets[i] = singlePossibleChar(indexSets, after.charAt(i));
-		}
-		return results;
-	}
-
-	// find intersection of two sets
-	private static Set<Character> findSameInTwoSets(Set<Character> set1, Set<Character> set2) {
-		Set<Character> res = new HashSet<Character>();
-		for(char c: set1) {
-			if(set2.contains(c))
-				res.add(c);
-		}
-		return res;
-	}
-
-	// list all possible strings from the index sets
-	private static void backtracking(List<List<Character>> possibleBases, List<String> results, StringBuilder temp, int minLen) {
-		if(temp.length() == possibleBases.size()) {
-			return;
-		}
-		for(char c: possibleBases.get(temp.length())) {
-			temp.append(c);
-			if(temp.length() > minLen)
-				results.add(temp.toString());
-			backtracking(possibleBases, results, temp, minLen);
-			temp.deleteCharAt(temp.length()-1);
-		}
-	}
-
-	// compare two mutations and output all possible combinations of these two
-	public static List<String> compareTwoMutations(Mutation mutation1, Mutation mutation2, String before, String after) {
-		int index = 0;
-		while(before.charAt((mutation1.location+index)%1000) == after.charAt((mutation1.location+index)%1000) && before.charAt((mutation2.location+index)%1000) == after.charAt((mutation2.location+index)%1000))
-			index++;
-		List<List<Character>> possibleBases = new ArrayList<List<Character>>();
-		for(int i = 0; i < 10; i++) {
-			Set<Character> possibleBase = findSameInTwoSets(mutation1.indexSets[i], mutation2.indexSets[i]);
-			if(possibleBase.size() == 0)
-				break;
-			possibleBases.add(new ArrayList<Character>(possibleBase));
-		}
-		List<String> results = new ArrayList<String>();
-		if(possibleBases.size() == 0)
-			return results;
-		backtracking(possibleBases, results, new StringBuilder(), index);
-		return results;
-	}
-
-	//  public static List<String> compareMultiMutations(List<Mutation> mutations) {
-	//	  List<List<Character>> possibleBases = new ArrayList<List<Character>>();
-	//
-	//	  for(int i = 0; i < 10; i++) {
-	//		  Set<Character> possibleBase = mutations.get(0).indexSets[i];
-	//		  for(int j = 1; j < mutations.size(); j++) {
-	//			  possibleBase.retainAll(mutations.get(j).indexSets[i]);
-	//			  for(char c: possibleBase)
-	//				  System.out.print(c);
-	//			  System.out.println();
-	//		  }
-	//		  if(possibleBase.size() == 0)
-	//			  break;
-	//		  possibleBases.add(new ArrayList<Character>(possibleBase));
-	//	  }
-	//	  List<String> results = new ArrayList<String>();
-	//	  if(possibleBases.size() == 0)
-	//		  return results;
-	//	  backtracking(possibleBases, results, new StringBuilder());
-	//	  return results;
-	//  }
 }
 
 class Rule {
@@ -474,7 +407,9 @@ class Mutation {
 	public Set<Character>[] indexSets;
 	public int location;
   public String before, after;
+  public String beforeGenome, afterGenome;
   public int location;
+  public int pointOfInterest;
   public HashMap<Integer, String> beforeContext = new HashMap<Integer, String>();
   public HashMap<Integer, String> afterContext = new HashMap<Integer, String>();
   static String delimiter = " => ";
