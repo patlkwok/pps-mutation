@@ -41,7 +41,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 100; ++ i) {
+        for (int i = 0; i < 1000; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -51,7 +51,35 @@ public class Player extends mutation.sim.Player {
             numMutation = console.getNumberOfMutations();
             console.Guess(result);
         }
+        Map<String, Integer> sortedMap = sortByValue(cumRight);
+        //System.out.println(sortedMap);
+        //System.out.println();
+        List<String> left = new LinkedList(sortedMap.keySet());
+        List<Integer> right = new LinkedList(sortedMap.values());
+        for(int i = 0; i < 2; i++) {
+        	System.out.println(left.get(i) + ": " + cumLeft.get(left.get(i)));
+        }
+
+        //System.out.println(cumLeft);
         return result;
+    }
+
+    private static Map<String, Integer> sortByValue(Map<String, Integer> unsortMap) {
+
+        List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(unsortMap.entrySet());
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> o1,
+                               Map.Entry<String, Integer> o2) {
+                return (o2.getValue()).compareTo(o1.getValue());
+            }
+        });
+
+        Map<String, Integer> sortedMap = new LinkedHashMap<String, Integer>();
+
+        for (Map.Entry<String, Integer> entry : list) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        return sortedMap;
     }
 
     public Mutagen getNaive(Element[] diff) {
@@ -71,8 +99,9 @@ public class Player extends mutation.sim.Player {
         int length = getLength(winList.get(0));
         
         String output;
-        if(numMutation <= 7) output = getWinInt(winList);
-        else output = getWinInt7(winList);
+        //if(numMutation <= 7) output = getWinInt(winList);
+        //else output = getWinInt7(winList);
+        output = getWinInt7(winList);
 
         int curr = cumRight.getOrDefault(output, 0) + 1;
         cumRight.put(output, curr);
@@ -101,8 +130,8 @@ public class Player extends mutation.sim.Player {
             }
         }
 
-        System.out.println("output: " + output);
-        System.out.println("maxOutput: " + output);
+        //System.out.println("output: " + output);
+        //System.out.println("maxOutput: " + output);
         result.add(leftOne, mostOutput);    
         return result;
     }
@@ -138,6 +167,7 @@ public class Player extends mutation.sim.Player {
                         }
                         else out += Character.toString(e[j+i].getOG());
                     }
+                    if(start != -1) break;
                     if(!sub) {
                         start = -1;
                         out = "";
@@ -145,6 +175,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
             if(start == -1) continue;
+            if(out.equals(output)) continue;
             Set<String> temp = map.getOrDefault(start, new HashSet<>());
             temp.add(out);
             map.put(start, temp);
@@ -219,7 +250,9 @@ public class Player extends mutation.sim.Player {
                 map.put(temp, currCount);
             }
         }
+        //System.out.println(sortByValue(map));
         //System.out.println("final: " + output);
+        //System.out.println(output);
         return output;
     }
 
