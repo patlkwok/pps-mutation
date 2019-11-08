@@ -185,35 +185,6 @@ public class Player extends mutation.sim.Player {
         return pairs.subList(0, i);
     }
 
-    private static void removeOverlap(Map<Integer, LinkedList<Integer>> mutations){
-        // Get rid of overlap -- if two mutations are right next to eachother, ignore
-        Map<Integer, Integer> start_indices = new HashMap<>();
-        Map<Integer, Integer> end_indices = new HashMap<>();
-        LinkedList<Integer> keys = new LinkedList<>(mutations.keySet());
-        for(int centroid: keys){
-            int cluster_size = mutations.get(centroid).size();
-            Collections.sort(mutations.get(centroid));
-            int start = mutations.get(centroid).get(0);
-            int end = mutations.get(centroid).get(cluster_size-1);
-            start_indices.put(start, centroid);
-            end_indices.put(end, centroid);
-        }
-        for(int j =0; j < keys.size(); j++){
-            int centroid = keys.get(j);
-            if (!mutations.keySet().contains(centroid)) continue ;
-            int start = mutations.get(centroid).get(0);
-            int end = mutations.get(centroid).get(mutations.get(centroid).size()-1);
-            if (end_indices.keySet().contains(start-1)){ //||
-                mutations.remove(centroid);
-                mutations.remove(start-1);
-            }
-            else if (start_indices.keySet().contains(end+1)){
-                mutations.remove(centroid);
-                mutations.remove(end+1);
-            }
-        }
-    }
-
     private void purgeRules(){
         for(String pattern : discardedRules){
             if(rules.containsKey(pattern)) rules.remove(pattern);
