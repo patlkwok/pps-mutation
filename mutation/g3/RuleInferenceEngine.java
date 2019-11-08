@@ -198,8 +198,12 @@ public class RuleInferenceEngine {
         if (idx < pattern.length - 1) {
             byte[] nPattern = new byte[idx + 1];
             System.arraycopy(pattern, 0, nPattern, 0, nPattern.length);
-            return new Rule(nPattern, rule.getAction());
+            pattern = nPattern;
         }
-        return rule;
+        String action = rule.getAction();
+        while (action.charAt(action.length() - 1) - '0' == action.length() - 1) {
+            action = action.substring(0, action.length() - 1);
+        }
+        return new Rule(pattern, action);
     }
 }
