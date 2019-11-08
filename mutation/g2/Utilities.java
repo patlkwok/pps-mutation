@@ -399,6 +399,11 @@ class ActionComposite {
   HashMap<String, List<Change>> actionChanges;
   HashMap<String, Integer> actionCount;
 }
+
+class ActionComposite {
+  HashMap<String, List<Change>> actionChanges;
+  HashMap<String, Integer> actionCount;
+}
 // ADT for a change type
 class Change implements Comparable<Change>{
 	public String before, after;
