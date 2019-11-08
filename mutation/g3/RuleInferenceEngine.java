@@ -201,7 +201,7 @@ public class RuleInferenceEngine {
             pattern = nPattern;
         }
         String action = rule.getAction();
-        while (action.charAt(action.length() - 1) - '0' == action.length() - 1) {
+        while (action.length() > 1 && action.charAt(action.length() - 1) - '0' == action.length() - 1) {
             action = action.substring(0, action.length() - 1);
         }
         return new Rule(pattern, action);

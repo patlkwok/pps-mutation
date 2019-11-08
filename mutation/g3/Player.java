@@ -19,7 +19,9 @@ public class Player extends mutation.sim.Player {
     private final List<ExperimentResult> expHistory;
     private final RuleInferenceEngine inferenceEngine;
     private final Set<Set<Rule>> ruledOutRules;
-    private final List<ChangeBasedDistribution> changeDists;
+    //private final List<ChangeBasedDistribution> changeDists;
+    //private final HashMap<HashSet<Mutation>, Integer> changeCount;
+    private final HashMap<ChangeSummary, ChangeSummary> changeSummaries;
     private List<RunningDistribution> distributions;
     private int consideredWindowSize = 1;
     private int numberOfRulesConsidered = 1;
@@ -31,7 +33,7 @@ public class Player extends mutation.sim.Player {
         expHistory = new ArrayList<>();
         inferenceEngine = new RuleInferenceEngine();
         ruledOutRules = new HashSet<>();
-        changeDists = new ArrayList<>();
+        changeSummaries = new HashMap<>();
         distributions = new ArrayList<>();
         for (int i = 0; i < numberOfRulesConsidered; i++) {
             distributions.add(new RunningDistribution(consideredWindowSize));
@@ -143,7 +145,7 @@ public class Player extends mutation.sim.Player {
     protected void setConsideredWindowSize(int size) {
         this.consideredWindowSize = size;
         ruledOutRules.clear();
-        changeDists.clear();
+        changeSummaries.clear();
         distributions = new ArrayList<>();
         for (int i = 0; i < numberOfRulesConsidered; i++) {
             distributions.add(new RunningDistribution(consideredWindowSize));
@@ -154,7 +156,7 @@ public class Player extends mutation.sim.Player {
         if (mutations.size() >= q) {
             return mutations;
         }
-
+        List<HashSet<Mutation>> uniqueMutations = new ArrayList<>();
         while (true) {
             // we may have a collision of mutations counting as 1
             // check if there is a mutation set with significantly more windows than average and eliminate
@@ -176,8 +178,12 @@ public class Player extends mutation.sim.Player {
                 break;
             }
         }
-
-        return mutations;
+        for (HashSet<Mutation> mutation : mutations) {
+            if (!uniqueMutations.contains(mutation)) {
+                uniqueMutations.add(mutation);
+            }
+        }
+        return uniqueMutations;
     }
 
     /**
@@ -196,11 +202,28 @@ public class Player extends mutation.sim.Player {
                 = getPossibleMutations(experiment, consideredWindowSize);
         mutations = filterCollisions(mutations, experiment.appliedMutations);
         for (HashSet<Mutation> world : mutations) {
+            final ChangeSummary cs = new ChangeSummary(world);
+            if (changeSummaries.containsKey(cs)) {
+                changeSummaries.get(cs).increaseCount();
+            } else {
+                final ChangeBasedDistribution changeDist = getChangeDistribution(world);
+                cs.setDistribution(changeDist);
+                changeSummaries.put(cs, cs);
+            }
+        }
+        System.out.println("");
+        for (Entry<ChangeSummary, ChangeSummary> csEnt : changeSummaries.entrySet()) {
+            ChangeSummary cs = csEnt.getValue();
+            int ruleNumber = 0;
+            distributions.get(ruleNumber).aggregate(cs.getDistribution(), cs.getCount());
+        }
+        /*for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
             changeDists.add(changeDist);
             int ruleNumber = chooseRuleToAggregrate(changeDist);
+            System.out.println(world + " assigned " + ruleNumber);
             distributions.get(ruleNumber).aggregate(changeDist);
-        }
+        }*/
     }
 
     protected int chooseRuleToAggregrate(RuleDistribution changeDist) throws ZeroMassProbabilityException {
@@ -521,6 +544,9 @@ public class Player extends mutation.sim.Player {
         }
 
         final int numChanges = changes.size();
+        if (numChanges == 0) {
+            return mutations;
+        }
         int safeStart = -1; // where to start looking at changes
         int lastChange = changes.getLast() - original.length();
         for (Integer change : changes) {
@@ -606,20 +632,6 @@ public class Player extends mutation.sim.Player {
             set.add(new Mutation(gPart, mPart));
         }
         return set;
-    }
-
-    /**
-     * Creates a mutagen based on a set of rules
-     *
-     * @param rules the rules to use for the Mutagen
-     * @return the mutagen
-     */
-    private Mutagen setToMutagen(Set<Rule> rules) {
-        Mutagen mut = new Mutagen();
-        for (Rule rule : rules) {
-            mut.add(rule.getPatternString(), rule.getAction());
-        }
-        return mut;
     }
 }
 

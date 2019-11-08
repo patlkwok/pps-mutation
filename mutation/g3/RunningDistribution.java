@@ -57,23 +57,27 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
     }
 
     public void aggregate(RuleDistribution distribution) {
+        aggregate(distribution, 1);
+    }
+    
+    public void aggregate(RuleDistribution distribution, int coefficient) {
         for (int i = 0; i < pis.size(); i++) {
-            aggregatePi(i, pis.get(i), distribution);
+            aggregatePi(i, pis.get(i), distribution, coefficient);
         }
         for (int i = 0; i < ais.size(); i++) {
-            aggregateAi(i, ais.get(i), distribution);
+            aggregateAi(i, ais.get(i), distribution, coefficient);
         }
         sortProbabilities();
         computeHighestLogLikelihood();
         filterTopRuleSpace();
     }
 
-    protected void aggregatePi(int i, Map<Byte, Double> localDist, RuleDistribution d) {
+    protected void aggregatePi(int i, Map<Byte, Double> localDist, RuleDistribution d, int coefficient) {
         double total = LOG_ZERO_PROB;
         for (Entry<Byte, Double> entry : localDist.entrySet()) {
             Byte ei = entry.getKey();
             Double p = entry.getValue();
-            final double newProb = logPMult(p, d.getPiLikelihood(i, ei));
+            final double newProb = logPMult(p, coefficient * d.getPiLikelihood(i, ei));
             entry.setValue(newProb);
             total = logPAdd(total, newProb);
         }
@@ -90,12 +94,12 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
         }
     }
 
-    protected void aggregateAi(int i, Map<Character, Double> localDist, RuleDistribution d) {
+    protected void aggregateAi(int i, Map<Character, Double> localDist, RuleDistribution d, int coefficient) {
         double total = LOG_ZERO_PROB;
         for (Entry<Character, Double> entry : localDist.entrySet()) {
             Character ei = entry.getKey();
             Double p = entry.getValue();
-            final double newProb = logPMult(p, d.getAiLikelihood(i, ei));
+            final double newProb = logPMult(p, coefficient * d.getAiLikelihood(i, ei));
             entry.setValue(newProb);
             total = logPAdd(total, newProb);
         }
