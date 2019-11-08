@@ -34,23 +34,26 @@ public class Player extends mutation.sim.Player {
         this.console = console;
         Mutagen result = new Mutagen();
         // write an outer for loop on this for random restarts
-        for (int i = 0; i < 1001; i++) {
-        	String genome = randomString();
-            String mutated = console.Mutate(genome);
-    	    Set<List<Mutation>> mutationsSet = identifyMutations(genome, mutated);
-            System.out.println("" + i);
-    	    for (List<Mutation> mutations : mutationsSet) {
-                assignAMutationToAMutationGroup(mutations);
-    	    }
-            if (i%10==0) {
-                guessTopMutations(Math.min(mutationGroups.size(), 3));
-            }
-            if (i%100==0) {
-                guessTopMutations(Math.min(mutationGroups.size(), 5));
-            }
-            if (i%1000==0) {
-                guessTopMutations(Math.min(mutationGroups.size(), 10));
-                // mergeMutations();
+        for (int j = 0; j < 100; j++) {
+            mutationGroups = new ArrayList<>();
+            for (int i = 0; i < 101; i++) {
+            	String genome = randomString();
+                String mutated = console.Mutate(genome);
+    	        Set<List<Mutation>> mutationsSet = identifyMutations(genome, mutated);
+                System.out.println("" + i);
+    	        for (List<Mutation> mutations : mutationsSet) {
+                    assignAMutationToAMutationGroup(mutations);
+    	        }
+                if (i%10==0) {
+                    guessTopMutations(Math.min(mutationGroups.size(), 3));
+                }
+                if (i%100==0) {
+                    guessTopMutations(Math.min(mutationGroups.size(), 5));
+                }
+                // if (i%1000==0) {
+                //     guessTopMutations(Math.min(mutationGroups.size(), 10));
+                //     // mergeMutations();
+                // }
             }
         }
         // This is written brute force, assuming mutagens have at most 3 rules.
