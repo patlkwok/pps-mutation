@@ -9,7 +9,9 @@ import static java.util.Map.Entry.*;
 
 public class Player extends mutation.sim.Player {
     private Random random;
-    private int numberExperiments = 100;
+    private int numberExperiments = 1;
+    private int totalExperiments = 150;
+    private int runExperiments = 0;
 
     public Player() {
       Utilities.alert("Hello world");
@@ -82,137 +84,280 @@ public class Player extends mutation.sim.Player {
 
     public Mutagen Play(Console console, int m){
       List<Change> changes = this.collectData(numberExperiments, console);
-      HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
-      //unique artifacts
-      List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
-
-      // We'll prune an artifact if we see it less than 10% of the time (m * numberExperiments)
-      // this is reasonable as even a very complicated mutation (4 manifestations)
-      // in a 2 rule system will come up atleast 12.5% of the time
-      double prunePercentage = 0.075;
-      for(String artifact: uniqueArtifacts){
-        if(artifactChanges.get(artifact).size() < prunePercentage*numberExperiments*m){
-          artifactChanges.remove(artifact);
-        }
-      }
-      uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
-      Utilities.alert("Unique Artifacts Observed "+uniqueArtifacts);
-
-
-      ActionComposite a = getActionChanges(uniqueArtifacts, artifactChanges);
-      HashMap<String, List<Change>> actionChanges = a.actionChanges;
-      HashMap<String, Integer> actionCount = a.actionCount;
-
-      // get all the unique actions
-      ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
-      for(String action: uniqueActions){
-        if(actionCount.get(action) <= numberExperiments*0.2){
-          actionCount.remove(action);
-          actionChanges.remove(action);
-        }
-      }
-      uniqueActions = new ArrayList<String>(actionChanges.keySet());
-      System.out.println(actionCount);
-
-
-
-      HashMap<List<String>, Integer> solution = new HashMap<>();
-
-      // back solve to look for patterns near those actions
-      //for eahc action
-      for(String action: uniqueActions){
-        //what are the changes
-        List<Change> relatedChanges = actionChanges.get(action);
-        relatedChanges = Utilities.deduplicateListChanges(relatedChanges);
-        //context
-        HashMap<Integer, List<String>> patternContext = new HashMap<>();
-
-        // look 10 around thhe action
-        int lookupLength = 10 - action.length();
-        for(int ctr = 0; ctr <= lookupLength; ctr++){
-          patternContext.put(-1*ctr+lookupLength, new ArrayList<String>());
-          for(Change c: relatedChanges){
-            int pointOfInterest = c.pointOfInterest;
-            int startingPoint = pointOfInterest - lookupLength+ctr;
-            if(startingPoint < 0){
-              startingPoint += 1000;
-            }
-            String currentString = "";
-            for(int i = 0; i < 10; i++){
-              int currentPos = startingPoint + i;
-              currentPos %= 1000;
-              currentString += c.beforeGenome.charAt(currentPos)+"";
-            }
-            patternContext.get(-1*ctr+lookupLength).add(currentString);
-          }
-        }
-
-        // collapse context windows generated above
-        HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
-        System.out.println(collapsedWindows);
-
-        // find the bst window reference based on the same principle as before
-        int bestWindowReference = Utilities.bestWindow(collapsedWindows);
-
-        // find the  best window
-        String bestWindow = collapsedWindows.get(bestWindowReference);
-        System.out.println(bestWindow);
-        // if you dont see this action atleast 10% of the time fuck it
-        if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
-          System.out.println(bestWindow);
-          continue;
-        }
-
-        // find the end of the window
-        int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-        List<String> thisSol = new ArrayList<String>();
-
-        HashMap<String, Integer> allPatterns = new HashMap<String, Integer>();
-        for(String pattern: patternContext.get(bestWindowReference)){
-          String p = pattern.substring(0,lengthOfInterest);
-          if(!allPatterns.containsKey(p)){
-            allPatterns.put(p,0);
-          }
-          allPatterns.put(p, allPatterns.get(p)+1);
-        }
-        for(String pattern: allPatterns.keySet()){
-          thisSol.add(Utilities.formatPattern(pattern));
-          thisSol.add(action);
-          solution.put(thisSol, allPatterns.get(pattern));
-          thisSol = new ArrayList<String>();
-        }
-      }
-
-
-
-      solution = Utilities.sortByValue(solution);
-
-
-      List<Integer> occurences = new ArrayList<Integer>(solution.values());
-      int mean = Utilities.mean(occurences);
-
-      List<List<String>> proposedRules = new ArrayList<List<String>>(solution.keySet());
-      for(List<String> rule : proposedRules){
-        if(solution.get(rule) <= 5){
-          solution.remove(rule);
-        }
-      }
-
+      runExperiments += numberExperiments;
       Mutagen sol = new Mutagen();
-      for(List<String> s : solution.keySet()){
-        if(solution.get(s) < mean){
-          continue;
+      while(runExperiments <= totalExperiments){
+        HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
+        //unique artifacts
+        List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+        // We'll prune an artifact if we see it less than 10% of the time (m * numberExperiments)
+        // this is reasonable as even a very complicated mutation (4 manifestations)
+        // in a 2 rule system will come up atleast 12.5% of the time
+        double prunePercentage = 0.075;
+        for(String artifact: uniqueArtifacts){
+          if(artifactChanges.get(artifact).size() < prunePercentage*numberExperiments*m){
+            artifactChanges.remove(artifact);
+          }
         }
-        sol.add(s.get(0), s.get(1));
-        System.out.println(s + " : " + solution.get(s));
-        console.testEquiv(sol);
-        if(console.isCorrect()){
-          Utilities.alert("Correct!");
-          return sol;
+        uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+        Utilities.alert("Unique Artifacts Observed "+uniqueArtifacts);
+
+
+        ActionComposite a = getActionChanges(uniqueArtifacts, artifactChanges);
+        HashMap<String, List<Change>> actionChanges = a.actionChanges;
+        HashMap<String, Integer> actionCount = a.actionCount;
+
+        // get all the unique actions
+        ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
+        for(String action: uniqueActions){
+          if(actionCount.get(action) <= numberExperiments*0.2){
+            actionCount.remove(action);
+            actionChanges.remove(action);
+          }
         }
-      }
-      System.out.println(solution);
+        uniqueActions = new ArrayList<String>(actionChanges.keySet());
+        System.out.println(actionCount);
+        System.out.println(actionCount);
+
+
+
+        HashMap<List<String>, Integer> solution = new HashMap<>();
+
+        // back solve to look for patterns near those actions
+        //for eahc action
+        for(String action: uniqueActions){
+          //what are the changes
+          List<Change> relatedChanges = actionChanges.get(action);
+          relatedChanges = Utilities.deduplicateListChanges(relatedChanges);
+          //context
+          HashMap<Integer, List<String>> patternContext = new HashMap<>();
+
+          // look 10 around thhe action
+          int lookupLength = 10 - action.length();
+          for(int ctr = 0; ctr <= lookupLength; ctr++){
+            patternContext.put(-1*ctr+lookupLength, new ArrayList<String>());
+            for(Change c: relatedChanges){
+              int pointOfInterest = c.pointOfInterest;
+              int startingPoint = pointOfInterest - lookupLength+ctr;
+              if(startingPoint < 0){
+                startingPoint += 1000;
+              }
+              String currentString = "";
+              for(int i = 0; i < 10; i++){
+                int currentPos = startingPoint + i;
+                currentPos %= 1000;
+                currentString += c.beforeGenome.charAt(currentPos)+"";
+              }
+              patternContext.get(-1*ctr+lookupLength).add(currentString);
+            }
+          }
+
+          // collapse context windows generated above
+          HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
+          System.out.println(collapsedWindows);
+
+          // find the bst window reference based on the same principle as before
+          int bestWindowReference = Utilities.bestWindow(collapsedWindows);
+
+          // find the  best window
+          String bestWindow = collapsedWindows.get(bestWindowReference);
+          System.out.println(bestWindow);
+          // if you dont see this action atleast 10% of the time fuck it
+          if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
+            System.out.println(bestWindow);
+            continue;
+          }
+
+          // find the end of the window
+          int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
+          List<String> thisSol = new ArrayList<String>();
+
+          HashMap<String, Integer> allPatterns = new HashMap<String, Integer>();
+          for(String pattern: patternContext.get(bestWindowReference)){
+            String p = pattern.substring(0,lengthOfInterest);
+            if(!allPatterns.containsKey(p)){
+              allPatterns.put(p,0);
+            }
+            allPatterns.put(p, allPatterns.get(p)+1);
+          }
+          for(String pattern: allPatterns.keySet()){
+            thisSol.add(Utilities.formatPattern(pattern));
+            thisSol.add(action);
+            solution.put(thisSol, allPatterns.get(pattern));
+            thisSol = new ArrayList<String>();
+          }
+        }
+
+
+
+          solution = Utilities.sortByValue(solution);
+
+
+          List<Integer> occurences = new ArrayList<Integer>(solution.values());
+          int mean = Utilities.mean(occurences);
+
+          List<List<String>> proposedRules = new ArrayList<List<String>>(solution.keySet());
+          for(List<String> rule : proposedRules){
+            if(solution.get(rule) <= 5){
+              solution.remove(rule);
+            }
+          }
+
+
+          for(List<String> s : solution.keySet()){
+            if(solution.get(s) < mean){
+              continue;
+            }
+            sol.add(s.get(0), s.get(1));
+            System.out.println(s + " : " + solution.get(s));
+            console.testEquiv(sol);
+            if(console.isCorrect()){
+              Utilities.alert("Correct!");
+              return sol;
+            }
+          }
+          changes.addAll(this.collectData(numberExperiments, console));
+        }
+      // lets play for the jaccard score
       return sol;
     }
+
+
+
+    //
+    // public Mutagen OldPlay(Console console, int m){
+    //   List<Change> changes = this.collectData(numberExperiments, console);
+    //   HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
+    //   //unique artifacts
+    //   List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+    //
+    //   // We'll prune an artifact if we see it less than 10% of the time (m * numberExperiments)
+    //   // this is reasonable as even a very complicated mutation (4 manifestations)
+    //   // in a 2 rule system will come up atleast 12.5% of the time
+    //   double prunePercentage = 0.075;
+    //   for(String artifact: uniqueArtifacts){
+    //     if(artifactChanges.get(artifact).size() < prunePercentage*numberExperiments*m){
+    //       artifactChanges.remove(artifact);
+    //     }
+    //   }
+    //   uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+    //   Utilities.alert("Unique Artifacts Observed "+uniqueArtifacts);
+    //
+    //
+    //   ActionComposite a = getActionChanges(uniqueArtifacts, artifactChanges);
+    //   HashMap<String, List<Change>> actionChanges = a.actionChanges;
+    //   HashMap<String, Integer> actionCount = a.actionCount;
+    //
+    //   // get all the unique actions
+    //   ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
+    //   for(String action: uniqueActions){
+    //     if(actionCount.get(action) <= numberExperiments*0.2){
+    //       actionCount.remove(action);
+    //       actionChanges.remove(action);
+    //     }
+    //   }
+    //   uniqueActions = new ArrayList<String>(actionChanges.keySet());
+    //   System.out.println(actionCount);
+    //
+    //
+    //
+    //   HashMap<List<String>, Integer> solution = new HashMap<>();
+    //
+    //   // back solve to look for patterns near those actions
+    //   //for eahc action
+    //   for(String action: uniqueActions){
+    //     //what are the changes
+    //     List<Change> relatedChanges = actionChanges.get(action);
+    //     relatedChanges = Utilities.deduplicateListChanges(relatedChanges);
+    //     //context
+    //     HashMap<Integer, List<String>> patternContext = new HashMap<>();
+    //
+    //     // look 10 around thhe action
+    //     int lookupLength = 10 - action.length();
+    //     for(int ctr = 0; ctr <= lookupLength; ctr++){
+    //       patternContext.put(-1*ctr+lookupLength, new ArrayList<String>());
+    //       for(Change c: relatedChanges){
+    //         int pointOfInterest = c.pointOfInterest;
+    //         int startingPoint = pointOfInterest - lookupLength+ctr;
+    //         if(startingPoint < 0){
+    //           startingPoint += 1000;
+    //         }
+    //         String currentString = "";
+    //         for(int i = 0; i < 10; i++){
+    //           int currentPos = startingPoint + i;
+    //           currentPos %= 1000;
+    //           currentString += c.beforeGenome.charAt(currentPos)+"";
+    //         }
+    //         patternContext.get(-1*ctr+lookupLength).add(currentString);
+    //       }
+    //     }
+    //
+    //     // collapse context windows generated above
+    //     HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
+    //     System.out.println(collapsedWindows);
+    //
+    //     // find the bst window reference based on the same principle as before
+    //     int bestWindowReference = Utilities.bestWindow(collapsedWindows);
+    //
+    //     // find the  best window
+    //     String bestWindow = collapsedWindows.get(bestWindowReference);
+    //     System.out.println(bestWindow);
+    //     // if you dont see this action atleast 10% of the time fuck it
+    //     if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
+    //       System.out.println(bestWindow);
+    //       continue;
+    //     }
+    //
+    //     // find the end of the window
+    //     int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
+    //     List<String> thisSol = new ArrayList<String>();
+    //
+    //     HashMap<String, Integer> allPatterns = new HashMap<String, Integer>();
+    //     for(String pattern: patternContext.get(bestWindowReference)){
+    //       String p = pattern.substring(0,lengthOfInterest);
+    //       if(!allPatterns.containsKey(p)){
+    //         allPatterns.put(p,0);
+    //       }
+    //       allPatterns.put(p, allPatterns.get(p)+1);
+    //     }
+    //     for(String pattern: allPatterns.keySet()){
+    //       thisSol.add(Utilities.formatPattern(pattern));
+    //       thisSol.add(action);
+    //       solution.put(thisSol, allPatterns.get(pattern));
+    //       thisSol = new ArrayList<String>();
+    //     }
+    //   }
+    //
+    //
+    //
+    //   solution = Utilities.sortByValue(solution);
+    //
+    //
+    //   List<Integer> occurences = new ArrayList<Integer>(solution.values());
+    //   int mean = Utilities.mean(occurences);
+    //
+    //   List<List<String>> proposedRules = new ArrayList<List<String>>(solution.keySet());
+    //   for(List<String> rule : proposedRules){
+    //     if(solution.get(rule) <= 5){
+    //       solution.remove(rule);
+    //     }
+    //   }
+    //
+    //   Mutagen sol = new Mutagen();
+    //   for(List<String> s : solution.keySet()){
+    //     if(solution.get(s) < mean){
+    //       continue;
+    //     }
+    //     sol.add(s.get(0), s.get(1));
+    //     System.out.println(s + " : " + solution.get(s));
+    //     console.testEquiv(sol);
+    //     if(console.isCorrect()){
+    //       Utilities.alert("Correct!");
+    //       return sol;
+    //     }
+    //   }
+    //   System.out.println(solution);
+    //   return sol;
+    // }
 
 }
