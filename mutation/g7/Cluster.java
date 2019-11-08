@@ -19,7 +19,7 @@ public class Cluster{
         this.mutated = mutated; 
     }
 
-    public Map<Integer, LinkedList<Integer>> findWindows(int k, int numPatterns) {
+    public Map<Integer, LinkedList<Integer>> findWindows(int k) {
         Map<Integer, LinkedList<Integer>> clusters = new HashMap<>();
         int[][] distances = new int[mutated_bases.size()][mutated_bases.size()];
         for (int i =0; i < mutated_bases.size(); i++){
@@ -34,19 +34,7 @@ public class Cluster{
             Pair<Integer, Integer> min_pair = locateMin(distances, clusters);
             mergeClusters(min_pair.getKey(), min_pair.getValue(), distances, clusters);
         }
-        HashMap<Integer, Integer> length_map = new HashMap<>();
-        for(int centroid: clusters.keySet()){
-            int cluster_size = clusters.get(centroid).size(); 
-            if (length_map.containsKey(cluster_size)) length_map.put(cluster_size, length_map.get(cluster_size)+1);
-            else length_map.put(cluster_size, 1);
-            Collections.sort(clusters.get(centroid));
-            //System.out.println(numPatterns);
-            String action = mutated.substring(mutated_bases.get(clusters.get(centroid).get(0)),mutated_bases.get(clusters.get(centroid).get(cluster_size-1))+1);
-            System.out.println(action);
-        }
-        for(int cluster_size : length_map.keySet()){
-            System.out.println("size: " + cluster_size + " has " + length_map.get(cluster_size));
-        }
+       
         Map<Integer, LinkedList<Integer>> correct_indices = new HashMap<>();
         for(int index : clusters.keySet()){
             LinkedList<Integer> temp = new LinkedList<>(); 

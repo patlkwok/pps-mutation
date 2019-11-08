@@ -40,6 +40,9 @@ public class Player extends mutation.sim.Player {
     // An array of all patterns that happened
     private HashSet<String> allPatterns = new HashSet<>();
 
+    // A list of continually seen mutation lengths
+    private LinkedList<Integer> mutationLengths = new LinkedList<>();  
+
     public Player() {
         random = new Random();
     }
@@ -204,14 +207,32 @@ public class Player extends mutation.sim.Player {
         return pairs.subList(0, i);
     }
 
-
-    private static void printWindows( Map<Integer, LinkedList<Integer>> mutations, String genome, String mutant){
-        Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
-        for (Integer i : sorted.keySet()){
-            // I is current centroid
-            System.out.println("Mutation " + i);
-            for (Integer j : sorted.get(i))
-                System.out.println(genome.charAt(j) + " ->" +mutant.charAt(j) );
+    private static void removeOverlap(Map<Integer, LinkedList<Integer>> mutations){
+        // Get rid of overlap -- if two mutations are right next to eachother, ignore 
+        Map<Integer, Integer> start_indices = new HashMap<>(); 
+        Map<Integer, Integer> end_indices = new HashMap<>(); 
+        LinkedList<Integer> keys = new LinkedList<>(mutations.keySet());
+        for(int centroid: keys){
+            int cluster_size = mutations.get(centroid).size(); 
+            Collections.sort(mutations.get(centroid));
+            int start = mutations.get(centroid).get(0);
+            int end = mutations.get(centroid).get(cluster_size-1);
+            start_indices.put(start, centroid);
+            end_indices.put(end, centroid);
+        }
+        for(int j =0; j < keys.size(); j++){
+            int centroid = keys.get(j);
+            if (!mutations.keySet().contains(centroid)) continue ;
+            int start = mutations.get(centroid).get(0);
+            int end = mutations.get(centroid).get(mutations.get(centroid).size()-1);
+            if (end_indices.keySet().contains(start-1)){ //|| 
+                mutations.remove(centroid);
+                mutations.remove(start-1);
+            }
+            else if (start_indices.keySet().contains(end+1)){
+                mutations.remove(centroid);
+                mutations.remove(end+1);
+            }
         }
     }
 
@@ -262,13 +283,8 @@ public class Player extends mutation.sim.Player {
 
             Cluster cluster = new Cluster(genome, mutated);
             Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(console.getNumberOfMutations());
-            // if (true){
-            //     System.out.println(console.getNumberOfMutations());
-            // printWindows(mutations, genome, mutated);
-            // return new Mutagen();
-            // }
-            // This if statement is just to check if correctly identified windows
-
+            removeOverlap(mutations);
+            
             int genome_length = genome.length();
 
             // Add 10 last characters to beginning and 10 first characters to end of genome before / after mutation 
