@@ -93,13 +93,23 @@ public class Player extends mutation.sim.Player {
         }
       }
 
+      // get all the unique actions
       ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
+
+      System.out.println(uniqueActions);
+
       HashMap<List<String>, Integer> solution = new HashMap<>();
+
+      // back solve to look for patterns near those actions
+      //for eahc action
       for(String action: uniqueActions){
+        //what are the changes
         List<Change> relatedChanges = actionChanges.get(action);
         relatedChanges = Utilities.deduplicateListChanges(relatedChanges);
+        //context
         HashMap<Integer, List<String>> patternContext = new HashMap<>();
 
+        // look 10 around thhe action
         int lookupLength = 10 - action.length();
         for(int ctr = 0; ctr <= lookupLength; ctr++){
           patternContext.put(-1*ctr+lookupLength, new ArrayList<String>());
@@ -118,26 +128,37 @@ public class Player extends mutation.sim.Player {
             patternContext.get(-1*ctr+lookupLength).add(currentString);
           }
         }
+
+        // collapse context windows generated above
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
+
+        // find the bst window reference based on the same principle as before
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
+
+        // find the  best window
         String bestWindow = collapsedWindows.get(bestWindowReference);
-        // System.out.println(bestWindow + " -> " + action);
-        if(patternContext.get(bestWindowReference).size() < 10){
+
+        // if you dont see this action atleast 10% of the time fuck it
+        if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
           continue;
         }
+
+        // find the end of the window
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-        // System.out.print(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)) + " -> " + action);
-        // System.out.print(" @ ,  " +patternContext.get(bestWindowReference).size() + " \n");
         List<String> thisSol = new ArrayList<String>();
-        thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
+        //thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
+        thisSol.add(bestWindow);
         thisSol.add(action);
         solution.put(thisSol, Utilities.getScore(patternContext, bestWindowReference));
       }
+
       System.out.println(solution);
       Mutagen sol = new Mutagen();
       for(List<String> s : solution.keySet()){
         sol.add(s.get(0), s.get(1));
+        console.Guess(sol);
       }
+
       return sol;
     }
 
