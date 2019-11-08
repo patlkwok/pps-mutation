@@ -100,7 +100,7 @@ public class Utilities {
       //find earliest nondisjunctive element
       int earliestNondisjunction = 10;
       for(int i = 0; i < window.length; i++){
-        if(window[i].length() == 1){
+        if(window[i].length() < 4){
           earliestNondisjunction = i;
           break;
         }
@@ -135,7 +135,7 @@ public class Utilities {
     int lastNd = 0;
     String[] window = swindow.split(";");
     for(int i = 0; i < window.length; i++){
-      if(window[i].length() == 1){
+      if(window[i].length() < 4){
         lastNd = i;
       }
     }
@@ -341,6 +341,30 @@ public class Utilities {
     return patternContext.get(bestWindowReference).size();
   }
 
+// function to sort hashmap by values
+public static HashMap<List<String>, Integer> sortByValue(HashMap<List<String>, Integer> hm)
+{
+    // Create a list from elements of HashMap
+    List<Map.Entry<List<String>, Integer> > list =
+           new LinkedList<Map.Entry<List<String>, Integer> >(hm.entrySet());
+
+    // Sort the list
+    Collections.sort(list, new Comparator<Map.Entry<List<String>, Integer> >() {
+        public int compare(Map.Entry<List<String>, Integer> o1,
+                           Map.Entry<List<String>, Integer> o2)
+        {
+            return -1*(o1.getValue()).compareTo(o2.getValue());
+        }
+    });
+
+    // put data from sorted list to hashmap
+    HashMap<List<String>, Integer> temp = new LinkedHashMap<List<String>, Integer>();
+    for (Map.Entry<List<String>, Integer> aa : list) {
+        temp.put(aa.getKey(), aa.getValue());
+    }
+    return temp;
+}
+
 }
 
 class Rule {
@@ -369,6 +393,11 @@ class Rule {
     return rule;
   }
 }
+
+class ActionComposite {
+  HashMap<String, List<Change>> actionChanges;
+  HashMap<String, Integer> actionCount;
+}
 // ADT for a change type
 class Change implements Comparable<Change>{
   public String before, after;
@@ -395,6 +424,9 @@ class Change implements Comparable<Change>{
     System.out.println("After: "+afterContext);
     return getChange() + " @ " + this.location;
   }
+
+
+
 
   @Override
   public int compareTo(Change other){

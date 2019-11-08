@@ -24,6 +24,9 @@ import java.util.*;
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
+import static java.util.stream.Collectors.*;
+import static java.util.Map.Entry.*;
+
 public class Player extends mutation.sim.Player {
     private Random random;
     private int numberExperiments = 200;
@@ -53,12 +56,7 @@ public class Player extends mutation.sim.Player {
       return changes;
     }
 
-    public Mutagen Play(Console console, int m){
-      List<Change> changes = this.collectData(numberExperiments, console);
-      HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
-      //unique artifacts
-      List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
-
+    public ActionComposite getActionChanges(List<String> uniqueArtifacts, HashMap<String, List<Change>> artifactChanges){
       HashMap<String, List<Change>> actionChanges = new HashMap<>();
       HashMap<String, Integer> actionCount = new HashMap<>();
 
@@ -66,11 +64,15 @@ public class Player extends mutation.sim.Player {
       for(String artifact: uniqueArtifacts){
         List<Change> relatedChanges = artifactChanges.get(artifact);
         HashMap<Integer, List<String>> contextsByReference = Utilities.getAfterContextByReferencePoint(relatedChanges);
+        // System.out.println(contextsByReference);
+        System.out.println(artifact);
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(contextsByReference);
+        System.out.println(collapsedWindows);
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
         String bestWindow = collapsedWindows.get(bestWindowReference);
+        System.out.println(bestWindow);
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-
+        System.out.println(lengthOfInterest);
         // all the best windows results
         for(String c: contextsByReference.get(bestWindowReference)){
           String action = c.substring(0, lengthOfInterest);
@@ -92,11 +94,34 @@ public class Player extends mutation.sim.Player {
           actionChanges.get(action).add(c);
         }
       }
+      ActionComposite a = new ActionComposite();
+      a.actionChanges = actionChanges;
+      a.actionCount = actionCount;
+      return a;
+    }
+
+    public Mutagen Play(Console console, int m){
+      List<Change> changes = this.collectData(numberExperiments, console);
+      HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
+      //unique artifacts
+      List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+
+      ActionComposite a = getActionChanges(uniqueArtifacts, artifactChanges);
+      HashMap<String, List<Change>> actionChanges = a.actionChanges;
+      HashMap<String, Integer> actionCount = a.actionCount;
 
       // get all the unique actions
       ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
+      for(String action: uniqueActions){
+        if(actionCount.get(action) <= numberExperiments*0.2){
+          actionCount.remove(action);
+          actionChanges.remove(action);
+        }
+      }
+      uniqueActions = new ArrayList<String>(actionChanges.keySet());
+      System.out.println(actionCount);
 
-      System.out.println(uniqueActions);
+
 
       HashMap<List<String>, Integer> solution = new HashMap<>();
 
@@ -146,19 +171,22 @@ public class Player extends mutation.sim.Player {
         // find the end of the window
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
         List<String> thisSol = new ArrayList<String>();
-        //thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
-        thisSol.add(bestWindow);
+        thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
+        //thisSol.add(bestWindow);
         thisSol.add(action);
         solution.put(thisSol, Utilities.getScore(patternContext, bestWindowReference));
       }
 
+
+
+      solution = Utilities.sortByValue(solution);
       System.out.println(solution);
       Mutagen sol = new Mutagen();
       for(List<String> s : solution.keySet()){
         sol.add(s.get(0), s.get(1));
+        System.out.println(s);
         console.Guess(sol);
       }
-
       return sol;
     }
 
