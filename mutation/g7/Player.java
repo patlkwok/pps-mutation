@@ -282,15 +282,15 @@ public class Player extends mutation.sim.Player {
             Mutagen guess;
 
             if(0 <= i && i < 100) {
-                guessSingleRule(0);
+                guess = guessSingleRule(0);
             } else if (100 <= i && i < 200) {
-                guessSingleRule(1);
+                guess = guessSingleRule(1);
             } else if (200 <= i && i < 300) {
-                guessSimpleMultiple(2);
+                guess = guessSimpleMultiple(2);
             } else if (300 <= i && i < 400) {
-                guessComplexMultiple(2);
+                guess = guessComplexMultiple(2);
             } else {
-                guessSingleRule(2);
+                guess = guessSingleRule(2);
             }
 
             boolean isCorrect = console.testEquiv(guess);
