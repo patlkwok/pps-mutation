@@ -41,12 +41,13 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         this.console = console;
         Mutagen result = new Mutagen();
-        // write an outer for loop on this for random restarts
         for (int j = 0; j < 100; j++) {
             mutationGroups = new ArrayList<>();
             for (int i = 0; i < 101; i++) {
             	String genome = randomString();
                 String mutated = console.Mutate(genome);
+                // If the mutated result is length 0, we have guessed it correctly.
+                if (mutated.length() != genome.length()) return result;
     	        Set<List<Mutation>> mutationsSet = identifyMutations(genome, mutated);
                 // System.out.println("PlayEthan");
                 if (j==0 && i < 2) {
@@ -154,7 +155,7 @@ public class Player extends mutation.sim.Player {
             Pair<String, String> patternAction = patternActions.get(i);
             result.add(patternAction.getKey(), patternAction.getValue());
             console.testEquiv(result);
-            if (console.isCorrect()) System.exit(0);
+            // if (console.isCorrect()) System.exit(0);
         }
     }
 
@@ -169,7 +170,7 @@ public class Player extends mutation.sim.Player {
                 result.add(patternActionI.getKey(), patternActionI.getValue());
                 result.add(patternActionJ.getKey(), patternActionJ.getValue());
                 console.testEquiv(result);
-                if (console.isCorrect()) System.exit(0);            
+                // if (console.isCorrect()) System.exit(0);            
             }
         }
     }
@@ -188,7 +189,7 @@ public class Player extends mutation.sim.Player {
                     result.add(patternActionJ.getKey(), patternActionJ.getValue());
                     result.add(patternActionK.getKey(), patternActionK.getValue());
                     console.testEquiv(result);
-                    if (console.isCorrect()) System.exit(0);            
+                    // if (console.isCorrect()) System.exit(0);            
                 }
             }
         }
