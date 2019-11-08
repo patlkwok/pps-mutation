@@ -94,10 +94,6 @@ public class Player extends mutation.sim.Player {
         }
     }
 
-    private Mutagen getBestGuess() {
-        return getFinalMutagen();
-    }
-
     private Mutagen getFinalMutagen() {
         Mutagen mutagen = new Mutagen();
         int numberOfRulesToCombine = allPatterns.size();
@@ -240,6 +236,22 @@ public class Player extends mutation.sim.Player {
         }
     }
 
+    private Mutagen guessSingleRule(int numberOfDisplacements) {
+        return getFinalMutagen();
+    }
+
+    private Mutagen guessSimpleMultiple(int numberOfRules) {
+        return getFinalMutagen();
+    }
+
+    private Mutagen guessComplexMultiple(int numberOfRules) {
+        return getFinalMutagen();
+    }
+
+    private Mutagen guessBest() {
+        return getFinalMutagen();
+    }
+
     @Override
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++i) {
@@ -248,7 +260,7 @@ public class Player extends mutation.sim.Player {
             long timeLeft = console.getTimeLeft();
             if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
                 System.out.println("Returning final Mutagen");
-                return getBestGuess();
+                return guessBest();
             }
 
             // Get the genome
@@ -268,7 +280,18 @@ public class Player extends mutation.sim.Player {
             updateProbabilities(changeWindows, possibleWindows, genome, mutated);
 
             Mutagen guess;
-            guess = getFinalMutagen();
+
+            if(0 <= i && i < 100) {
+                guessSingleRule(0);
+            } else if (100 <= i && i < 200) {
+                guessSingleRule(1);
+            } else if (200 <= i && i < 300) {
+                guessSimpleMultiple(2);
+            } else if (300 <= i && i < 400) {
+                guessComplexMultiple(2);
+            } else {
+                guessSingleRule(2);
+            }
 
             boolean isCorrect = console.testEquiv(guess);
             if (isCorrect) {
