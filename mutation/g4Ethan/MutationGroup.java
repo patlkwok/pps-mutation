@@ -142,16 +142,6 @@ public class MutationGroup {
 		if (patternEnd < start) {
 			throw new RuntimeException("Something is wrong generating the rule");
 		} else {
-			// for (int i = start; i <= end; i++) {
-			// 	resultPattern.append(patternArray[i]);
-			// 	if (i != end) resultPattern.append(";");
-			// 	if (Character.isDigit(action.charAt(i))) {
-			// 		int value = Character.getNumericValue(action.charAt(i));
-			// 		resultAction.append(Character.forDigit(value-start, 10));
-			// 	} else {
-			// 		resultAction.append(action.charAt(i));
-			// 	}
-			// }
 			for (int i = start; i <= patternEnd; i++) {
 				resultPattern.append(patternArray[i]);
 				if (i != patternEnd) resultPattern.append(";");

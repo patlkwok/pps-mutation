@@ -13,4 +13,8 @@ public enum Base {
 		this.c = c;
 	}
 
+	public char getChar() {
+		return c;
+	}
+
 }
