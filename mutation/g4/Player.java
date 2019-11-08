@@ -59,7 +59,7 @@ public class Player extends mutation.sim.Player {
                 }
                 PlayEthan(mutationsSet, i);
             }
-            if (console.isCorrect()) System.exit(0);
+            if (console.isCorrect()) return result;
         }
         // This is written brute force, assuming mutagens have at most 3 rules.
         // for (MutationGroup mg : mutationGroups) {
