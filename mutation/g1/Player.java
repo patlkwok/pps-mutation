@@ -23,6 +23,7 @@ public class Player extends mutation.sim.Player {
     // we only accept other multiple rules if we've seen them 10 * supportCoeff or greater
     public double supportCoeff = 0.75;
     public boolean ignoreAmiguousCasesWhenMerging = false;
+    public boolean shouldMergeTrees = true;
     // measure of how confident we need to be in this numeric action for it to be included in guess
     public double numericConfidence = 0.75;
 
@@ -422,7 +423,9 @@ public class Player extends mutation.sim.Player {
                 }
             }
 
-            this.mergeTrees(trees);
+            if(this.shouldMergeTrees) {
+                this.mergeTrees(trees);
+            }
             int maxSupport = 0;
             for(MyTree t: trees.values()) {
                 maxSupport = Math.max(t.support, maxSupport);
@@ -654,6 +657,7 @@ public class Player extends mutation.sim.Player {
                 System.out.println("Starting over!");
                 this.guessCounts = new HashMap<>();
                 trees = new HashMap<>();
+                this.shouldMergeTrees = !this.shouldMergeTrees;
             }
         }
         return this.generateGuess(guesses);
