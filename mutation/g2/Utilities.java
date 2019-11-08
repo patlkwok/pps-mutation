@@ -341,6 +341,14 @@ public class Utilities {
     return patternContext.get(bestWindowReference).size();
   }
 
+  public static int mean(List<Integer> n){
+    int sum = 0;
+    for(int i:n){
+      sum += i;
+    }
+    return (int) sum/n.size();
+  }
+
 // function to sort hashmap by values
 public static HashMap<List<String>, Integer> sortByValue(HashMap<List<String>, Integer> hm)
 {

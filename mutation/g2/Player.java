@@ -1,23 +1,3 @@
-/*
-
-right now: random string + mutations, records how many times it has seen something, guesses.
-only runs 1/2 experiments. really naive.
-
-TODO:
-- Implement Wrap Around
-- dont guess the same thing twice
-- implement context checking
-( a better way to do this might be to record changes as before -> after and
-keep a count of how many times we've seen a change. Everytime we see a change
-record the possible contexts(sliding window) towards the end pick out common elements
-in the context )
-
-goals:
-Make smarter test cases
-Handle more complicated mutations
-Possibly model after the scientific method ( can we model that as a search problem)
-*/
-
 package mutation.g2;
 
 import java.util.*;
@@ -29,7 +9,7 @@ import static java.util.Map.Entry.*;
 
 public class Player extends mutation.sim.Player {
     private Random random;
-    private int numberExperiments = 200;
+    private int numberExperiments = 100;
 
     public Player() {
       Utilities.alert("Hello world");
@@ -63,16 +43,16 @@ public class Player extends mutation.sim.Player {
       // get all possible actions and the changes they're linked to
       for(String artifact: uniqueArtifacts){
         List<Change> relatedChanges = artifactChanges.get(artifact);
-        HashMap<Integer, List<String>> contextsByReference = Utilities.getAfterContextByReferencePoint(relatedChanges);
-        // System.out.println(contextsByReference);
         System.out.println(artifact);
+        if(relatedChanges.size() == 1){
+          continue;
+        }
+        HashMap<Integer, List<String>> contextsByReference = Utilities.getAfterContextByReferencePoint(relatedChanges);
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(contextsByReference);
-        // System.out.println(collapsedWindows);
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
         String bestWindow = collapsedWindows.get(bestWindowReference);
-        // System.out.println(bestWindow);
+        System.out.println(collapsedWindows);
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-        // System.out.println(lengthOfInterest);
         // all the best windows results
         for(String c: contextsByReference.get(bestWindowReference)){
           String action = c.substring(0, lengthOfInterest);
@@ -105,6 +85,19 @@ public class Player extends mutation.sim.Player {
       HashMap<String, List<Change>> artifactChanges = Utilities.sortByAfterArtifact(changes);
       //unique artifacts
       List<String> uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+
+      // We'll prune an artifact if we see it less than 10% of the time (m * numberExperiments)
+      // this is reasonable as even a very complicated mutation (4 manifestations)
+      // in a 2 rule system will come up atleast 12.5% of the time
+      double prunePercentage = 0.075;
+      for(String artifact: uniqueArtifacts){
+        if(artifactChanges.get(artifact).size() < prunePercentage*numberExperiments*m){
+          artifactChanges.remove(artifact);
+        }
+      }
+      uniqueArtifacts = new ArrayList<String>(artifactChanges.keySet());
+      Utilities.alert("Unique Artifacts Observed "+uniqueArtifacts);
+
 
       ActionComposite a = getActionChanges(uniqueArtifacts, artifactChanges);
       HashMap<String, List<Change>> actionChanges = a.actionChanges;
@@ -156,6 +149,7 @@ public class Player extends mutation.sim.Player {
 
         // collapse context windows generated above
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
+        System.out.println(collapsedWindows);
 
         // find the bst window reference based on the same principle as before
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
@@ -172,7 +166,6 @@ public class Player extends mutation.sim.Player {
         // find the end of the window
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
         List<String> thisSol = new ArrayList<String>();
-        // TODO: get all patterns or get the first n elements
 
         HashMap<String, Integer> allPatterns = new HashMap<String, Integer>();
         for(String pattern: patternContext.get(bestWindowReference)){
@@ -188,22 +181,27 @@ public class Player extends mutation.sim.Player {
           solution.put(thisSol, allPatterns.get(pattern));
           thisSol = new ArrayList<String>();
         }
-        // System.out.println(allPatterns);
-        // thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
-        // //thisSol.add(bestWindow);
-        // thisSol.add(action);
-        // solution.put(thisSol, Utilities.getScore(patternContext, bestWindowReference));
       }
 
 
 
       solution = Utilities.sortByValue(solution);
-      System.out.println(solution);
+
+      List<Integer> occurences = new ArrayList<Integer>(solution.values());
+      int mean = Utilities.mean(occurences);
+
       Mutagen sol = new Mutagen();
       for(List<String> s : solution.keySet()){
+        if(solution.get(s) < mean){
+          continue;
+        }
         sol.add(s.get(0), s.get(1));
         System.out.println(s + " : " + solution.get(s));
         console.testEquiv(sol);
+        if(console.isCorrect()){
+          Utilities.alert("Correct!");
+          return sol;
+        }
       }
       return sol;
     }
