@@ -33,7 +33,9 @@ public class Player extends mutation.sim.Player {
     private long timeLimit = 1000;
 
     // An array to record the wrong guesses so we don't repeat them
-    private Vector<Mutagen> wrongMutagens = new Vector<>();
+    private HashSet<Mutagen> wrongMutagens = new HashSet<>();
+    private HashSet<String> discardedRules = new HashSet<>();
+    private HashMap<Integer, HashSet<String>> buckets = new HashMap<>();
 
     private int maxMutagenLength = 10;
 
@@ -134,6 +136,17 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+    private void createBuckets(List<Map.Entry<String, Double>> rules){
+        for(Map.Entry<String, Double> key : rules){
+            if(buckets.containsKey(key.getKey().length())){
+                buckets.get(key.getKey().length()).add(key.getKey());
+            }
+            else{
+                buckets.put(key.getKey().length(), new HashSet<>());
+                buckets.get(key.getKey().length()).add(key.getKey());
+            }
+        }
+    }
 
     private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n, boolean isMinHeap) {
         Comparator<? super Map.Entry<K, V>> comparator = new Comparator<Map.Entry<K, V>>() {
@@ -165,18 +178,60 @@ public class Player extends mutation.sim.Player {
         if (numberOfRulesToCombine == 0) {
             numberOfRulesToCombine = 1;
         }
-        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
+        purgeRules();
+        List<Map.Entry<String, Double>> pairs = findGreatest(rules, 20, true);
+        createBuckets(pairs);
+        Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
         if(pairs.size() > 0) pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
-//            System.out.println(pair);
-//            System.out.println(patternActionPair.getValue());
             String[] patternAction = pair.split("@");
             String pattern = patternAction[0];
             String action = patternAction[1];
             mutagen.add(pattern, action);
         }
         return mutagen;
+    }
+
+    private boolean isExtension(Map.Entry<String, Double> p1, Map.Entry<String, Double> p2){
+        Map.Entry<String, Double> longP = p1.getKey().length() > p2.getKey().length() ? p1 : p2;
+        Map.Entry<String, Double> shortP = p1.getKey().length() < p2.getKey().length() ? p1 : p2;
+        return longP.getKey().contains(shortP.getKey());
+    }
+
+    private void discardRules(List<Map.Entry<String, Double>> rules){
+        if(rules.size() == 0) return;
+        List<Map.Entry<String, Double>> sameDist = new ArrayList<>();
+        sameDist.add(rules.get(0));
+        for(int i = 1; i < rules.size(); i++){
+            if(rules.get(i - 1).getValue() == rules.get(i).getValue()){
+                sameDist.add(rules.get(i));
+            }
+            else{
+                if(sameDist.size() > 1) {
+                    System.out.println(sameDist);
+                    for (int j = 0; j < sameDist.size(); j++) {
+                        for (int k = j + 1; k < sameDist.size(); k++) {
+                            Map.Entry<String, Double> p1 = rules.get(j);
+                            Map.Entry<String, Double> p2 = rules.get(k);
+                            if (isExtension(p1, p2)) {
+                                System.out.println("add discarded rule");
+                                if (p1.getKey().length() > p2.getKey().length()) {
+                                    discardedRules.add(p2.getKey());
+                                } else discardedRules.add(p1.getKey());
+                            }
+                        }
+                    }
+                }
+                sameDist.clear();
+                sameDist.add(rules.get(i));
+            }
+        }
     }
 
     private List<Map.Entry<String, Double>> purge(List<Map.Entry<String, Double>> pairs){
@@ -188,8 +243,6 @@ public class Player extends mutation.sim.Player {
         });
         int i = 1;
         for(; i < pairs.size(); i++){
-           // System.out.println(pairs.get(i-1).getKey());
-           // System.out.println(pairs.get(i-1).getValue());
             if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
         }
         Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
@@ -233,7 +286,19 @@ public class Player extends mutation.sim.Player {
                 mutations.remove(centroid);
                 mutations.remove(end+1);
             }
+    private void purgeRules(){
+        for(String pattern : discardedRules){
+            if(rules.containsKey(pattern)) rules.remove(pattern);
         }
+    }
+
+
+    private String testString(){
+        String result = "";
+        while(result.length() < 1000){
+            result += "acgtg";
+        }
+        return result.substring(0, 1000);
     }
 
     private String createString(){
@@ -278,7 +343,7 @@ public class Player extends mutation.sim.Player {
             // Get the genome
             String genome;
             if(i == 0 || i > 50) genome = randomString(1000);
-            else genome = createString();
+            else genome = randomString(1000);
             String mutated = console.Mutate(genome);
 
             Cluster cluster = new Cluster(genome, mutated);
@@ -347,7 +412,7 @@ public class Player extends mutation.sim.Player {
             }
 
             Mutagen guess;
-            if(i < 50){
+            if(i < 100){
                 guess = getFinalMutagen();
             } else {
                 // Sample a mutagen
