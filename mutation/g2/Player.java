@@ -67,12 +67,12 @@ public class Player extends mutation.sim.Player {
         // System.out.println(contextsByReference);
         System.out.println(artifact);
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(contextsByReference);
-        System.out.println(collapsedWindows);
+        // System.out.println(collapsedWindows);
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
         String bestWindow = collapsedWindows.get(bestWindowReference);
-        System.out.println(bestWindow);
+        // System.out.println(bestWindow);
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-        System.out.println(lengthOfInterest);
+        // System.out.println(lengthOfInterest);
         // all the best windows results
         for(String c: contextsByReference.get(bestWindowReference)){
           String action = c.substring(0, lengthOfInterest);
@@ -162,19 +162,37 @@ public class Player extends mutation.sim.Player {
 
         // find the  best window
         String bestWindow = collapsedWindows.get(bestWindowReference);
-
+        System.out.println(bestWindow);
         // if you dont see this action atleast 10% of the time fuck it
         if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
+          System.out.println(bestWindow);
           continue;
         }
 
         // find the end of the window
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
         List<String> thisSol = new ArrayList<String>();
-        thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
-        //thisSol.add(bestWindow);
-        thisSol.add(action);
-        solution.put(thisSol, Utilities.getScore(patternContext, bestWindowReference));
+        // TODO: get all patterns or get the first n elements
+
+        HashMap<String, Integer> allPatterns = new HashMap<String, Integer>();
+        for(String pattern: patternContext.get(bestWindowReference)){
+          String p = pattern.substring(0,lengthOfInterest);
+          if(!allPatterns.containsKey(p)){
+            allPatterns.put(p,0);
+          }
+          allPatterns.put(p, allPatterns.get(p)+1);
+        }
+        for(String pattern: allPatterns.keySet()){
+          thisSol.add(Utilities.formatPattern(pattern));
+          thisSol.add(action);
+          solution.put(thisSol, allPatterns.get(pattern));
+          thisSol = new ArrayList<String>();
+        }
+        // System.out.println(allPatterns);
+        // thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
+        // //thisSol.add(bestWindow);
+        // thisSol.add(action);
+        // solution.put(thisSol, Utilities.getScore(patternContext, bestWindowReference));
       }
 
 
@@ -184,8 +202,8 @@ public class Player extends mutation.sim.Player {
       Mutagen sol = new Mutagen();
       for(List<String> s : solution.keySet()){
         sol.add(s.get(0), s.get(1));
-        System.out.println(s);
-        console.Guess(sol);
+        System.out.println(s + " : " + solution.get(s));
+        console.testEquiv(sol);
       }
       return sol;
     }
