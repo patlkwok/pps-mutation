@@ -368,36 +368,30 @@ public static HashMap<List<String>, Integer> sortByValue(HashMap<List<String>, I
 }
 
 class Rule {
-	public String[] before;
-	public String after;
+  public String[] before;
+  public String after;
 
-	public Rule(String[] b, String a) {
-		this.before = b;
-		this.after = a;
-	}
-	public String formatBefore() {
-		String rule = "";
-		for (String position : before) {
-			rule+=position;
-			rule += ";";
-		}
-		return rule.substring(0, rule.length()-1);
-	}
-	public String toString() {
-		String rule = "";
-		for (String position : before) {
-			rule+=position;
-			rule += ";";
-		}
-		rule += "@" + after;
-		return rule;
-	}
-
-}
-
-class ActionComposite {
-  HashMap<String, List<Change>> actionChanges;
-  HashMap<String, Integer> actionCount;
+  public Rule(String[] b, String a) {
+    this.before = b;
+    this.after = a;
+  }
+  public String formatBefore() {
+    String rule = "";
+    for (String position : before) {
+      rule+=position;
+      rule += ";";
+    }
+    return rule.substring(0, rule.length()-1);
+  }
+  public String toString() {
+    String rule = "";
+    for (String position : before) {
+      rule+=position;
+      rule += ";";
+    }
+    rule += "@" + after;
+    return rule;
+  }
 }
 
 class ActionComposite {
@@ -406,40 +400,6 @@ class ActionComposite {
 }
 // ADT for a change type
 class Change implements Comparable<Change>{
-	public String before, after;
-	public int location;
-	static String delimiter = " => ";
-
-	public Change(String before, String after, int location){
-		this.before = before;
-		this.after = after;
-		this.location = location;
-	}
-
-	public String getChange(){
-		return this.before + delimiter + this.after;
-	}
-
-	@Override
-	public String toString(){
-		return getChange() + " @ " + this.location;
-	}
-
-	@Override
-	public int compareTo(Change other){
-		return this.location - other.location;
-	}
-
-	public static Change fromChangeString(String cs){
-		String[] components = cs.split(delimiter);
-		return new Change(components[0], components[1], -1);
-	}
-
-}
-
-class Mutation {
-	public Set<Character>[] indexSets;
-	public int location;
   public String before, after;
   public String beforeGenome, afterGenome;
   public int location;
@@ -477,8 +437,5 @@ class Mutation {
     String[] components = cs.split(delimiter);
     return new Change(components[0], components[1], -1);
   }
-	public Mutation(int loc) {
-		indexSets = new Set[10];
-		this.location = loc;
-	}
+
 }
