@@ -16,11 +16,7 @@ goals:
 Make smarter test cases
 Handle more complicated mutations
 Possibly model after the scientific method ( can we model that as a search problem)
-
-TODO:
-find original base length
-deal with multiple rules
- */
+*/
 
 package mutation.g2;
 
@@ -114,6 +110,7 @@ public class Player extends mutation.sim.Player {
       HashMap<String, List<Change>> actionChanges = a.actionChanges;
       HashMap<String, Integer> actionCount = a.actionCount;
 
+      // get all the unique actions
       ArrayList<String> uniqueActions = new ArrayList<String>(actionChanges.keySet());
       for(String action: uniqueActions){
         if(actionCount.get(action) <= numberExperiments*0.2){
@@ -127,11 +124,17 @@ public class Player extends mutation.sim.Player {
 
 
       HashMap<List<String>, Integer> solution = new HashMap<>();
+
+      // back solve to look for patterns near those actions
+      //for eahc action
       for(String action: uniqueActions){
+        //what are the changes
         List<Change> relatedChanges = actionChanges.get(action);
         relatedChanges = Utilities.deduplicateListChanges(relatedChanges);
+        //context
         HashMap<Integer, List<String>> patternContext = new HashMap<>();
 
+        // look 10 around thhe action
         int lookupLength = 10 - action.length();
         for(int ctr = 0; ctr <= lookupLength; ctr++){
           patternContext.put(-1*ctr+lookupLength, new ArrayList<String>());
@@ -150,16 +153,23 @@ public class Player extends mutation.sim.Player {
             patternContext.get(-1*ctr+lookupLength).add(currentString);
           }
         }
+
+        // collapse context windows generated above
         HashMap<Integer, String> collapsedWindows = Utilities.collapseContexts(patternContext);
+
+        // find the bst window reference based on the same principle as before
         int bestWindowReference = Utilities.bestWindow(collapsedWindows);
+
+        // find the  best window
         String bestWindow = collapsedWindows.get(bestWindowReference);
-        // System.out.println(bestWindow + " -> " + action);
-        if(patternContext.get(bestWindowReference).size() < 10){
+
+        // if you dont see this action atleast 10% of the time fuck it
+        if(patternContext.get(bestWindowReference).size() < (numberExperiments*0.1)){
           continue;
         }
+
+        // find the end of the window
         int lengthOfInterest = Utilities.getLastNondisjunctive(bestWindow)+1;
-        // System.out.print(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)) + " -> " + action);
-        // System.out.print(" @ ,  " +patternContext.get(bestWindowReference).size() + " \n");
         List<String> thisSol = new ArrayList<String>();
         thisSol.add(Utilities.formatPattern(patternContext.get(bestWindowReference).get(0).substring(0, lengthOfInterest)));
         //thisSol.add(bestWindow);
