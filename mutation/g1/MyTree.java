@@ -3,15 +3,19 @@ package mutation.g1;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.Random;
 
 
 public class MyTree {
     // Hyperparameters
+    Random r = new Random();
     public final boolean useEntropy = true;
     public final int supportBeforeEntropy = 20; // when to start using entropy
     public final double lambda = 1.0; // smoothing factor (not really important)
     public final double entropyThreshold = 0.8; // if entropy falls below this, it's likely to not be acgt
-    public final double minCharProb = 0.2; // percentage of character support to be included in guess
+//    public double minCharProb = 0.2; // percentage of character support to be included in guess
+    public double[] minCharProblist = {0.175, 0.2, 0.225};
+    public double minCharProb = minCharProblist[r.nextInt(3)];
     // if actual pattern is acgt then we would expect to see [0.25, 0.25, 0.25, 0.25].  Pick 0.2 for random noise buffer
 
     public final ArrayList<Character> bases = new ArrayList<Character>(Arrays.asList('a', 'c', 'g', 't'));
@@ -147,6 +151,7 @@ public class MyTree {
           String posString = "";
           for(int charIdx = 0; charIdx < 4; charIdx++) {
               int charCount = charCounts.get(charIdx);
+
               if(charCount >= minCharProb * this.support) {
                   posString += this.bases.get(charIdx);
               }
