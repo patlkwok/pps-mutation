@@ -187,8 +187,16 @@ public class Player extends mutation.sim.Player {
 
       solution = Utilities.sortByValue(solution);
 
+
       List<Integer> occurences = new ArrayList<Integer>(solution.values());
       int mean = Utilities.mean(occurences);
+
+      List<List<String>> proposedRules = new ArrayList<List<String>>(solution.keySet());
+      for(List<String> rule : proposedRules){
+        if(solution.get(rule) <= 5){
+          solution.remove(rule);
+        }
+      }
 
       Mutagen sol = new Mutagen();
       for(List<String> s : solution.keySet()){
@@ -203,6 +211,7 @@ public class Player extends mutation.sim.Player {
           return sol;
         }
       }
+      System.out.println(solution);
       return sol;
     }
 
