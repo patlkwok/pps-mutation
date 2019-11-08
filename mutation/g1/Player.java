@@ -15,7 +15,7 @@ public class Player extends mutation.sim.Player {
     /*
     HYPER-PARAMETERS
      */
-    public int startOverFreq = 100;
+    public int startOverFreq = 70;
     public int[] startOverFreqlist = {60, 80, 120};
     public double rareFactorThreshold = 0.02;
     public double guessNumericProbability = 0.75; // percentage of the time we allow numbers in guesses
@@ -426,16 +426,15 @@ public class Player extends mutation.sim.Player {
         ArrayList<Pair<String, String>>guesses = new ArrayList<>();
         Set<String>incorrectGuesses = new HashSet<String>();
 
-        for (int iter = 0; iter < 299; iter++) {
-            guessNumericProbability = guessNumericProbabilitylist[random.nextInt(3)];
-            startOverFreq = startOverFreqlist[random.nextInt(3)];
-
+        int roundCount = 0;
+        for (int iter = 0; iter < 9998; iter++) {
+            roundCount += 1;
             String genome = randomString();
             String mutated = console.Mutate(genome);
 
             ArrayList<ArrayList<Integer>> possibleWindows = this.getPossibleWindows(genome, mutated, m);
             if(possibleWindows.size() == 0) {
-                System.out.println("No mutations possible.");
+                //System.out.println("No mutations possible.");
                 continue;
             }
 
@@ -679,18 +678,21 @@ public class Player extends mutation.sim.Player {
             isCorrect = console.testEquiv(this.generateGuess(guesses));
             String numericMsg = guessNumeric ? "(allow numeric)" : "(no numeric)";
             if(isCorrect) {
-                System.out.println("Correct: " + numericMsg + resultStr);
+                //System.out.println("Correct: " + numericMsg + resultStr);
                 break;
             } else {
-                System.out.println("Incorrect: " + numericMsg + resultStr);
+                //System.out.println("Incorrect: " + numericMsg + resultStr);
                 incorrectGuesses.add(resultStr);
             }
 
-            if(Math.floorMod(iter + 1, this.startOverFreq) == 0) {
-                System.out.println("Starting over!");
+            if(Math.floorMod(roundCount + 1, this.startOverFreq) == 0) {
+                //System.out.println("Starting over!");
                 this.guessCounts = new HashMap<>();
                 trees = new HashMap<>();
                 this.shouldMergeTrees = !this.shouldMergeTrees;
+                this.guessNumericProbability = guessNumericProbabilitylist[random.nextInt(3)];
+                this.startOverFreq = startOverFreqlist[random.nextInt(3)];
+                roundCount = 0;
             }
         }
         return this.generateGuess(guesses);
