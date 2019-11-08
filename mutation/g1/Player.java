@@ -1,5 +1,4 @@
 package mutation.g1;
-
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
@@ -365,25 +364,51 @@ public class Player extends mutation.sim.Player {
 
         }
         //this is a parameter we can tune
-        double keep_top = 0.75;
-        //find max count
-        Map.Entry<Pair<String,String>, Integer> maxEntry = null;
+        int n = random.nextInt(currentGuesses.size());
 
-        for (Map.Entry<Pair<String,String>, Integer> entry : guessCounts.entrySet())
-        {
-            if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)
-            {
-                maxEntry = entry;
-            }
+        List<Integer> values = new ArrayList(guessCounts.values());
+        int sum = 0;
+        for (int i = 0; i<values.size();i++){
+            sum+=values.get(i);
         }
-        //find patterns that are in current guesses and occurs frequently enough
+        //random sample guesses based on support
         for(Map.Entry<Pair<String,String>, Integer> other_entry : guessCounts.entrySet()){
             Pair<String,String> pa_ac_pair = other_entry.getKey();
             int num = other_entry.getValue();
-            if (num > maxEntry.getValue() * keep_top && currentGuesses.contains(pa_ac_pair)){
+            //toss a coin, select proportionally according to support value
+            if (Math.random() < num/sum && filteredGuesses.size() <  n ){
                 filteredGuesses.add(pa_ac_pair);
             }
+
+
+
         }
+
+        //these commented out code was to select the top keep_top guesses
+        //this is a parameter we can tune
+//        double keep_top = 0.75;
+        //find max count
+//        Map.Entry<Pair<String,String>, Integer> maxEntry = null;
+
+//        for (Map.Entry<Pair<String,String>, Integer> entry : guessCounts.entrySet())
+//        {
+//            if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)
+//            {
+//                maxEntry = entry;
+//            }
+//        }
+//        //find patterns that are in current guesses and occurs frequently enough
+//        for(Map.Entry<Pair<String,String>, Integer> other_entry : guessCounts.entrySet()){
+//            Pair<String,String> pa_ac_pair = other_entry.getKey();
+//            int num = other_entry.getValue();
+//            if (num > maxEntry.getValue() * keep_top && currentGuesses.contains(pa_ac_pair)){
+//                filteredGuesses.add(pa_ac_pair);
+//            }
+//        }
+
+
+
+
 
         return filteredGuesses;
     }
