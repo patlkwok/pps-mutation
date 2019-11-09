@@ -142,17 +142,21 @@ public class Player extends mutation.sim.Player {
 
     
     private HashMap<Integer, HashMap<Integer, Set<String>>> findSimilarRules(List<Map.Entry<String, Double>> pairs){
-        Set<String> patterns = new HashSet<>(); 
+       
+       // System.out.println("hello");
+        Map<String, String> patterns = new HashMap<>(); 
         for (Map.Entry<String, Double> entry : pairs){
            String pattern = entry.getKey().split("@")[0];
-           patterns.add(pattern);
+           String action = entry.getKey().split("@")[1];
+           patterns.put(pattern, action);
         }
         Map<Pair<String, Integer>, Set<Map.Entry<String, Double>>> groups = new HashMap<>();
         
-        for(String pattern : patterns){
+        for(String pattern : patterns.keySet()){
             for (Map.Entry<String, Double> entry_2 : pairs){
                 String pattern_2 = entry_2.getKey().split("@")[0];
-                if(pattern.length() != pattern_2.length()) continue;
+                String action = entry_2.getKey().split("@")[1];
+                if(!patterns.get(pattern).equals(action) || pattern.length() != pattern_2.length()) continue;
                 int diff = 0; 
                 int index = -1; 
                 for (int i = 0; i < pattern.length(); i++){
@@ -179,8 +183,11 @@ public class Player extends mutation.sim.Player {
         for(Pair<String, Integer> pair : groups.keySet()){
             String base = pair.getKey();
             String rule = pair.getKey();
+            System.out.println("----action should be same ---");
             for(Map.Entry<String, Double> entry : groups.get(pair)){
                 String pattern = entry.getKey().split("@")[0];
+                String action = entry.getKey().split("@")[1];
+                System.out.println(action);
                 if(base.charAt(pair.getValue())!=pattern.charAt(pair.getValue())){
                     rule = rule.substring(0,pair.getValue()) + pattern.charAt(pair.getValue()) + rule.substring(pair.getValue(), rule.length());
                 }
@@ -249,7 +256,7 @@ public class Player extends mutation.sim.Player {
             }
         });
         discardRules(pairs);
-        System.out.println(pairs);
+        //System.out.println(pairs);
         if (pairs.size() > 0) pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
@@ -464,7 +471,7 @@ public class Player extends mutation.sim.Player {
         for (int i = 0; i < numTrials; ++i) {
             iteration = i;
             // Check if we should terminate and return the final mutagen
-            System.out.println(i);
+//System.out.println(i);
             int numExpsLeft = console.getNumExpsLeft();
             long timeLeft = console.getTimeLeft();
             if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
@@ -472,6 +479,7 @@ public class Player extends mutation.sim.Player {
                 return guessBest();
             }
 
+            getFinalMutagen();
             // Get the genome
             String genome;
             if (i == 0 || i > 50) genome = Utils.randomString(1000);
@@ -489,9 +497,8 @@ public class Player extends mutation.sim.Player {
             updateProbabilities(changeWindows, possibleWindows, genome, mutated);
 
             Mutagen guess;
-
             guess = guessSimpleMultiple(2);
-            System.out.println("Guessing " + guess.getPatterns() + " / " + guess.getActions());
+           // System.out.println("Guessing " + guess.getPatterns() + " / " + guess.getActions());
 //            if(0 <= i && i < 100) {
 //                guess = guessSingleRule(0);
 //            } else if (100 <= i && i < 200) {
