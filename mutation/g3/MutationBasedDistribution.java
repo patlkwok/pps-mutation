@@ -283,7 +283,8 @@ public class MutationBasedDistribution implements RuleDistribution {
             hLL = logPMult(hLL, ai.values().iterator().next());
         }
         if (Double.isNaN(hLL)) {
-            System.out.println("Here");
+            hLL = hLL;
+            //System.out.println("Here");
         }
         highestLogLikelihood = hLL;
     }
