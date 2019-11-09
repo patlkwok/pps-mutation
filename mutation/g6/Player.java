@@ -61,7 +61,7 @@ public class Player extends mutation.sim.Player {
 
             if(console.testEquiv(result)) break;
         }
-        Map<String, Integer> sortedMap = sortByValue(cumRight);
+        /*Map<String, Integer> sortedMap = sortByValue(cumRight);
         //System.out.println(sortedMap);
         //System.out.println();
         List<String> left = new ArrayList(sortedMap.keySet());
@@ -74,11 +74,11 @@ public class Player extends mutation.sim.Player {
         List<String> pattern = result.getPatterns();
         List<String> action = result.getActions();
 
-        for(int i = 0; i < pattern.size(); i++) {
+        /*for(int i = 0; i < pattern.size(); i++) {
             System.out.println(pattern.get(i) + "@" + action.get(i));
-        }
+        }*/
 
-        //System.out.println(cumLeft);
+        //System.out.println(cumLeft);*/
         return result;
     }
 
@@ -101,7 +101,6 @@ public class Player extends mutation.sim.Player {
             List<String> list = getList(tLeft, concat);
             if(boo) {
                 list.add(left.get(i));
-                //System.out.println(left.get(i));
             }
             
             if(concat == 1) result.add(putSemi(tLeft.get(0)), left.get(i));
@@ -114,18 +113,22 @@ public class Player extends mutation.sim.Player {
         if(input.size() == 0) return "";
         int size = input.get(0).length();
         String output = "";
+        int count = 0;
         for(int i = 0; i < size; i++) {
             Set<Character> set = new HashSet<>();
             for(String s : input) {
                 set.add(s.charAt(i));
                 //output += Character.toString(s.charAt(i));
             }
+            if(set.size() == 4) count++;
+            else count = 0;
             for(char c: set) {
                 output += Character.toString(c);
             }
             if(i < size - 1) output += ";";
         }
-        return output;
+
+        return output.substring(0, output.length() - count * 5);
     }
 
     private int getAverageNum(List<Integer> input) {
