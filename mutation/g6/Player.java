@@ -10,7 +10,7 @@ public class Player extends mutation.sim.Player {
     private int[] afterCounter;
     private Map<Character, Integer> hash;
     private Map<Integer, Character> antiHash;
-    private Map<String, Set<String>> cumLeft;
+    private Map<String, Map<String, Integer>> cumLeft;
     private Map<String, Integer> cumRight;
     private int maxCount;
     private String mostOutput;
@@ -41,17 +41,47 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 100; ++ i) {
+        for (int i = 0; i < 10000; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
             char[] output = mutated.toCharArray();
+            //System.out.println(output.length);
             Element[] diff = checkDifference(input, output);
             result = getNaive(diff);
             numMutation = console.getNumberOfMutations();
             console.Guess(result);
         }
+        Map<String, Integer> sortedMap = sortByValue(cumRight);
+        //System.out.println(sortedMap);
+        //System.out.println();
+        List<String> left = new LinkedList(sortedMap.keySet());
+        List<Integer> right = new LinkedList(sortedMap.values());
+
+        for(int i = 0; i < 2; i++) {
+        	System.out.println(right.get(i) + ": " + left.get(i) + ", " + sortByValue(cumLeft.get(left.get(i))));
+        }
+
+        //System.out.println(cumLeft);
         return result;
+    }
+
+    private static Map<String, Integer> sortByValue(Map<String, Integer> unsortMap) {
+
+        List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(unsortMap.entrySet());
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> o1,
+                               Map.Entry<String, Integer> o2) {
+                return (o2.getValue()).compareTo(o1.getValue());
+            }
+        });
+
+        Map<String, Integer> sortedMap = new LinkedHashMap<String, Integer>();
+
+        for (Map.Entry<String, Integer> entry : list) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        return sortedMap;
     }
 
     public Mutagen getNaive(Element[] diff) {
@@ -67,12 +97,13 @@ public class Player extends mutation.sim.Player {
         if (winList.isEmpty())
             return result;
         Window temp = winList.get(0);
-        Set<String> left = new HashSet<>();
+        Map<String, Integer> left = new HashMap<>();
         int length = getLength(winList.get(0));
         
         String output;
-        if(numMutation <= 7) output = getWinInt(winList);
-        else output = getWinInt7(winList);
+        //if(numMutation <= 7) output = getWinInt(winList);
+        //else output = getWinInt7(winList);
+        output = getWinInt7(winList);
 
         int curr = cumRight.getOrDefault(output, 0) + 1;
         cumRight.put(output, curr);
@@ -85,10 +116,11 @@ public class Player extends mutation.sim.Player {
 
         getLeftHelper(winList, left, output);
 
-        if(curr == 1) cumLeft.put(output, new HashSet<String>());
-        cumLeft.get(output).addAll(left); 
+        if(curr == 1) cumLeft.put(output, new HashMap<>());
+        //cumLeft.get(output).addAll(left); 
+        addMap(cumLeft.get(output), left);
 
-        left = cumLeft.get(mostOutput);
+        /*left = cumLeft.get(mostOutput);
         for(int i = 0; i < length; i++) {
             Set<Character> c = new HashSet<>();
             for(String s: left) {
@@ -99,16 +131,16 @@ public class Player extends mutation.sim.Player {
                 leftOne += combine(c);
                 if(i != length -1) leftOne += ";";
             }
-        }
+        }*/
 
-        System.out.println("output: " + output);
-        System.out.println("maxOutput: " + output);
+        //System.out.println("output: " + output);
+        //System.out.println("maxOutput: " + output);
         result.add(leftOne, mostOutput);    
         return result;
     }
 
-    public void getLeftHelper(List<Window> winList, Set<String> s, String output) { 
-        HashMap<Integer, Set<String>> map = new HashMap<>();
+    public void getLeftHelper(List<Window> winList, Map<String, Integer> s, String output) { 
+        HashMap<Integer, Map<String, Integer>> map = new HashMap<>();
         int[] count = new int[19];
 
         //System.out.println("output: " + output);
@@ -138,6 +170,7 @@ public class Player extends mutation.sim.Player {
                         }
                         else out += Character.toString(e[j+i].getOG());
                     }
+                    if(start != -1) break;
                     if(!sub) {
                         start = -1;
                         out = "";
@@ -145,8 +178,9 @@ public class Player extends mutation.sim.Player {
                 }
             }
             if(start == -1) continue;
-            Set<String> temp = map.getOrDefault(start, new HashSet<>());
-            temp.add(out);
+            if(out.equals(output)) continue;
+            Map<String, Integer> temp = map.getOrDefault(start, new HashMap<>());
+            temp.put(out, temp.getOrDefault(out, 0) + 1);
             map.put(start, temp);
             count[start]++;
         }
@@ -160,7 +194,20 @@ public class Player extends mutation.sim.Player {
         }
         if(max == 0) return;
         //System.out.println("Max: " + maxIndex);
-        s.addAll(map.get(maxIndex));
+        //s.addAll(map.get(maxIndex));
+        addMap(s, map.get(maxIndex));
+
+    }
+
+    public void addMap(Map<String, Integer> old, Map<String, Integer> n) {
+        List<String> oldL = new LinkedList(old.keySet());
+        List<Integer> oldR = new LinkedList(old.values());
+        List<String> newL = new LinkedList(n.keySet());
+        List<Integer> newR = new LinkedList(n.values());
+
+        for(int i = 0; i < newL.size(); i++) {
+            old.put(newL.get(i), old.getOrDefault(newL.get(i), 0) + newR.get(i));
+        }
     }
 
     public String getLeft(Window w, String output) {
@@ -219,7 +266,9 @@ public class Player extends mutation.sim.Player {
                 map.put(temp, currCount);
             }
         }
+        //System.out.println(sortByValue(map));
         //System.out.println("final: " + output);
+        //System.out.println(output);
         return output;
     }
 
@@ -255,14 +304,18 @@ public class Player extends mutation.sim.Player {
     }
 
     public Element[] checkDifference(char[] input, char[] output) {
-        Element[] diff = new Element[1000];
-        beforeCounter = new int[4];
-        afterCounter = new int[4];
+        Element[] diff = new Element[input.length];
+        //beforeCounter = new int[4];
+        //afterCounter = new int[4];
+        if(input.length != output.length) {
+            System.out.println(input.length);
+            System.out.println(output.length);
+        }
         for(int i = 0; i < input.length; i++) {
             if(input[i] != output[i]) {
                 diff[i] = new Element(true, input[i], output[i]);
-                beforeCounter[hash.get(input[i])]++;
-                afterCounter[hash.get(output[i])]++;
+                //beforeCounter[hash.get(input[i])]++;
+                //afterCounter[hash.get(output[i])]++;
             }
             else diff[i] = new Element(input[i]);
         }
