@@ -59,6 +59,10 @@ public class Player extends mutation.sim.Player {
 
     private String[] genes = "acgt".split("");
     private int iteration = 0;
+    private int complexIteration = 0;
+    private String[] combinations = {
+                "a", "c", "g", "t", "ac", "ag", "at", "cg", "ct", "gt", "acg", "act", "agt", "cgt"
+            };
 
     // A list of continually seen mutation lengths
     private LinkedList<Integer> mutationLengths = new LinkedList<>();
@@ -403,43 +407,35 @@ public class Player extends mutation.sim.Player {
             return  1;
         }
         int numberOfProbableOverlaps = 0;
-        if(initialNumberOfRules > 0 && initialNumberOfRules <= 10) {
-            List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, initialNumberOfRules, false);
+        if(initialNumberOfRules > 0) {
+            Set<Map.Entry<String, Double>> entrySet = changeRules.entrySet();
+            ArrayList<Map.Entry<String, Double>> pairs = new ArrayList<Map.Entry<String, Double>>(entrySet);
+            Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+                @Override
+                public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                    if (o1.getValue() == o2.getValue()) return 0;
+                    if (o1.getValue() < o2.getValue()) return 1;
+                    return -1;
+                }
+            });
             Collections.reverse(pairs);
-            Double prevCount = 1.0;
+            Double prevCount = pairs.get(0).getValue();
 //            System.out.println(pairs);
             for (int j = 0; j < pairs.size(); j++) {
                 Double thisCount = pairs.get(j).getValue();
                 Double change = thisCount / prevCount;
 //                System.out.println(thisCount + " / " + prevCount + " ? " + j);
-                if(change > 3 + iteration / 100) {
+                if(change > 5) {
                     numberOfProbableOverlaps = j;
                     break;
                 }
                 prevCount = thisCount;
             }
         }
-        if(initialNumberOfRules > 10) {
-            boolean changeFound = false;
-            for (int i = 10; i < initialNumberOfRules; i+=10) {
-                if(changeFound) {
-                    break;
-                }
-                List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, i, false);
-                Collections.reverse(pairs);
-                Double prevCount = 1.0;
-                for (int j = 0; j < pairs.size(); j++) {
-                    Double thisCount = pairs.get(j).getValue();
-                    Double change = thisCount / prevCount;
-                    if(change > 3 + iteration / 100) {
-                        numberOfProbableOverlaps = j;
-                        changeFound = true;
-                        break;
-                    }
-                    prevCount = thisCount;
-                }
-            }
-        }
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, 3, true);
+//        System.out.println(numberOfProbableOverlaps + "++++" + (pairs.get(1).getValue() / pairs.get(0).getValue()));
+//        System.out.println("++++" + pairs);
+//        System.out.println("++++" + pairs.get(2));
 //        System.out.println(initialNumberOfRules + " / " + numberOfProbableOverlaps + " / iteration " + iteration);
         return initialNumberOfRules - numberOfProbableOverlaps;
     }
