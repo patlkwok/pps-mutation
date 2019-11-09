@@ -41,29 +41,116 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 10000; ++ i) {
+        for (int i = 0; i < 1; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
             char[] output = mutated.toCharArray();
             //System.out.println(output.length);
             Element[] diff = checkDifference(input, output);
-            result = getNaive(diff);
+            collectData(diff);
             numMutation = console.getNumberOfMutations();
-            console.Guess(result);
+            boolean fact = false;
+            if(i % 50 < 10) {
+                fact = true;
+                //System.out.println(i);
+            }
+            result = getResult((i%10)+1, fact);
+            //result = new Mutagen();
+            //result.add("g;a;t;t;acgt;acgt;acgt", "gattaca");
+
+            if(console.testEquiv(result)) break;
         }
         Map<String, Integer> sortedMap = sortByValue(cumRight);
         //System.out.println(sortedMap);
         //System.out.println();
-        List<String> left = new LinkedList(sortedMap.keySet());
-        List<Integer> right = new LinkedList(sortedMap.values());
+        List<String> left = new ArrayList(sortedMap.keySet());
+        List<Integer> right = new ArrayList(sortedMap.values());
 
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < 1; i++) {
         	System.out.println(right.get(i) + ": " + left.get(i) + ", " + sortByValue(cumLeft.get(left.get(i))));
+        }
+
+        List<String> pattern = result.getPatterns();
+        List<String> action = result.getActions();
+
+        for(int i = 0; i < pattern.size(); i++) {
+            System.out.println(pattern.get(i) + "@" + action.get(i));
         }
 
         //System.out.println(cumLeft);
         return result;
+    }
+
+    private Mutagen getResult(int num, boolean boo) {
+        Mutagen result = new Mutagen();
+        Map<String, Integer> sortedMap = sortByValue(cumRight);
+
+        List<String> left = new ArrayList(sortedMap.keySet());
+        List<Integer> right = new ArrayList(sortedMap.values());
+
+        int size = num;
+        if(size > left.size()) size = left.size();
+
+        for(int i = 0; i < size; i++) {
+            Map<String, Integer> temp = sortByValue(cumLeft.get(left.get(i)));
+            List<String> tLeft = new ArrayList(temp.keySet());
+            List<Integer> tRight = new ArrayList(temp.values());
+            if(tLeft.size() == 0) break;
+            int concat = getAverageNum(tRight);
+            List<String> list = getList(tLeft, concat);
+            if(boo) {
+                list.add(left.get(i));
+                //System.out.println(left.get(i));
+            }
+            
+            if(concat == 1) result.add(putSemi(tLeft.get(0)), left.get(i));
+            else result.add(combineString(list), left.get(i));
+        }
+        return result;
+    }
+
+    private String combineString(List<String> input) {
+        if(input.size() == 0) return "";
+        int size = input.get(0).length();
+        String output = "";
+        for(int i = 0; i < size; i++) {
+            Set<Character> set = new HashSet<>();
+            for(String s : input) {
+                set.add(s.charAt(i));
+                //output += Character.toString(s.charAt(i));
+            }
+            for(char c: set) {
+                output += Character.toString(c);
+            }
+            if(i < size - 1) output += ";";
+        }
+        return output;
+    }
+
+    private int getAverageNum(List<Integer> input) {
+        if(input.size() == 0) return 0;
+        int output = 0;
+        for(int i : input) {
+            output += i;
+        }
+        int average = output / input.size();
+        output = 0;
+        for(int i : input) {
+            if(i >= average) {
+                output++;
+            }
+            else break;
+        }
+        return output;
+    }
+
+    private List<String> getList(List<String> input, int num) {
+        List<String> output = new ArrayList<>();
+        for(int i = 0; i < num; i++) {
+            output.add(input.get(i));
+        }
+        return output;
     }
 
     private static Map<String, Integer> sortByValue(Map<String, Integer> unsortMap) {
@@ -84,8 +171,7 @@ public class Player extends mutation.sim.Player {
         return sortedMap;
     }
 
-    public Mutagen getNaive(Element[] diff) {
-        Mutagen result = new Mutagen();
+    public void collectData(Element[] diff) {
         List<Window> winList = new ArrayList<>();
         for(int i = 0; i < 1000; i++) {
         	if(diff[i].isMutated()) {
@@ -95,7 +181,7 @@ public class Player extends mutation.sim.Player {
         	}
         }
         if (winList.isEmpty())
-            return result;
+            return;
         Window temp = winList.get(0);
         Map<String, Integer> left = new HashMap<>();
         int length = getLength(winList.get(0));
@@ -119,24 +205,6 @@ public class Player extends mutation.sim.Player {
         if(curr == 1) cumLeft.put(output, new HashMap<>());
         //cumLeft.get(output).addAll(left); 
         addMap(cumLeft.get(output), left);
-
-        /*left = cumLeft.get(mostOutput);
-        for(int i = 0; i < length; i++) {
-            Set<Character> c = new HashSet<>();
-            for(String s: left) {
-                if(i < s.length())
-                    c.add(s.charAt(i));
-            }
-            if(c.size() != 0) {
-                leftOne += combine(c);
-                if(i != length -1) leftOne += ";";
-            }
-        }*/
-
-        //System.out.println("output: " + output);
-        //System.out.println("maxOutput: " + output);
-        result.add(leftOne, mostOutput);    
-        return result;
     }
 
     public void getLeftHelper(List<Window> winList, Map<String, Integer> s, String output) { 
@@ -178,7 +246,7 @@ public class Player extends mutation.sim.Player {
                 }
             }
             if(start == -1) continue;
-            if(out.equals(output)) continue;
+            //if(out.equals(output)) continue;
             Map<String, Integer> temp = map.getOrDefault(start, new HashMap<>());
             temp.put(out, temp.getOrDefault(out, 0) + 1);
             map.put(start, temp);
