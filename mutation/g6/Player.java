@@ -10,7 +10,7 @@ public class Player extends mutation.sim.Player {
     private int[] afterCounter;
     private Map<Character, Integer> hash;
     private Map<Integer, Character> antiHash;
-    private Map<String, Set<String>> cumLeft;
+    private Map<String, Map<String, Integer>> cumLeft;
     private Map<String, Integer> cumRight;
     private int maxCount;
     private String mostOutput;
@@ -41,7 +41,7 @@ public class Player extends mutation.sim.Player {
         Mutagen result = new Mutagen();
         //result.add("a;c;c", "att");
         //result.add("g;c;c", "gtt");
-        for (int i = 0; i < 1000; ++ i) {
+        for (int i = 0; i < 10000; ++ i) {
             String genome = randomString();
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
@@ -57,8 +57,9 @@ public class Player extends mutation.sim.Player {
         //System.out.println();
         List<String> left = new LinkedList(sortedMap.keySet());
         List<Integer> right = new LinkedList(sortedMap.values());
-        for(int i = 0; i < left.size(); i++) {
-        	System.out.println(right.get(i) + ": " + left.get(i) + ", " + cumLeft.get(left.get(i)));
+
+        for(int i = 0; i < 2; i++) {
+        	System.out.println(right.get(i) + ": " + left.get(i) + ", " + sortByValue(cumLeft.get(left.get(i))));
         }
 
         //System.out.println(cumLeft);
@@ -96,7 +97,7 @@ public class Player extends mutation.sim.Player {
         if (winList.isEmpty())
             return result;
         Window temp = winList.get(0);
-        Set<String> left = new HashSet<>();
+        Map<String, Integer> left = new HashMap<>();
         int length = getLength(winList.get(0));
         
         String output;
@@ -115,10 +116,11 @@ public class Player extends mutation.sim.Player {
 
         getLeftHelper(winList, left, output);
 
-        if(curr == 1) cumLeft.put(output, new HashSet<String>());
-        cumLeft.get(output).addAll(left); 
+        if(curr == 1) cumLeft.put(output, new HashMap<>());
+        //cumLeft.get(output).addAll(left); 
+        addMap(cumLeft.get(output), left);
 
-        left = cumLeft.get(mostOutput);
+        /*left = cumLeft.get(mostOutput);
         for(int i = 0; i < length; i++) {
             Set<Character> c = new HashSet<>();
             for(String s: left) {
@@ -129,7 +131,7 @@ public class Player extends mutation.sim.Player {
                 leftOne += combine(c);
                 if(i != length -1) leftOne += ";";
             }
-        }
+        }*/
 
         //System.out.println("output: " + output);
         //System.out.println("maxOutput: " + output);
@@ -137,8 +139,8 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
-    public void getLeftHelper(List<Window> winList, Set<String> s, String output) { 
-        HashMap<Integer, Set<String>> map = new HashMap<>();
+    public void getLeftHelper(List<Window> winList, Map<String, Integer> s, String output) { 
+        HashMap<Integer, Map<String, Integer>> map = new HashMap<>();
         int[] count = new int[19];
 
         //System.out.println("output: " + output);
@@ -177,8 +179,8 @@ public class Player extends mutation.sim.Player {
             }
             if(start == -1) continue;
             if(out.equals(output)) continue;
-            Set<String> temp = map.getOrDefault(start, new HashSet<>());
-            temp.add(out);
+            Map<String, Integer> temp = map.getOrDefault(start, new HashMap<>());
+            temp.put(out, temp.getOrDefault(out, 0) + 1);
             map.put(start, temp);
             count[start]++;
         }
@@ -192,7 +194,20 @@ public class Player extends mutation.sim.Player {
         }
         if(max == 0) return;
         //System.out.println("Max: " + maxIndex);
-        s.addAll(map.get(maxIndex));
+        //s.addAll(map.get(maxIndex));
+        addMap(s, map.get(maxIndex));
+
+    }
+
+    public void addMap(Map<String, Integer> old, Map<String, Integer> n) {
+        List<String> oldL = new LinkedList(old.keySet());
+        List<Integer> oldR = new LinkedList(old.values());
+        List<String> newL = new LinkedList(n.keySet());
+        List<Integer> newR = new LinkedList(n.values());
+
+        for(int i = 0; i < newL.size(); i++) {
+            old.put(newL.get(i), old.getOrDefault(newL.get(i), 0) + newR.get(i));
+        }
     }
 
     public String getLeft(Window w, String output) {
