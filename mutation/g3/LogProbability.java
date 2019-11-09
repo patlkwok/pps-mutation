@@ -28,7 +28,7 @@ public class LogProbability {
         } else {
             r = p1 + Math.log1p(Math.exp(p2 - p1));
         }
-        if (r == Double.POSITIVE_INFINITY || r > 0) {
+        if (r == Double.POSITIVE_INFINITY) {
             System.out.println("Here");
         }
         r = logPTrunc(r);
