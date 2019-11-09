@@ -21,14 +21,14 @@ public class Player extends mutation.sim.Player {
     private long timeLimit = 1000;
 
     // Number of trials to run the algorithm for
-    private int numTrials = 1000;
+    private int numTrials = 10000;
 
     // Maximum length of a mutagen
     private int maxMutagenLength = 10;
     private int overlap = 9;
 
     // Distribution increase parameters
-    private Double modifierStep = 1.4;
+    private Double modifierStep = 1.0;
     private Double initialStep = 1.0;
 
     // END CONFIG ====================================
@@ -73,7 +73,7 @@ public class Player extends mutation.sim.Player {
         String rule = patternKey + "@" + action;
         if (rules.containsKey(rule)) {
             Double prevProbability = rules.get(rule);
-            Double newProbability = prevProbability * modifierStep;
+            Double newProbability = prevProbability + modifierStep;
             Double diff = newProbability - prevProbability;
             rulesLength += diff;
             rules.put(rule, newProbability);
@@ -109,6 +109,8 @@ public class Player extends mutation.sim.Player {
                 return o2.getValue().compareTo(o1.getValue());
             }
         });
+        discardRules(pairs);
+        System.out.println(pairs);
         if (pairs.size() > 0) pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
@@ -121,9 +123,12 @@ public class Player extends mutation.sim.Player {
     }
 
     private boolean isExtension(Map.Entry<String, Double> p1, Map.Entry<String, Double> p2) {
+        if(p1.getKey().length() == p2.getKey().length()) return false;
         Map.Entry<String, Double> longP = p1.getKey().length() > p2.getKey().length() ? p1 : p2;
         Map.Entry<String, Double> shortP = p1.getKey().length() < p2.getKey().length() ? p1 : p2;
-        return longP.getKey().contains(shortP.getKey());
+        String l = longP.getKey().split("@")[0];
+        String s = shortP.getKey().split("@")[0];
+        return l.contains(s);
     }
 
     private void discardRules(List<Map.Entry<String, Double>> rules) {
@@ -131,17 +136,18 @@ public class Player extends mutation.sim.Player {
         List<Map.Entry<String, Double>> sameDist = new ArrayList<>();
         sameDist.add(rules.get(0));
         for (int i = 1; i < rules.size(); i++) {
-            if (rules.get(i - 1).getValue() == rules.get(i).getValue()) {
+            double a = rules.get(i - 1).getValue();
+            double b = rules.get(i).getValue();
+            double c = Math.abs(a - b);
+            if (a > 10 && c < 0.01) {
                 sameDist.add(rules.get(i));
             } else {
                 if (sameDist.size() > 1) {
-                    System.out.println(sameDist);
                     for (int j = 0; j < sameDist.size(); j++) {
                         for (int k = j + 1; k < sameDist.size(); k++) {
                             Map.Entry<String, Double> p1 = rules.get(j);
                             Map.Entry<String, Double> p2 = rules.get(k);
                             if (isExtension(p1, p2)) {
-                                System.out.println("add discarded rule");
                                 if (p1.getKey().length() > p2.getKey().length()) {
                                     discardedRules.add(p2.getKey());
                                 } else discardedRules.add(p1.getKey());
@@ -256,6 +262,7 @@ public class Player extends mutation.sim.Player {
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++i) {
             // Check if we should terminate and return the final mutagen
+            System.out.println(i);
             int numExpsLeft = console.getNumExpsLeft();
             long timeLeft = console.getTimeLeft();
             if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
@@ -279,20 +286,7 @@ public class Player extends mutation.sim.Player {
 
             updateProbabilities(changeWindows, possibleWindows, genome, mutated);
 
-            Mutagen guess;
-
-            if(0 <= i && i < 100) {
-                guess = guessSingleRule(0);
-            } else if (100 <= i && i < 200) {
-                guess = guessSingleRule(1);
-            } else if (200 <= i && i < 300) {
-                guess = guessSimpleMultiple(2);
-            } else if (300 <= i && i < 400) {
-                guess = guessComplexMultiple(2);
-            } else {
-                guess = guessSingleRule(2);
-            }
-
+            Mutagen guess = getFinalMutagen();
             boolean isCorrect = console.testEquiv(guess);
             if (isCorrect) {
                 return guess;
