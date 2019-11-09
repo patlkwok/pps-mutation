@@ -239,6 +239,8 @@ public class Player extends mutation.sim.Player {
         }
         purgeRules();
         List<Map.Entry<String, Double>> pairs = Utils.findGreatest(rules, 20, true);
+
+        HashMap<Integer, HashMap<Integer, Set<String>>> megaMap = findSimilarRules(pairs);
         createBuckets(pairs);
         Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
             @Override
