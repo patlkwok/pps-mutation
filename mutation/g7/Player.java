@@ -39,6 +39,7 @@ public class Player extends mutation.sim.Player {
 
     // A map to remember the occurance of rules
     private Map<String, Double> rules = new HashMap<>();
+    private Map<String, Double> changeRules = new HashMap<>();
 
     // An array of all patterns that happened
     private HashSet<String> allPatterns = new HashSet<>();
@@ -49,6 +50,7 @@ public class Player extends mutation.sim.Player {
     private Map<Integer, Double> lengthMap;
     private double numPerm = 0.0;
     private Double rulesLength = 0.0;
+    private Double changeRulesLength = 0.0;
 
     private HashSet<String> discardedRules = new HashSet<>();
     private HashMap<Integer, HashSet<String>> buckets = new HashMap<>();
@@ -56,6 +58,7 @@ public class Player extends mutation.sim.Player {
     // END VARS ======================================
 
     private String[] genes = "acgt".split("");
+    private int iteration = 0;
 
     // A list of continually seen mutation lengths
     private LinkedList<Integer> mutationLengths = new LinkedList<>();
@@ -80,6 +83,25 @@ public class Player extends mutation.sim.Player {
         } else {
             rulesLength += initialStep;
             rules.put(rule, initialStep);
+        }
+    }
+
+    private void modifyChangeRuleDistribution(String pattern, String action) {
+        String[] patternArr = pattern.split("");
+        String patternKey = patternArr[0];
+        for (int i = 1; i < patternArr.length; i++) {
+            patternKey += ";" + patternArr[i];
+        }
+        String rule = patternKey + "@" + action;
+        if (changeRules.containsKey(rule)) {
+            Double prevProbability = changeRules.get(rule);
+            Double newProbability = prevProbability + 1.0;
+            Double diff = newProbability - prevProbability;
+            changeRulesLength += diff;
+            changeRules.put(rule, newProbability);
+        } else {
+            changeRulesLength += initialStep;
+            changeRules.put(rule, initialStep);
         }
     }
 
@@ -226,7 +248,12 @@ public class Player extends mutation.sim.Player {
             String before = genome.substring(start, finish + 1);
             // Get the string after
             String after = mutated.substring(start, finish + 1);
+
+            // TO REMOVE vvvvvv USE
             allPatterns.add(before + "@" + after);
+//            System.out.println(before + "@" + after);
+
+            modifyChangeRuleDistribution(before, after);
         }
 
         // Modify the distributions for pattens and actions
@@ -246,8 +273,65 @@ public class Player extends mutation.sim.Player {
         return getFinalMutagen();
     }
 
+    private int getNumberOfRules() {
+        int initialNumberOfRules = changeRules.size();
+        if (initialNumberOfRules == 0) {
+            return  1;
+        }
+        int numberOfProbableOverlaps = 0;
+        if(initialNumberOfRules > 0 && initialNumberOfRules <= 10) {
+            List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, initialNumberOfRules, false);
+            Collections.reverse(pairs);
+            Double prevCount = 1.0;
+//            System.out.println(pairs);
+            for (int j = 0; j < pairs.size(); j++) {
+                Double thisCount = pairs.get(j).getValue();
+                Double change = thisCount / prevCount;
+//                System.out.println(thisCount + " / " + prevCount + " ? " + j);
+                if(change > 3 + iteration / 100) {
+                    numberOfProbableOverlaps = j;
+                    break;
+                }
+                prevCount = thisCount;
+            }
+        }
+        if(initialNumberOfRules > 10) {
+            boolean changeFound = false;
+            for (int i = 10; i < initialNumberOfRules; i+=10) {
+                if(changeFound) {
+                    break;
+                }
+                List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, i, false);
+                Collections.reverse(pairs);
+                Double prevCount = 1.0;
+                for (int j = 0; j < pairs.size(); j++) {
+                    Double thisCount = pairs.get(j).getValue();
+                    Double change = thisCount / prevCount;
+                    if(change > 3 + iteration / 100) {
+                        numberOfProbableOverlaps = j;
+                        changeFound = true;
+                        break;
+                    }
+                    prevCount = thisCount;
+                }
+            }
+        }
+//        System.out.println(initialNumberOfRules + " / " + numberOfProbableOverlaps + " / iteration " + iteration);
+        return initialNumberOfRules - numberOfProbableOverlaps;
+    }
+
     private Mutagen guessSimpleMultiple(int numberOfRules) {
-        return getFinalMutagen();
+        Mutagen mutagen = new Mutagen();
+        int numberOfRulesToCombine = getNumberOfRules();
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(rules, numberOfRulesToCombine, true);
+        for (Map.Entry<String, Double> patternActionPair : pairs) {
+            String pair = patternActionPair.getKey();
+            String[] patternAction = pair.split("@");
+            String pattern = patternAction[0];
+            String action = patternAction[1];
+            mutagen.add(pattern, action);
+        }
+        return mutagen;
     }
 
     private Mutagen guessComplexMultiple(int numberOfRules) {
@@ -261,6 +345,7 @@ public class Player extends mutation.sim.Player {
     @Override
     public Mutagen Play(Console console, int m) {
         for (int i = 0; i < numTrials; ++i) {
+            iteration = i;
             // Check if we should terminate and return the final mutagen
             System.out.println(i);
             int numExpsLeft = console.getNumExpsLeft();
@@ -286,7 +371,22 @@ public class Player extends mutation.sim.Player {
 
             updateProbabilities(changeWindows, possibleWindows, genome, mutated);
 
-            Mutagen guess = getFinalMutagen();
+            Mutagen guess;
+
+            guess = guessSimpleMultiple(2);
+            System.out.println("Guessing " + guess.getPatterns() + " / " + guess.getActions());
+//            if(0 <= i && i < 100) {
+//                guess = guessSingleRule(0);
+//            } else if (100 <= i && i < 200) {
+//                guess = guessSingleRule(1);
+//            } else if (200 <= i && i < 300) {
+//                guess = guessSimpleMultiple(2);
+//            } else if (300 <= i && i < 400) {
+//                guess = guessComplexMultiple(2);
+//            } else {
+//                guess = guessSingleRule(2);
+//            }
+
             boolean isCorrect = console.testEquiv(guess);
             if (isCorrect) {
                 return guess;
