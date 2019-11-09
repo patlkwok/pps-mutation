@@ -46,6 +46,7 @@ public class Player extends mutation.sim.Player {
             String mutated = console.Mutate(genome);
             char[] input = genome.toCharArray();
             char[] output = mutated.toCharArray();
+            //System.out.println(output.length);
             Element[] diff = checkDifference(input, output);
             result = getNaive(diff);
             numMutation = console.getNumberOfMutations();
@@ -56,8 +57,8 @@ public class Player extends mutation.sim.Player {
         //System.out.println();
         List<String> left = new LinkedList(sortedMap.keySet());
         List<Integer> right = new LinkedList(sortedMap.values());
-        for(int i = 0; i < 2; i++) {
-        	System.out.println(left.get(i) + ": " + cumLeft.get(left.get(i)));
+        for(int i = 0; i < left.size(); i++) {
+        	System.out.println(right.get(i) + ": " + left.get(i) + ", " + cumLeft.get(left.get(i)));
         }
 
         //System.out.println(cumLeft);
@@ -288,14 +289,18 @@ public class Player extends mutation.sim.Player {
     }
 
     public Element[] checkDifference(char[] input, char[] output) {
-        Element[] diff = new Element[1000];
-        beforeCounter = new int[4];
-        afterCounter = new int[4];
+        Element[] diff = new Element[input.length];
+        //beforeCounter = new int[4];
+        //afterCounter = new int[4];
+        if(input.length != output.length) {
+            System.out.println(input.length);
+            System.out.println(output.length);
+        }
         for(int i = 0; i < input.length; i++) {
             if(input[i] != output[i]) {
                 diff[i] = new Element(true, input[i], output[i]);
-                beforeCounter[hash.get(input[i])]++;
-                afterCounter[hash.get(output[i])]++;
+                //beforeCounter[hash.get(input[i])]++;
+                //afterCounter[hash.get(output[i])]++;
             }
             else diff[i] = new Element(input[i]);
         }
