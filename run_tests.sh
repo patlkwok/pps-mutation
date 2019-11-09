@@ -21,7 +21,7 @@ do
     res=$(java mutation.sim.Simulator -p g7 -m $m -c $config_file)
     test=$(echo $config_file | cut -f4 -d/ )
     let "total += 1"
-    if [[ $res == *"Failed"* ]]; 
+    if [[ $res != *"Correct"* ]];
     then
         echo "Failed on test case "$test >> output.txt
         jaccard=$(echo $res | cut -f3 -d: )
