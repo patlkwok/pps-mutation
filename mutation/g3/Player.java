@@ -216,7 +216,7 @@ public class Player extends mutation.sim.Player {
             int ruleNumber = chooseRuleToAggregrate(changeDist);
             distributions.get(ruleNumber).aggregate(changeDist);
         }
-        System.out.println("D: " + distributions.get(0).getHighestLogLikelihood());
+        //System.out.println("D: " + distributions.get(0).getHighestLogLikelihood());
     }
 
     protected int chooseRuleToAggregrate(RuleDistribution changeDist) throws ZeroMassProbabilityException {

@@ -152,11 +152,11 @@ public class Rule {
     }
 
     public String apply(String original) {
-        if (original.length() < pattern.length) return null;
+        if (original.length() < pattern.length || original.length() < action.length()) return null;
         
         boolean match = true;
         int matchAt = -1;
-        for (int k = 0; k <= original.length() - pattern.length; k++) {
+        for (int k = 0; k <= original.length() - Math.max(pattern.length, action.length()); k++) {
             for (int i = 0; i < pattern.length; i++) {
                 byte b = pattern[i];
                 if ((b & baseCharToByte(original.charAt(i + k))) == 0){
