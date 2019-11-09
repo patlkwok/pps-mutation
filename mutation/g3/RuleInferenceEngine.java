@@ -65,7 +65,7 @@ public class RuleInferenceEngine {
         return ais;
     }
 
-    private String getActionSet(Integer windowSize) {
+    public static String getActionSet(Integer windowSize) {
         String actionSet = "acgt";
         for (int i = 0; i < windowSize; i++) {
             actionSet += i;
@@ -125,10 +125,10 @@ public class RuleInferenceEngine {
             if (totalPossibleProb == LOG_ZERO_PROB) {
                 return LOG_ZERO_PROB;
             }
-            if (prior - totalPossibleProb == Double.POSITIVE_INFINITY) {
+            if (prior - totalPossibleProb == Double.POSITIVE_INFINITY || prior - totalPossibleProb > 0) {
                 System.out.println("Here");
             }
-            return prior - totalPossibleProb; //normalize by dividing (in log space)
+            return logPTrunc(prior - totalPossibleProb); //normalize by dividing (in log space)
         } else {
             // our prior belief distribution about the length of pi.  Index i is our prior for length i.  0.0 is a dummy.
             // we give fairly strong bias to shorter lengths, but can rule these out quickly from experiment if wrong

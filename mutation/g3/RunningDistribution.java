@@ -50,6 +50,9 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
             ais.get(i).put('g', aiUniformLetter);
             ais.get(i).put('t', aiUniformLetter);
         }
+        sortProbabilities();
+        computeHighestLogLikelihood();
+        filterTopRuleSpace();
     }
 
     public RunningDistribution(List<Map<Byte, Double>> pis, List<Map<Character, Double>> ais) {
@@ -57,27 +60,24 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
     }
 
     public void aggregate(RuleDistribution distribution) {
-        aggregate(distribution, 1);
-    }
-    
-    public void aggregate(RuleDistribution distribution, int coefficient) {
         for (int i = 0; i < pis.size(); i++) {
-            aggregatePi(i, pis.get(i), distribution, coefficient);
+            aggregatePi(i, pis.get(i), distribution);
         }
         for (int i = 0; i < ais.size(); i++) {
-            aggregateAi(i, ais.get(i), distribution, coefficient);
+            aggregateAi(i, ais.get(i), distribution);
         }
+        reduceDigitsToBases();
         sortProbabilities();
         computeHighestLogLikelihood();
         filterTopRuleSpace();
     }
 
-    protected void aggregatePi(int i, Map<Byte, Double> localDist, RuleDistribution d, int coefficient) {
+    protected void aggregatePi(int i, Map<Byte, Double> localDist, RuleDistribution d) {
         double total = LOG_ZERO_PROB;
         for (Entry<Byte, Double> entry : localDist.entrySet()) {
             Byte ei = entry.getKey();
             Double p = entry.getValue();
-            final double newProb = logPMult(p, coefficient * d.getPiLikelihood(i, ei));
+            final double newProb = logPMult(p, d.getPiLikelihood(i, ei));
             entry.setValue(newProb);
             total = logPAdd(total, newProb);
         }
@@ -94,12 +94,12 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
         }
     }
 
-    protected void aggregateAi(int i, Map<Character, Double> localDist, RuleDistribution d, int coefficient) {
+    protected void aggregateAi(int i, Map<Character, Double> localDist, RuleDistribution d) {
         double total = LOG_ZERO_PROB;
         for (Entry<Character, Double> entry : localDist.entrySet()) {
             Character ei = entry.getKey();
             Double p = entry.getValue();
-            final double newProb = logPMult(p, coefficient * d.getAiLikelihood(i, ei));
+            final double newProb = logPMult(p, d.getAiLikelihood(i, ei));
             entry.setValue(newProb);
             total = logPAdd(total, newProb);
         }
@@ -149,6 +149,32 @@ public class RunningDistribution extends MutationBasedDistribution implements Cl
             }
         }
         return new RunningDistribution(nPis, nAis);
+    }
+    
+    public final void reduceDigitsToBases() {
+        for (int i = 0; i < this.ais.size(); i++) {
+            for (Entry<Character, Double> entry : this.ais.get(i).entrySet()) {
+                char action = entry.getKey();
+                // if the action is a digit
+                if (entry.getValue() > LOG_ZERO_PROB && action >= '0' && action <= '9') {
+                    // if the top pi corresponding to the position of the digit is
+                    // a single element
+                    for (Entry<Byte, Double> pi : pis.get(action - '0').entrySet()) {
+                        Byte key = pi.getKey();
+                        Double value = pi.getValue();
+                        // if that single element has all the probability and it is a single base
+                        if (value == LOG_ONE_PROB && Integer.bitCount(key) == 1) {
+                            final char actionBase = Rule.baseByteToString(key).charAt(0);
+                            // add the probability of the digit to the corresponding unique base
+                            ais.get(i).put(actionBase, logPAdd(
+                                    ais.get(i).getOrDefault(actionBase, LOG_ZERO_PROB), value));
+                            // set the probability of the digit to zero
+                            entry.setValue(LOG_ZERO_PROB);
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

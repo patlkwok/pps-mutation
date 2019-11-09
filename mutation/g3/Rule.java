@@ -151,4 +151,36 @@ public class Rule {
         return pattern;
     }
 
+    public String apply(String original) {
+        if (original.length() < pattern.length) return null;
+        
+        boolean match = true;
+        int matchAt = -1;
+        for (int k = 0; k <= original.length() - pattern.length; k++) {
+            for (int i = 0; i < pattern.length; i++) {
+                byte b = pattern[i];
+                if ((b & baseCharToByte(original.charAt(i + k))) == 0){
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                matchAt = k;
+                break;
+            }
+        }
+        if (match && matchAt != -1) {
+            char[] mutable = original.toCharArray();
+            for (int j = 0; j < action.length(); ++ j) {
+                char c = action.charAt(j);
+                if (c >= '0' && c <= '9')
+                    c = original.charAt(c - '0');
+                mutable[matchAt + j] = c;
+            }
+            return String.valueOf(mutable);
+        } else {
+            return null;
+        }
+    }
+
 }

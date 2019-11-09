@@ -2,7 +2,7 @@ package mutation.g3;
 
 import java.util.*;
 import java.util.Map.Entry;
-import static mutation.g3.LogProbability.LOG_ZERO_PROB;
+import static mutation.g3.LogProbability.*;
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
@@ -14,15 +14,16 @@ import mutation.sim.Mutagen;
 public class Player extends mutation.sim.Player {
 
     private final static double GUESSING_THRESHOLD = -150;
+    private final static int MAX_GUESSES_WITHOUT_EXP = 25;
 
     private final Random random;
+    private final List<ExperimentResult> wholeExpHistory;
     private final List<ExperimentResult> expHistory;
     private final RuleInferenceEngine inferenceEngine;
-    private final Set<Set<Rule>> ruledOutRules;
-    //private final List<ChangeBasedDistribution> changeDists;
-    //private final HashMap<HashSet<Mutation>, Integer> changeCount;
-    private final HashMap<ChangeSummary, ChangeSummary> changeSummaries;
+    private final Set<Rule> ruledOutRules;
+    private final List<ChangeBasedDistribution> changeDists;
     private List<RunningDistribution> distributions;
+    private Set<Rule> sureRules;
     private int consideredWindowSize = 1;
     private int numberOfRulesConsidered = 1;
     private int windowCleared = 0;
@@ -30,11 +31,13 @@ public class Player extends mutation.sim.Player {
 
     public Player() {
         random = new Random();
+        wholeExpHistory = new ArrayList<>();
         expHistory = new ArrayList<>();
         inferenceEngine = new RuleInferenceEngine();
         ruledOutRules = new HashSet<>();
-        changeSummaries = new HashMap<>();
+        changeDists = new ArrayList<>();
         distributions = new ArrayList<>();
+        sureRules = new LinkedHashSet<>();
         for (int i = 0; i < numberOfRulesConsidered; i++) {
             distributions.add(new RunningDistribution(consideredWindowSize));
         }
@@ -59,12 +62,20 @@ public class Player extends mutation.sim.Player {
             }
             int q = console.getNumberOfMutations();
             recordMutations(genome, mutated, m, q);
-            Mutagen mutagen = makeGuess(console);
-            if (mutagen != null) {
-                return mutagen;
-            }
+            Mutagen guess;
+            int numGuesses = 0;
+            do {
+                guess = makeGuess();
+                if (console.testEquiv(guess)) {
+                    // we guessed right! (equivalence test)
+                    return guess;
+                } else {
+                    guessedWrong(guess);
+                }
+                numGuesses++;
+            } while (guess != null && numGuesses < MAX_GUESSES_WITHOUT_EXP);
         }
-        return makeGuess(console);
+        return makeGuess();
     }
 
     /**
@@ -108,6 +119,7 @@ public class Player extends mutation.sim.Player {
         Mutation mutation = new Mutation(original, mutated);
         ExperimentResult exp = new ExperimentResult(mutation, m, q);
         expHistory.add(exp);
+        wholeExpHistory.add(exp);
         try {
             updateBelieves(exp);
         } catch (ZeroMassProbabilityException ex) {
@@ -145,7 +157,7 @@ public class Player extends mutation.sim.Player {
     protected void setConsideredWindowSize(int size) {
         this.consideredWindowSize = size;
         ruledOutRules.clear();
-        changeSummaries.clear();
+        changeDists.clear();
         distributions = new ArrayList<>();
         for (int i = 0; i < numberOfRulesConsidered; i++) {
             distributions.add(new RunningDistribution(consideredWindowSize));
@@ -156,7 +168,7 @@ public class Player extends mutation.sim.Player {
         if (mutations.size() >= q) {
             return mutations;
         }
-        List<HashSet<Mutation>> uniqueMutations = new ArrayList<>();
+
         while (true) {
             // we may have a collision of mutations counting as 1
             // check if there is a mutation set with significantly more windows than average and eliminate
@@ -178,12 +190,8 @@ public class Player extends mutation.sim.Player {
                 break;
             }
         }
-        for (HashSet<Mutation> mutation : mutations) {
-            if (!uniqueMutations.contains(mutation)) {
-                uniqueMutations.add(mutation);
-            }
-        }
-        return uniqueMutations;
+
+        return mutations;
     }
 
     /**
@@ -201,29 +209,14 @@ public class Player extends mutation.sim.Player {
         List<HashSet<Mutation>> mutations
                 = getPossibleMutations(experiment, consideredWindowSize);
         mutations = filterCollisions(mutations, experiment.appliedMutations);
+        mutations = filterExplainedBySureRules(mutations);
         for (HashSet<Mutation> world : mutations) {
-            final ChangeSummary cs = new ChangeSummary(world);
-            if (changeSummaries.containsKey(cs)) {
-                changeSummaries.get(cs).increaseCount();
-            } else {
-                final ChangeBasedDistribution changeDist = getChangeDistribution(world);
-                cs.setDistribution(changeDist);
-                changeSummaries.put(cs, cs);
-            }
-        }
-        System.out.println("");
-        for (Entry<ChangeSummary, ChangeSummary> csEnt : changeSummaries.entrySet()) {
-            ChangeSummary cs = csEnt.getValue();
-            int ruleNumber = 0;
-            distributions.get(ruleNumber).aggregate(cs.getDistribution(), cs.getCount());
-        }
-        /*for (HashSet<Mutation> world : mutations) {
             final ChangeBasedDistribution changeDist = getChangeDistribution(world);
             changeDists.add(changeDist);
             int ruleNumber = chooseRuleToAggregrate(changeDist);
-            System.out.println(world + " assigned " + ruleNumber);
             distributions.get(ruleNumber).aggregate(changeDist);
-        }*/
+        }
+        System.out.println("D: " + distributions.get(0).getHighestLogLikelihood());
     }
 
     protected int chooseRuleToAggregrate(RuleDistribution changeDist) throws ZeroMassProbabilityException {
@@ -276,54 +269,41 @@ public class Player extends mutation.sim.Player {
     }
 
     /**
-     * Guesses the most likely Mutagen(s) based on the current state of the
-     * Player.It may alter the hypothesis space and reevaluate the evidence if
-     * the confidence on the current most likely Mutagen is too low
+     * Guesses the most likely Mutagen based on the current state of the Player.
+     * It may alter the hypothesis space and reevaluate the evidence if the
+     * confidence on the current most likely Mutagen is too low
      *
-     * @param console game console to guess
-     * @return a correct Mutagen or null if didn't guess
+     * @return the guess made
      */
-    protected Mutagen makeGuess(Console console) {
-        List<Set<Rule>> candidatesPerRule;
-        //do {
-        try {
-            candidatesPerRule = getMostLikelyCandidatesPerRule();
-            List<Rule[]> rules = new ArrayList<>();
-            int[] indices = new int[candidatesPerRule.size()];
-            int i = 0;
-            for (Set<Rule> guess : candidatesPerRule) {
-                rules.add(guess.toArray(new Rule[0]));
-                indices[i++] = 0;
-            }
-            do {
-                final Mutagen mut = new Mutagen();
-                for (int j = 0; j < indices.length; j++) {
-                    final Rule rule = rules.get(j)[indices[j]];
-                    mut.add(rule.getPatternString(), rule.getAction());
+    protected Mutagen makeGuess() {
+        Mutagen guess = null;
+        do {
+            try {
+                guess = getMostLikelyMutagen();
+            } catch (NotConfidentEnoughException | NoMoreCandidateRulesException ex) {
+                // current most likely rule is not likely enough
+                // we conclude that the scope size/ window size considered may be
+                // too small, we increase it and reevaluate the evidence so far
+                // if there is space to grow
+                if (consideredWindowSize < 10) {
+                    increaseWindowSize();
+                } else if (ex instanceof NotConfidentEnoughException) {
+                    guess = ((NotConfidentEnoughException) ex).getMostLikely();
                 }
-                if (console.testEquiv(mut)) {
-                    // we guessed right! (equivalence test)
-                    return mut;
-                } else {
-                    //guessedWrong(guess);
+            } catch (SureRuleFoundException ex) {
+                sureRules.add(ex.getSureRule());
+                Mutagen mut = new Mutagen();
+                for (Rule r : sureRules) {
+                    mut.add(r.getPatternString(), r.getAction());
                 }
-            } while (nextIndex(indices, rules));
-            return null;
-        } catch (NotConfidentEnoughException | NoMoreCandidateRulesException ex) {
-            // current most likely rule is not likely enough
-            // we conclude that the scope size/ window size considered may be
-            // too small, we increase it and reevaluate the evidence so far
-            // if there is space to grow
-            if (consideredWindowSize < 10) {
+                //expHistory.clear();
+                //expHistory.addAll(wholeExpHistory);
+                setConsideredWindowSize(0);
                 increaseWindowSize();
-            } else if (ex instanceof NotConfidentEnoughException) {
-                numberOfRulesConsidered++;
-                consideredWindowSize = 0;
-                increaseWindowSize();
+                return mut;
             }
-        }
-        //} while (guess == null);
-        return null;
+        } while (guess == null);
+        return guess;
     }
 
     /**
@@ -331,9 +311,12 @@ public class Player extends mutation.sim.Player {
      *
      * @param guess the guess that failed
      */
-    protected void guessedWrong(Set<Rule> guess) {
+    protected void guessedWrong(Mutagen guess) {
         // remove the guessed rule from the candidates
-        ruledOutRules.add(guess);
+        for (int i = 0; i < guess.getPatterns().size(); i++) {
+            ruledOutRules.add(Rule.fromString(
+                    guess.getPatterns().get(i), guess.getActions().get(i)));
+        }
     }
 
     /**
@@ -345,36 +328,31 @@ public class Player extends mutation.sim.Player {
      * rule is too low
      * @throws NoMoreCandidateRulesException if we run out of rules to guess
      */
-    protected List<Set<Rule>> getMostLikelyCandidatesPerRule() throws NotConfidentEnoughException, NoMoreCandidateRulesException {
+    protected Mutagen getMostLikelyMutagen() throws NotConfidentEnoughException, NoMoreCandidateRulesException, SureRuleFoundException {
+        Mutagen result = new Mutagen();
+
         for (int i = 0; i < numberOfRulesConsidered; i++) {
-            if (distributions.get(i).getHighestLogLikelihood() < GUESSING_THRESHOLD) {
-                //throw new NotConfidentEnoughException(null);
-                throw new NoMoreCandidateRulesException();
-            }
-        }
-        List<Set<Rule>> candidateRules = new ArrayList<>();
-        for (int i = 0; i < numberOfRulesConsidered; i++) {
+            Set<Rule> candidateRules = new HashSet<>();
             //distribution.ruleOut(ruledOutRules);
-            //candidateRules.add(distributions.get(i).getMostLikelyRules(ruledOutRules));
-            candidateRules.add(distributions.get(i).getMostLikelyRules());
+            candidateRules.addAll(distributions.get(0).getMostLikelyRules(ruledOutRules));
             if (candidateRules.isEmpty()) {
                 throw new NoMoreCandidateRulesException();
             }
-        }
-        return candidateRules;
-    }
+            Rule mlRule = candidateRules.iterator().next();
+            double mlRuleLL = distributions.get(0).getLogLikelihood(mlRule);
 
-    private boolean nextIndex(int[] indices, List<Rule[]> rules) {
-        for (int i = 0; i < indices.length; i++) {
-            if (indices[i] < rules.get(i).length - 1) {
-                indices[i]++;
-                for (int j = 0; j < i; j++) {
-                    indices[j] = 0;
-                }
-                return true;
+            result.add(mlRule.getPatternString(), mlRule.getAction());
+            if (mlRuleLL < GUESSING_THRESHOLD) {
+                throw new NotConfidentEnoughException(result);
+            }
+            for (Rule sureRule : sureRules) {
+                result.add(sureRule.getPatternString(), sureRule.getAction());
+            }
+            if (mlRuleLL == LOG_ONE_PROB) {
+                throw new SureRuleFoundException(mlRule);
             }
         }
-        return false;
+        return result;
     }
 
     protected void increaseWindowSize() {
@@ -544,9 +522,6 @@ public class Player extends mutation.sim.Player {
         }
 
         final int numChanges = changes.size();
-        if (numChanges == 0) {
-            return mutations;
-        }
         int safeStart = -1; // where to start looking at changes
         int lastChange = changes.getLast() - original.length();
         for (Integer change : changes) {
@@ -633,6 +608,31 @@ public class Player extends mutation.sim.Player {
         }
         return set;
     }
+
+    private List<HashSet<Mutation>> filterExplainedBySureRules(List<HashSet<Mutation>> mutations) {
+        if (sureRules.isEmpty()) {
+            return mutations;
+        }
+        List<HashSet<Mutation>> filtered = new ArrayList<>();
+        for (HashSet<Mutation> change : mutations) {
+            boolean explained = false;
+            for (Rule sureRule : sureRules) {
+                for (Mutation mutation : change) {
+                    if (mutation.getMutated().equals(sureRule.apply(mutation.getOriginal()))) {
+                        explained = true;
+                        break;
+                    }
+                }
+                if (explained) {
+                    break;
+                }
+            }
+            if (!explained) {
+                filtered.add(change);
+            }
+        }
+        return filtered;
+    }
 }
 
 class NotConfidentEnoughException extends Exception {
@@ -655,5 +655,19 @@ class NotConfidentEnoughException extends Exception {
 }
 
 class NoMoreCandidateRulesException extends Exception {
+
+}
+
+class SureRuleFoundException extends Exception {
+
+    private final Rule sureRule;
+
+    public SureRuleFoundException(Rule sureRule) {
+        this.sureRule = sureRule;
+    }
+
+    public Rule getSureRule() {
+        return sureRule;
+    }
 
 }
