@@ -111,6 +111,7 @@ public class Mutagen {
         Set<Long> result = new HashSet<Long>();
         int counter = 0;
         for (int k = 0; k < patterns.size(); ++ k) {
+            String action = actions.get(k);
             String[] l = patterns.get(k).split(";");
             boolean[][] chk = new boolean[l.length][4];
             for (int i = 0; i < l.length; ++ i) {
@@ -129,7 +130,6 @@ public class Mutagen {
                     ++ counter;
                     // Perform action & insert
                     char[] delta = new char[10];
-                    String action = actions.get(k);
                     for (int j = 0; j < action.length(); ++ j) {
                         delta[j] = action.charAt(j);
                         if (delta[j] >= '0' && delta[j] <= '9')
@@ -179,6 +179,13 @@ public class Mutagen {
         if (c == 'g') return 2;
         if (c == 't') return 3;
         return -1;
+    }
+
+    public String toString() {
+        String ret = "Mutagen with " + patterns.size() + " rules.";
+        for (int i = 0; i < patterns.size(); ++ i)
+            ret += "\n" + patterns.get(i) + " => " + actions.get(i);
+        return ret;
     }
 
     private Random random;

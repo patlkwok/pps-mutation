@@ -57,6 +57,8 @@ public class Simulator {
         target = loadMutagenConfig(cfgPath);
         Console console = new Console(trials, m, target, gui, server, name, 1000.0 / fps);
 
+        System.out.println("Target mutagen: " + target);
+
         Timer thread = new Timer();
         thread.start();
 
@@ -96,7 +98,9 @@ public class Simulator {
             System.exit(-1);
         }
         long elapsedTime = thread.getElapsedTime();
-        Log.record("Player finished in " + elapsedTime + "ms.");
+        System.out.println("Player finished in " + elapsedTime + "ms.");
+
+        System.out.println("Final guess: " + result);
 
         System.out.println("Player " + name + " made " + console.getNumGuesses() + " guesses and " + console.getNumExps() + " experiments");
         if (console.isCorrect() || console.testEquiv(result)) {
@@ -106,9 +110,9 @@ public class Simulator {
             System.out.println("Failed, calculating Jaccard score.");
             List<String> patterns = result.getPatterns();
             List<String> actions = result.getActions();
-            System.out.println("Player's guess: ");
-            for (int i = 0; i < patterns.size(); ++ i)
-                System.out.println(patterns.get(i) + " => " + actions.get(i));
+            // System.out.println("Player's guess: ");
+            // for (int i = 0; i < patterns.size(); ++ i)
+            //     System.out.println(patterns.get(i) + " => " + actions.get(i));
 
             char[] pool = {'a', 'c', 'g', 't'};
             char[] data = new char[1000000];
