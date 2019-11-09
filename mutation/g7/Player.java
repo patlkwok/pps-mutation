@@ -8,100 +8,67 @@ import mutation.sim.Mutagen;
 import javafx.util.Pair;
 
 import java.util.Map;
+
 import static java.util.stream.Collectors.*;
 import static java.util.Map.Entry.*;
 
 
 public class Player extends mutation.sim.Player {
 
-    private Random random;
-    private Map<String, Double> rules = new HashMap<>();
-
-    private Map<Integer, Double> lengthMap;
-    private double numPerm = 0.0;
-    private String[] genes = "acgt".split("");
-
-    private int numTrials = 1000;
-    private Double rulesLength = 0.0;
-    private Double takeAChanceWithLength = 0.05;
-
-    // Distribution increase parameters
-    private Double modifierStep = 1.4;
-    private Double initialStep = 1.0;
+    // START CONFIG ==================================
 
     // Time limit for when to break (in milliseconds)
     private long timeLimit = 1000;
 
-    // An array to record the wrong guesses so we don't repeat them
-    private Vector<Mutagen> wrongMutagens = new Vector<>();
+    // Number of trials to run the algorithm for
+    private int numTrials = 9999;
 
+    // Maximum length of a mutagen
     private int maxMutagenLength = 10;
+    private int overlap = 9;
+
+    // Distribution increase parameters
+    private Double modifierStep = 1.0;
+    private Double initialStep = 1.0;
+
+    // END CONFIG ====================================
+
+    // START VARS ====================================
+
+    private Random random;
+
+    // A map to remember the occurance of rules
+    private Map<String, Double> rules = new HashMap<>();
+    private Map<String, Double> changeRules = new HashMap<>();
 
     // An array of all patterns that happened
     private HashSet<String> allPatterns = new HashSet<>();
 
+    // An array to record the wrong guesses so we don't repeat them
+    private HashSet<Mutagen> wrongMutagens = new HashSet<>();
+
+    private Map<Integer, Double> lengthMap;
+    private double numPerm = 0.0;
+    private Double rulesLength = 0.0;
+    private Double changeRulesLength = 0.0;
+
+    private HashSet<String> discardedRules = new HashSet<>();
+    private HashMap<Integer, HashSet<String>> buckets = new HashMap<>();
+
+    // END VARS ======================================
+
+    private String[] genes = "acgt".split("");
+    private int iteration = 0;
+    private int complexIteration = 0;
+    private String[] combinations = {
+            "a", "c", "g", "t", "ac", "ag", "at", "cg", "ct", "gt", "acg", "act", "agt", "cgt"
+    };
+
+    // A list of continually seen mutation lengths
+    private LinkedList<Integer> mutationLengths = new LinkedList<>();
+
     public Player() {
         random = new Random();
-    }
-
-    private String samplePair() {
-        Double random = Math.random() * rulesLength;
-        Double cummulative = 0.0;
-        Iterator it = rules.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
-            cummulative += pair.getValue();
-            if (random < cummulative) {
-                return pair.getKey();
-            }
-        }
-        it = rules.entrySet().iterator();
-        Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
-        return pair.getKey();
-    }
-
-    private String samplePairOfLength(int length) {
-        for (int i = 0; i < 1000; i++) {
-            Double random = Math.random() * rulesLength;
-            Double cummulative = 0.0;
-            Iterator it = rules.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
-                cummulative += pair.getValue();
-                if (random < cummulative) {
-                    String actionPatternPair = pair.getKey();
-                    if (actionPatternPair.length() == length) {
-                        return actionPatternPair;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        return samplePair();
-    }
-
-    private Mutagen sampleMutagen() {
-        Mutagen mutagen = new Mutagen();
-        int numberOfRulesToCombine = allPatterns.size();
-        if (numberOfRulesToCombine == 0) {
-            numberOfRulesToCombine = 1;
-        }
-        Vector<String> previousPatterns = new Vector<String>();
-        for (int i = 0; i < numberOfRulesToCombine; i++) {
-            for (int j = 0; j < 1000; j++) {
-                String pair = samplePair();
-                if (!previousPatterns.contains(pair)) {
-                    String[] patternAction = pair.split("@");
-                    String pattern = patternAction[0];
-                    String action = patternAction[1];
-                    mutagen.add(pattern, action);
-                    previousPatterns.add(pair);
-                    break;
-                }
-            }
-        }
-        return mutagen;
     }
 
     private void modifyRuleDistribution(String pattern, String action) {
@@ -113,7 +80,7 @@ public class Player extends mutation.sim.Player {
         String rule = patternKey + "@" + action;
         if (rules.containsKey(rule)) {
             Double prevProbability = rules.get(rule);
-            Double newProbability = prevProbability * modifierStep;
+            Double newProbability = prevProbability + modifierStep;
             Double diff = newProbability - prevProbability;
             rulesLength += diff;
             rules.put(rule, newProbability);
@@ -123,14 +90,35 @@ public class Player extends mutation.sim.Player {
         }
     }
 
-    private String randomString() {
-        char[] pool = {'a', 'c', 'g', 't'};
-        String result = "";
-        for (int i = 0; i < 1000; ++i)
-            result += pool[Math.abs(random.nextInt() % 4)];
-        return result;
+    private void modifyChangeRuleDistribution(String pattern, String action) {
+        String[] patternArr = pattern.split("");
+        String patternKey = patternArr[0];
+        for (int i = 1; i < patternArr.length; i++) {
+            patternKey += ";" + patternArr[i];
+        }
+        String rule = patternKey + "@" + action;
+        if (changeRules.containsKey(rule)) {
+            Double prevProbability = changeRules.get(rule);
+            Double newProbability = prevProbability + 1.0;
+            Double diff = newProbability - prevProbability;
+            changeRulesLength += diff;
+            changeRules.put(rule, newProbability);
+        } else {
+            changeRulesLength += initialStep;
+            changeRules.put(rule, initialStep);
+        }
     }
 
+    private void createBuckets(List<Map.Entry<String, Double>> rules) {
+        for (Map.Entry<String, Double> key : rules) {
+            if (buckets.containsKey(key.getKey().length())) {
+                buckets.get(key.getKey().length()).add(key.getKey());
+            } else {
+                buckets.put(key.getKey().length(), new HashSet<>());
+                buckets.get(key.getKey().length()).add(key.getKey());
+            }
+        }
+    }
 
     private static <K, V extends Comparable<? super V>> List<Map.Entry<K, V>> findGreatest(Map<K, V> map, int n, boolean isMinHeap) {
         Comparator<? super Map.Entry<K, V>> comparator = new Comparator<Map.Entry<K, V>>() {
@@ -138,7 +126,7 @@ public class Player extends mutation.sim.Player {
             public int compare(Map.Entry<K, V> e0, Map.Entry<K, V> e1) {
                 V v0 = e0.getValue();
                 V v1 = e1.getValue();
-                if(isMinHeap) return v0.compareTo(v1);
+                if (isMinHeap) return v0.compareTo(v1);
                 return v1.compareTo(v0);
             }
         };
@@ -156,18 +144,122 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+
+    private HashMap<Integer, HashMap<Integer, Set<String>>> findSimilarRules(List<Map.Entry<String, Double>> pairs) {
+        // System.out.println("hello");
+        Map<String, String> patterns = new HashMap<>();
+        for (Map.Entry<String, Double> entry : pairs) {
+            String pattern = entry.getKey().split("@")[0];
+            String action = entry.getKey().split("@")[1];
+           patterns.put(pattern, action);
+        }
+        Map<Pair<String, Integer>, Set<Map.Entry<String, Double>>> groups = new HashMap<>();
+
+        for (String pattern : patterns.keySet()) {
+            for (Map.Entry<String, Double> entry_2 : pairs) {
+                String pattern_2 = entry_2.getKey().split("@")[0];
+                String action = entry_2.getKey().split("@")[1];
+                if (!patterns.get(pattern).equals(action) || pattern.length() != pattern_2.length()) continue;
+                int diff = 0;
+                int index = -1;
+                for (int i = 0; i < pattern.length(); i++) {
+                    if (pattern.charAt(i) != pattern_2.charAt(i)) {
+                        diff++;
+                        index = i;
+                    }
+                    if (diff > 2) break;
+                }
+                if (diff == 1) {
+                    Pair<String, Integer> sim = new Pair<>(pattern, index);
+                    if (groups.containsKey(sim)) {
+                        groups.get(sim).add(entry_2);
+                    } else {
+                        Set<Map.Entry<String, Double>> entries = new HashSet<>();
+                        entries.add(entry_2);
+                        groups.put(sim, entries);
+                    }
+                }
+            }
+        }
+        HashMap<Integer, HashMap<Integer, Set<String>>> megaMap = new HashMap<>();
+        for (Pair<String, Integer> pair : groups.keySet()) {
+            String base = pair.getKey();
+            String rule = pair.getKey();
+            System.out.println("----action should be same ---");
+            for (Map.Entry<String, Double> entry : groups.get(pair)) {
+                String pattern = entry.getKey().split("@")[0];
+                String action = entry.getKey().split("@")[1];
+                System.out.println(action);
+                if (base.charAt(pair.getValue()) != pattern.charAt(pair.getValue())) {
+                    rule = rule.substring(0, pair.getValue()) + pattern.charAt(pair.getValue()) + rule.substring(pair.getValue(), rule.length());
+                }
+            }
+
+            String[] rule_arr = rule.split(";");
+            String[] sorted_rule = new String[rule_arr.length];
+            int ind = 0;
+            for (String s : rule_arr) {
+                char[] temp_s = s.toCharArray();
+                Arrays.sort(temp_s);
+                s = new String(temp_s);
+                sorted_rule[ind++] = s;
+            }
+            rule = String.join(";", sorted_rule);
+
+            int length = (int) Math.ceil((double) base.length() / 2.0);
+            int rules_combined = groups.get(pair).size() + 1;
+
+            if (megaMap.containsKey(length)) {
+                HashMap<Integer, Set<String>> map = megaMap.get(length);
+                if (map.containsKey(rules_combined)) {
+                    map.get(rules_combined).add(rule);
+                } else {
+                    Set<String> rules = new HashSet<>();
+                    rules.add(rule);
+                    map.put(rules_combined, rules);
+                }
+            } else {
+                HashMap<Integer, Set<String>> map = new HashMap<>();
+                Set<String> rules = new HashSet<>();
+                rules.add(rule);
+                map.put(rules_combined, rules);
+                megaMap.put(length, map);
+            }
+
+
+        }
+        // for (Integer key : megaMap.keySet()){
+        //     System.out.println("------" + key + "---------");
+        //     for (Integer key_2 : megaMap.get(key).keySet()){
+        //         System.out.println("child------" + key_2 + "---------");
+        //         System.out.println(megaMap.get(key).get(key_2));
+        //     }
+        // }
+        return megaMap;
+    }
+
     private Mutagen getFinalMutagen() {
         Mutagen mutagen = new Mutagen();
         int numberOfRulesToCombine = allPatterns.size();
         if (numberOfRulesToCombine == 0) {
             numberOfRulesToCombine = 1;
         }
-        List<Map.Entry<String, Double>> pairs = findGreatest(rules, numberOfRulesToCombine, true);
-        if(pairs.size() > 0) pairs = purge(pairs);
+        purgeRules();
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(rules, 20, true);
+
+        HashMap<Integer, HashMap<Integer, Set<String>>> megaMap = findSimilarRules(pairs);
+        createBuckets(pairs);
+        Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+        discardRules(pairs);
+//        System.out.println(pairs);
+        if (pairs.size() > 0) pairs = purge(pairs);
         for (Map.Entry<String, Double> patternActionPair : pairs) {
             String pair = patternActionPair.getKey();
-//            System.out.println(pair);
-//            System.out.println(patternActionPair.getValue());
             String[] patternAction = pair.split("@");
             String pattern = patternAction[0];
             String action = patternAction[1];
@@ -176,7 +268,46 @@ public class Player extends mutation.sim.Player {
         return mutagen;
     }
 
-    private List<Map.Entry<String, Double>> purge(List<Map.Entry<String, Double>> pairs){
+    private boolean isExtension(Map.Entry<String, Double> p1, Map.Entry<String, Double> p2) {
+        if (p1.getKey().length() == p2.getKey().length()) return false;
+        Map.Entry<String, Double> longP = p1.getKey().length() > p2.getKey().length() ? p1 : p2;
+        Map.Entry<String, Double> shortP = p1.getKey().length() < p2.getKey().length() ? p1 : p2;
+        String l = longP.getKey().split("@")[0];
+        String s = shortP.getKey().split("@")[0];
+        return l.contains(s);
+    }
+
+    private void discardRules(List<Map.Entry<String, Double>> rules) {
+        if (rules.size() == 0) return;
+        List<Map.Entry<String, Double>> sameDist = new ArrayList<>();
+        sameDist.add(rules.get(0));
+        for (int i = 1; i < rules.size(); i++) {
+            double a = rules.get(i - 1).getValue();
+            double b = rules.get(i).getValue();
+            double c = Math.abs(a - b);
+            if (a > 10 && c < 0.01) {
+                sameDist.add(rules.get(i));
+            } else {
+                if (sameDist.size() > 1) {
+                    for (int j = 0; j < sameDist.size(); j++) {
+                        for (int k = j + 1; k < sameDist.size(); k++) {
+                            Map.Entry<String, Double> p1 = rules.get(j);
+                            Map.Entry<String, Double> p2 = rules.get(k);
+                            if (isExtension(p1, p2)) {
+                                if (p1.getKey().length() > p2.getKey().length()) {
+                                    discardedRules.add(p2.getKey());
+                                } else discardedRules.add(p1.getKey());
+                            }
+                        }
+                    }
+                }
+                sameDist.clear();
+                sameDist.add(rules.get(i));
+            }
+        }
+    }
+
+    private List<Map.Entry<String, Double>> purge(List<Map.Entry<String, Double>> pairs) {
         Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
             @Override
             public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
@@ -184,162 +315,236 @@ public class Player extends mutation.sim.Player {
             }
         });
         int i = 1;
-        for(; i < pairs.size(); i++){
-            System.out.println(pairs.get(i-1).getKey());
-            System.out.println(pairs.get(i-1).getValue());
-            if(pairs.get(i-1).getValue() != pairs.get(i).getValue()) break;
+        for (; i < pairs.size(); i++) {
+            if (pairs.get(i - 1).getValue() != pairs.get(i).getValue()) break;
         }
         Collections.sort(pairs.subList(0, i), new Comparator<Map.Entry<String, Double>>() {
             @Override
             public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
-                if(o1.getKey().length() == o2.getKey().length()) return 0;
-                if(o1.getKey().length() < o2.getKey().length()) return 1;
+                if (o1.getKey().length() == o2.getKey().length()) return 0;
+                if (o1.getKey().length() < o2.getKey().length()) return 1;
                 return -1;
             }
         });
         i = 1;
-        for(; i < pairs.size(); i++){
-            if(pairs.get(i-1).getKey().length() != pairs.get(i).getKey().length()) break;
+        for (; i < pairs.size(); i++) {
+            if (pairs.get(i - 1).getKey().length() != pairs.get(i).getKey().length()) break;
         }
         return pairs.subList(0, i);
     }
 
-
-    private static void printWindows( Map<Integer, LinkedList<Integer>> mutations, String genome, String mutant){
-        Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
-        for (Integer i : sorted.keySet()){
-            // I is current centroid
-            System.out.println("Mutation " + i);
-            for (Integer j : sorted.get(i))
-                System.out.println(genome.charAt(j) + " ->" +mutant.charAt(j) );
+    private void purgeRules() {
+        for (String pattern : discardedRules) {
+            if (rules.containsKey(pattern)) rules.remove(pattern);
         }
     }
 
-    private String createString(){
+    private String createString() {
         int n = allPatterns.size() != 0 ? allPatterns.size() : 1;
-        List<Map.Entry<String, Double>> greatest = findGreatest(rules, n, true);
-        List<Map.Entry<String, Double>> lowest = findGreatest(rules, n, false);
+        List<Map.Entry<String, Double>> greatest = Utils.findGreatest(rules, n, true);
+        List<Map.Entry<String, Double>> lowest = Utils.findGreatest(rules, n, false);
         String result = "";
         int counter = 0;
-        while(result.length() < 1000){
+        while (result.length() < 1000) {
             String pair;
-            if(counter % 2 == 0){
+            if (counter % 3 == 0) {
                 pair = greatest.get((int) Math.floor(Math.random() * n)).getKey();
-            }
-            else{
+                pair = pair.split("@")[0];
+                pair = String.join("", pair.split(";"));
+            } else if (counter % 2 == 0) {
                 pair = lowest.get((int) Math.floor(Math.random() * n)).getKey();
+                pair = pair.split("@")[0];
+                pair = String.join("", pair.split(";"));
+            } else {
+                pair = Utils.randomString(20);
             }
-            pair = pair.split("@")[0];
-            result += String.join("", pair.split(";"));
+            result += pair;
             counter++;
         }
         return result.substring(0, 1000);
     }
 
+    private void updateProbabilities(Vector<Pair<Integer, Integer>> changeWindows, Vector<Pair<Integer, Integer>> possibleWindows, String genome, String mutated) {
+        for (Pair<Integer, Integer> window : changeWindows) {
+            int start = window.getKey();
+            int finish = window.getValue();
+            // Get the string from
+            String before = genome.substring(start, finish + 1);
+            // Get the string after
+            String after = mutated.substring(start, finish + 1);
+
+            // TO REMOVE vvvvvv USE
+            allPatterns.add(before + "@" + after);
+//            System.out.println(before + "@" + after);
+
+            modifyChangeRuleDistribution(before, after);
+        }
+
+        // Modify the distributions for pattens and actions
+        for (Pair<Integer, Integer> window : possibleWindows) {
+            int start = window.getKey();
+            int finish = window.getValue();
+            // Get the string from
+            String before = genome.substring(start, finish + 1);
+            // Get the string after
+            String after = mutated.substring(start, finish + 1);
+            // Modify the distribution
+            modifyRuleDistribution(before, after);
+        }
+    }
+
+    private Mutagen guessSingleRule(int numberOfDisplacements) {
+        return getFinalMutagen();
+    }
+
+    private int getNumberOfRules() {
+        int initialNumberOfRules = changeRules.size();
+        if (initialNumberOfRules == 0) {
+            return 1;
+        }
+        int numberOfProbableOverlaps = 0;
+        if (initialNumberOfRules > 0) {
+            Set<Map.Entry<String, Double>> entrySet = changeRules.entrySet();
+            ArrayList<Map.Entry<String, Double>> pairs = new ArrayList<Map.Entry<String, Double>>(entrySet);
+            Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
+                @Override
+                public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                    return o2.getValue().compareTo(o1.getValue());
+                }
+            });
+            Collections.reverse(pairs);
+            Double prevCount = pairs.get(0).getValue();
+//            System.out.println(pairs);
+            for (int j = 0; j < pairs.size(); j++) {
+                Double thisCount = pairs.get(j).getValue();
+                Double change = thisCount / prevCount;
+//                System.out.println(thisCount + " / " + prevCount + " ? " + j);
+                if (change > 5) {
+                    numberOfProbableOverlaps = j;
+                    break;
+                }
+                prevCount = thisCount;
+            }
+        }
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, 3, true);
+//        System.out.println(numberOfProbableOverlaps + "++++" + (pairs.get(1).getValue() / pairs.get(0).getValue()));
+//        System.out.println("++++" + pairs);
+//        System.out.println("++++" + pairs.get(2));
+//        System.out.println(initialNumberOfRules + " / " + numberOfProbableOverlaps + " / iteration " + iteration);
+        return initialNumberOfRules - numberOfProbableOverlaps;
+    }
+
+    private Mutagen guessSimpleMultiple(int numberOfRules) {
+        Mutagen mutagen = new Mutagen();
+        int numberOfRulesToCombine = getNumberOfRules();
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(rules, numberOfRulesToCombine, true);
+        for (Map.Entry<String, Double> patternActionPair : pairs) {
+            String pair = patternActionPair.getKey();
+            String[] patternAction = pair.split("@");
+            String pattern = patternAction[0];
+            String action = patternAction[1];
+            mutagen.add(pattern, action);
+        }
+        return mutagen;
+    }
+
+    private Mutagen guessComplexMultiple(int numberOfRules) {
+        Mutagen mutagen = new Mutagen();
+        int numberOfRulesToCombine = getNumberOfRules();
+        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, numberOfRulesToCombine, true);
+//        System.out.println(pairs);
+        for (int i = 0; i < pairs.size(); i++) {
+            Map.Entry<String, Double> patternActionPair = pairs.get(i);
+            String pair = patternActionPair.getKey();
+            String[] patternAction = pair.split("@");
+            String pattern = patternAction[0];
+            String action = patternAction[1];
+//            System.out.println(complexIteration / 28);
+            if(complexIteration / 28 == i) {
+                if(complexIteration % 28 < 14) {
+                    int index = complexIteration % 28;
+                    pattern = pattern + ";" + combinations[index];
+                    action = action + action.length();
+                } else {
+                    int index = complexIteration % 28 - 14;
+                    pattern = combinations[index] + ";" + pattern;
+                    action = "0" + action;
+                }
+            }
+            mutagen.add(pattern, action);
+        }
+        complexIteration += 1;
+        return mutagen;
+    }
+
+    private Mutagen guessBest() {
+        return getFinalMutagen();
+    }
+
+//    private Mutagen guessPermuation(int biggestSize) {
+//        Mutagen mutagen = new Mutagen();
+//        int numberOfRulesToCombine = getNumberOfRules();
+//        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, numberOfRulesToCombine, true);
+//        String bigPattern = "acgt";
+//        for (int i = 1; i < biggestSize; i++) {
+//            bigPattern += ";acgt";
+//        }
+//        String lastPatternAction = "";
+//        for (int i = 0; i < pairs.size(); i++) {
+//            Map.Entry<String, Double> pair = pairs.get(i);
+//            if(pair.getKey().length() == biggestSize) {
+//                lastPatternAction = pair.getKey();
+//            }
+//        }
+//        System.out.println(bigPattern + " / " + lastPatternAction);
+//        return mutagen;
+//    }
+
     @Override
     public Mutagen Play(Console console, int m) {
-
         for (int i = 0; i < numTrials; ++i) {
+            iteration = i;
             // Check if we should terminate and return the final mutagen
+//System.out.println(i);
             int numExpsLeft = console.getNumExpsLeft();
             long timeLeft = console.getTimeLeft();
             if ((numExpsLeft < 2 || timeLeft < timeLimit)) {
                 System.out.println("Returning final Mutagen");
-                return getFinalMutagen();
+                return guessBest();
             }
 
+//            getFinalMutagen();
             // Get the genome
             String genome;
-            if(i == 0 || i > 50) genome = randomString();
-            else genome = createString();
+            if (i == 0 || i > 50) genome = Utils.randomString(1000);
+            else genome = Utils.randomString(1000);
             String mutated = console.Mutate(genome);
 
-            Cluster cluster = new Cluster(genome, mutated);
-            Map<Integer, LinkedList<Integer>> mutations = cluster.findWindows(m);
-            // This if statement is just to check if correctly identified windows
+            Vector<Pair<Integer, Integer>> changeWindows = Window.getWindows(genome, mutated, console.getNumberOfMutations());
 
             int genome_length = genome.length();
-
-            // Add 10 last characters to beginning and 10 first characters to end of genome before / after mutation 
-            // To simulate wrapping around 
-            int overlap = 9;
             genome = genome.substring(genome_length - overlap, genome_length) + genome + genome.substring(0, overlap);
             mutated = mutated.substring(mutated.length() - overlap, mutated.length()) + mutated + mutated.substring(0, overlap);
-            // Collect the change windows
-            Vector<Pair<Integer, Integer>> changeWindows = new Vector<Pair<Integer, Integer>>();
 
-            Map<Integer, LinkedList<Integer>> sorted = mutations.entrySet().stream().sorted(comparingByKey()).collect( toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2, LinkedHashMap::new));
-            for (Integer centroid : sorted.keySet()){
-                int start = 1000;
-                int finish = 0;
-                for (Integer j : sorted.get(centroid)) {
-                    if(j < start) {
-                        start = j;
-                    }
-                    if(j  > finish) {
-                        finish = j;
-                    }
-                }
-                changeWindows.add(new Pair<Integer, Integer>(overlap + start, overlap + finish));
-            }
-            // Get the window sizes distribution and generate all possible windows
-            int[] windowSizesCounts = new int[maxMutagenLength];
-            Vector<Pair<Integer, Integer>> possibleWindows = new Vector<Pair<Integer, Integer>>();
-            for (Pair<Integer, Integer> window : changeWindows) {
-                int start = window.getKey();
-                int finish = window.getValue();
-                String before = genome.substring(start, finish + 1);
-                String after = mutated.substring(start, finish + 1);
-                if (before.length() - 1 >= maxMutagenLength) continue;
-                allPatterns.add(before + "@" + after);
-                int windowLength = finish - start + 1;
-                windowSizesCounts[windowLength - 1]++;
-                if (windowLength == maxMutagenLength) {
-                    possibleWindows.add(window);
-                } else {
-                    for (int proposedWindowLength = windowLength; proposedWindowLength <= maxMutagenLength; proposedWindowLength++) {
-                        int diff = proposedWindowLength - windowLength;
-                        for (int offset = -diff; offset <= 0; offset++) {
-                            int newStart = start + offset;
-                            int newFinish = newStart + proposedWindowLength - 1;
-                            possibleWindows.add(new Pair<Integer, Integer>(newStart, newFinish));
-                        }
-                    }
-                }
-            }
-            // Modify the distributions for pattens and actions
-            for (Pair<Integer, Integer> window : possibleWindows) {
-                int start = window.getKey();
-                int finish = window.getValue();
-                // Get the string from
-                String before = genome.substring(start, finish + 1);
-                // Get the string after
-                String after = mutated.substring(start, finish + 1);
-                // Modify the distribution
-                modifyRuleDistribution(before, after);
-            }
+            Vector<Pair<Integer, Integer>> possibleWindows = Window.getPossibleWindows(changeWindows, genome, mutated);
+
+            updateProbabilities(changeWindows, possibleWindows, genome, mutated);
 
             Mutagen guess;
-            if(i < 50){
-                guess = getFinalMutagen();
-            } else {
-                // Sample a mutagen
-                boolean foundGuess = false;
-                guess = new Mutagen();
-                while (!foundGuess) {
-                    guess = sampleMutagen();
-                    if (!wrongMutagens.contains(guess)) {
-                        foundGuess = true;
-                    }
-                }
-            }
 
-            boolean isCorrect = false;
-            if(guess.getPatterns().size() < 5) {
-                isCorrect = console.testEquiv(guess);
+            if (0 <= i && i < 200) {
+                guess = guessSingleRule(0);
+            } else if (200 <= i && i < 400) {
+                guess = guessSimpleMultiple(0);
+            } else if (400 <= i && i < 1700) {
+                guess = guessSingleRule(0);
+            } else if (1700 <= i && i < 3000) {
+                guess = guessComplexMultiple(0);
             } else {
-                isCorrect = console.Guess(guess);
+                guess = guessSingleRule(0);
             }
+//            System.out.println("Guessing " + guess.getPatterns() + " / " + guess.getActions());
+            boolean isCorrect = console.testEquiv(guess);
             if (isCorrect) {
                 return guess;
             } else {
