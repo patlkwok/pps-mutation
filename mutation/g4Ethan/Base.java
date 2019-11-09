@@ -1,4 +1,4 @@
-package mutation.g4;
+package mutation.g4Ethan;
 
 import java.util.*;
 import mutation.sim.Console;
