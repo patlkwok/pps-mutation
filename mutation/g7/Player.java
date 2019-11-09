@@ -172,6 +172,97 @@ public class Player extends mutation.sim.Player {
         return result;
     }
 
+    
+    private HashMap<Integer, HashMap<Integer, Set<String>>> findSimilarRules(List<Map.Entry<String, Double>> pairs){
+        Set<String> patterns = new HashSet<>(); 
+        for (Map.Entry<String, Double> entry : pairs){
+           String pattern = entry.getKey().split("@")[0];
+           patterns.add(pattern);
+        }
+        Map<Pair<String, Integer>, Set<Map.Entry<String, Double>>> groups = new HashMap<>();
+        
+        for(String pattern : patterns){
+            for (Map.Entry<String, Double> entry_2 : pairs){
+                String pattern_2 = entry_2.getKey().split("@")[0];
+                if(pattern.length() != pattern_2.length()) continue;
+                int diff = 0; 
+                int index = -1; 
+                for (int i = 0; i < pattern.length(); i++){
+                     if (pattern.charAt(i)!=pattern_2.charAt(i)) {
+                         diff++; 
+                         index = i; 
+                     }
+                     if (diff > 2) break; 
+                }
+                if (diff == 1){
+                    Pair<String, Integer> sim = new Pair<>(pattern, index);
+                    if(groups.containsKey(sim)){
+                        groups.get(sim).add(entry_2);
+                    } 
+                    else{
+                        Set<Map.Entry<String, Double>> entries = new HashSet<>(); 
+                        entries.add(entry_2);
+                        groups.put(sim, entries);
+                    }
+                }
+            }
+        }
+        HashMap<Integer, HashMap<Integer, Set<String>>> megaMap = new HashMap<>();
+        for(Pair<String, Integer> pair : groups.keySet()){
+            String base = pair.getKey();
+            String rule = pair.getKey();
+            for(Map.Entry<String, Double> entry : groups.get(pair)){
+                String pattern = entry.getKey().split("@")[0];
+                if(base.charAt(pair.getValue())!=pattern.charAt(pair.getValue())){
+                    rule = rule.substring(0,pair.getValue()) + pattern.charAt(pair.getValue()) + rule.substring(pair.getValue(), rule.length());
+                }
+            }
+
+            String[] rule_arr = rule.split(";");
+            String[] sorted_rule = new String[rule_arr.length];
+            int ind = 0; 
+            for (String s : rule_arr){
+                char[] temp_s = s.toCharArray();
+                Arrays.sort(temp_s);
+                s = new String(temp_s);
+                sorted_rule[ind++] = s; 
+            }
+            rule = String.join(";", sorted_rule);
+
+            int length = (int) Math.ceil((double)base.length() / 2.0) ;
+            int rules_combined = groups.get(pair).size() + 1; 
+            
+            if (megaMap.containsKey(length)){
+                HashMap<Integer, Set<String>> map = megaMap.get(length);
+                if (map.containsKey(rules_combined)){
+                    map.get(rules_combined).add(rule);
+                }
+                else{
+                    Set<String> rules = new HashSet<>();
+                    rules.add(rule);
+                    map.put(rules_combined, rules);
+                }
+            }
+            else{
+                HashMap<Integer, Set<String>> map = new HashMap<>();
+                Set<String> rules = new HashSet<>();
+                rules.add(rule);
+                map.put(rules_combined, rules);
+                megaMap.put(length, map);
+            }
+            
+        
+        }
+        // for (Integer key : megaMap.keySet()){
+        //     System.out.println("------" + key + "---------");
+        //     for (Integer key_2 : megaMap.get(key).keySet()){
+        //         System.out.println("child------" + key_2 + "---------");
+        //         System.out.println(megaMap.get(key).get(key_2));
+        //     }
+        // }
+        return megaMap;
+    }
+
     private Mutagen getFinalMutagen() {
         Mutagen mutagen = new Mutagen();
         int numberOfRulesToCombine = allPatterns.size();
@@ -180,6 +271,7 @@ public class Player extends mutation.sim.Player {
         }
         purgeRules();
         List<Map.Entry<String, Double>> pairs = findGreatest(rules, 20, true);
+        HashMap<Integer, HashMap<Integer, Set<String>>> megaMap = findSimilarRules(pairs);
         createBuckets(pairs);
         Collections.sort(pairs, new Comparator<Map.Entry<String, Double>>() {
             @Override
