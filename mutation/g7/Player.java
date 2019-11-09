@@ -447,33 +447,8 @@ public class Player extends mutation.sim.Player {
         return mutagen;
     }
 
-    private Mutagen guessComplexMultiple(int numberOfDisjunctions) {
-        Mutagen mutagen = new Mutagen();
-        int numberOfRulesToCombine = 2;
-        List<Map.Entry<String, Double>> pairs = Utils.findGreatest(changeRules, numberOfRulesToCombine, true);
-//        System.out.println(pairs);
-        for (int i = 0; i < pairs.size(); i++) {
-            Map.Entry<String, Double> patternActionPair = pairs.get(i);
-            String pair = patternActionPair.getKey();
-            String[] patternAction = pair.split("@");
-            String pattern = patternAction[0];
-            String action = patternAction[1];
-            System.out.println(complexIteration / 28);
-            if(complexIteration / 28 == i) {
-                if(complexIteration % 28 < 14) {
-                    int index = complexIteration % 28;
-                    pattern = pattern + ";" + combinations[index];
-                    action = action + action.length();
-                } else {
-                    int index = complexIteration % 28 - 14;
-                    pattern = combinations[index] + ";" + pattern;
-                    action = "0" + action;
-                }
-            }
-            mutagen.add(pattern, action);
-        }
-        complexIteration += 1;
-        return mutagen;
+    private Mutagen guessComplexMultiple(int numberOfRules) {
+        return getFinalMutagen();
     }
 
     private Mutagen guessBest() {
@@ -511,7 +486,7 @@ public class Player extends mutation.sim.Player {
 
             Mutagen guess;
 
-            guess = guessComplexMultiple(1);
+            guess = guessSimpleMultiple(2);
             System.out.println("Guessing " + guess.getPatterns() + " / " + guess.getActions());
 //            if(0 <= i && i < 100) {
 //                guess = guessSingleRule(0);
