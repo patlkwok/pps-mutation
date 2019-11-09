@@ -7,7 +7,8 @@ package mutation.g3;
 public class LogProbability {
 
     public static final double LOG_ZERO_PROB = Double.NEGATIVE_INFINITY;
-    public static final double LOG_ZERO_THRESHOLD = -500;
+    public static final double LOG_ONE_PROB = 0;
+    public static final double LOG_ZERO_THRESHOLD = -150;
 
     public static double p2log(double p) {
         return Math.log(p);
@@ -28,8 +29,9 @@ public class LogProbability {
             r = p1 + Math.log1p(Math.exp(p2 - p1));
         }
         if (r == Double.POSITIVE_INFINITY) {
-            System.out.println("Here");
+            //System.out.println("Here");
         }
+        r = logPTrunc(r);
         return r;
     }
 
@@ -39,15 +41,17 @@ public class LogProbability {
         if (p1 == LOG_ZERO_PROB || p2 == LOG_ZERO_PROB) {
             return LOG_ZERO_PROB;
         }
-        if (p1 + p2 == Double.POSITIVE_INFINITY) {
-            System.out.println("Here");
+        if (p1 + p2 == Double.POSITIVE_INFINITY || p1 + p2 > 0) {
+            //System.out.println("Here");
         }
-        return p1 + p2;
+        return logPTrunc(p1 + p2);
     }
 
     public static double logPTrunc(double p) {
         if (p < LOG_ZERO_THRESHOLD) {
             return LOG_ZERO_PROB;
+        } else if (p > LOG_ONE_PROB) {
+            return LOG_ONE_PROB;
         } else {
             return p;
         }
