@@ -1,0 +1,96 @@
+g1_tournament_10_0,Runtime Error,N/A,N/A,N/A
+g1_tournament_10_1,Correct,1729ms,457,19
+g1_tournament_10_2,0/203105,1800000ms,2966,119
+g1_tournament_10_3,Runtime Error,N/A,N/A,N/A
+g1_tournament_10_4,0/203036,1800000ms,2574,103
+g1_tournament_5_0,Runtime Error,N/A,N/A,N/A
+g1_tournament_5_1,0/203114,1800001ms,983,40
+g2_tournament_10_0,0/35100,1800000ms,20325,814
+g2_tournament_10_1,0/35239,1800000ms,44523,1781
+g2_tournament_10_2,0/35197,1800000ms,17975,719
+g2_tournament_10_3,0/35396,1800000ms,17494,700
+g2_tournament_10_4,0/35294,1800001ms,14650,586
+g2_tournament_5_0,31571/39447,1800000ms,5297,212
+g2_tournament_5_1,31223/85918,1800000ms,7776,312
+g3_tournament_10_0,0/335776,1800000ms,229627,9186
+g3_tournament_10_1,1/1195240,1175021ms,250000,10000
+g3_tournament_10_2,15709/268081,1359257ms,250000,10000
+g3_tournament_10_3,1919/371851,1391120ms,250000,10000
+g3_tournament_10_4,0/742239,1800000ms,248639,9946
+g3_tournament_5_0,0/39102,1800000ms,7262,291
+g3_tournament_5_1,0/38987,1800001ms,42650,1707
+g4_tournament_10_0,930/190277,1800000ms,67135,2686
+g4_tournament_10_1,921/221603,1800000ms,84666,3387
+g4_tournament_10_2,945/221948,1800000ms,81970,3279
+g4_tournament_10_3,928/190372,1800000ms,81399,3256
+g4_tournament_10_4,905/222292,1800000ms,82494,3300
+g4_tournament_5_0,0/19336,1821137ms,154702,6189
+g4_tournament_5_1,0/19443,1800114ms,123054,4923
+g5_tournament_10_0,0/203133,1800000ms,666,27
+g5_tournament_10_1,Runtime Error,N/A,N/A,N/A
+g5_tournament_10_2,Runtime Error,N/A,N/A,N/A
+g5_tournament_10_3,Runtime Error,N/A,N/A,N/A
+g5_tournament_10_4,Runtime Error,N/A,N/A,N/A
+g5_tournament_5_0,Runtime Error,N/A,N/A,N/A
+g5_tournament_5_1,Runtime Error,N/A,N/A,N/A
+g6_tournament_10_0,Correct,31353ms,344,14
+g6_tournament_10_1,Correct,16611ms,326,14
+g6_tournament_10_2,0/125261,1800001ms,6529,262
+g6_tournament_10_3,Correct,31210ms,1974,79
+g6_tournament_10_4,0/124474,324013ms,6559,263
+g6_tournament_5_0,0/125198,1800000ms,12541,502
+g6_tournament_5_1,Correct,70846ms,2326,94
+g7_tournament_10_0,0/19522,1773307ms,22676,908
+g7_tournament_10_1,Correct,2454ms,1292,52
+g7_tournament_10_2,Correct,2981ms,2160,87
+g7_tournament_10_3,0/19545,1362853ms,65084,2604
+g7_tournament_10_4,Correct,2995ms,1892,76
+g7_tournament_5_0,0/19514,1800000ms,231,10
+g8_tournament_10_0,46859/187546,1800001ms,64759,2591
+g8_tournament_10_1,46675/109279,1800000ms,75003,3001
+g8_tournament_10_2,Correct,151ms,135,6
+g8_tournament_10_3,47270/172460,1800000ms,82065,3283
+g8_tournament_10_4,Correct,521ms,301,13
+g8_tournament_5_0,Correct,37ms,51,3
+tournament_simple_10_0,0/499899,1800001ms,1608,65
+tournament_simple_10_1,0/499924,1800001ms,17754,711
+tournament_simple_10_2,0/499793,1800000ms,6349,254
+tournament_simple_10_3,0/500103,1800001ms,47549,1902
+tournament_simple_10_4,0/500152,1800000ms,574,23
+tournament_simple_5_0,500119/1847584,1800000ms,233936,9358
+tournament_single2_10_0,Runtime Error,N/A,N/A,N/A
+tournament_single2_10_1,0/15597,1800000ms,266,11
+tournament_single2_10_2,Runtime Error,N/A,N/A,N/A
+tournament_single2_10_3,Correct,474ms,1026,42
+tournament_single2_10_4,Runtime Error,N/A,N/A,N/A
+tournament_single2_5_0,Correct,108ms,26,2
+tournament_single_10_0,Correct,15ms,1,1
+tournament_single_10_1,Correct,19ms,1,1
+tournament_single_10_2,Correct,18ms,1,1
+tournament_single_10_3,Correct,19ms,1,1
+tournament_single_10_4,Correct,17ms,1,1
+tournament_single_5_0,Correct,12ms,1,1
+tournament_t1_10_0,125269/812986,1800000ms,244848,9794
+tournament_t1_10_1,250346/625643,240838ms,250000,10000
+tournament_t1_10_2,312213/437286,259249ms,250000,10000
+tournament_t1_10_3,62698/844592,276760ms,250000,10000
+tournament_t1_10_4,0/312483,1800000ms,35,2
+tournament_t1_5_0,0/312644,1800000ms,474,19
+tournament_t2_10_0,0/317232,1800000ms,4881,196
+tournament_t2_10_1,0/317800,1800000ms,8183,328
+tournament_t2_10_2,0/317419,1800000ms,668,27
+tournament_t2_10_3,0/317457,1800000ms,214,9
+tournament_t2_10_4,0/317719,1833144ms,10135,406
+tournament_t2_5_0,0/317336,1800000ms,708,29
+tournament_t3_10_0,0/17446,1800001ms,1716,69
+tournament_t3_10_1,0/17609,1800000ms,12816,513
+tournament_t3_10_2,Runtime Error,N/A,N/A,N/A
+tournament_t3_10_3,Runtime Error,1805545ms,13125,526
+tournament_t3_10_4,Runtime Error,N/A,N/A,N/A
+tournament_t3_5_0,0/17474,1800000ms,18400,737
+tournament_t4_10_0,0/16093,1800000ms,6242,250
+tournament_t4_10_1,Runtime Error,N/A,N/A,N/A
+tournament_t4_10_2,0/15990,1800000ms,4600,184
+tournament_t4_10_3,0/16045,1800000ms,6386,256
+tournament_t4_10_4,0/16164,1800000ms,11300,452
+tournament_t4_5_0,Runtime Error,1813110ms,10076,404

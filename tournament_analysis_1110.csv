@@ -1,0 +1,52 @@
+﻿Name,Mutagen,Rules,m,g1,g2,g3,g4,g5,g6,g7,g8,TotalGuess,TotalGroup
+g1_tournament_10,c;a;t@tag + g@3,2,10,5/5,0/5,1/5,0/5,5/5,0/5,0/5,0/5,11/40,2-1-5
+g2_tournament_10,a;ca;g;tc@ct1a + a;c;t;g@gattaca + c;a;t@tac,3,10,5/5,5/5,0/5,0/5,3/5,0/5,0/5,0/5,13/40,2-1-5
+g3_tournament_10,c;ct;a;t@0a23g + ac;t;actg;ag;ct@c12t4,2,10,5/5,5/5,0/5,5/5,0/5,0/5,0/5,0/5,15/40,3-0-5
+g4_tournament_10,c;a;g;t@atata + ac;a;ac;a@0gg,2,10,5/5,5/5,0/5,5/5,5/5,5/5,0/5,0/5,25/40,5-0-3
+g5_tournament_10,a;g;c@cgt + a@5,2,10,5/5,0/5,0/5,0/5,5/5,0/5,0/5,0/5,10/40,2-0-6
+g6_tournament_10,ct;ac;t@agt0 + ga;at;t@gattaca,2,10,1/5,0/5,3/5,3/5,0/5,5/5,0/5,0/5,12/40,1-3-4
+g7_tournament_10,c;a;t;g@tatc + t;a;g@gat,2,10,5/5,5/5,3/5,5/5,5/5,5/5,5/5,0/5,33/40,6-1-1
+g8_tournament_10,c;acg;t@11g,1,10,5/5,0/5,2/5,5/5,5/5,1/5,5/5,0/5,23/40,4-2-2
+tournament_simple_10,a@t + g@c,2,10,5/5,5/5,0/5,5/5,0/5,0/5,5/5,5/5,25/40,5-0-3
+tournament_single_10,ac;gt;g@tcc,1,10,5/5,5/5,5/5,5/5,5/5,5/5,5/5,4/5,39/40,7-1-0
+tournament_single2_10,a;acgt;c;acgt;g@987atc,1,10,5/5,0/5,1/5,0/5,5/5,0/5,0/5,0/5,11/40,2-1-5
+tournament_t1_10,c;c@tt + c@t,2,10,5/5,5/5,0/5,5/5,5/5,0/5,5/5,5/5,30/40,6-0-2
+tournament_t2_10,acg;cgt;agt;act@tacgg + t;a;c;g;g@gtacg,2,10,1/5,0/5,0/5,0/5,0/5,0/5,0/5,0/5,1/40,0-1-7
+tournament_t3_10,t;c;a;t;g@atccg + a;t;c;c;g@tcatg + a;t;c@g98,3,10,0/5,0/5,0/5,0/5,0/5,0/5,0/5,0/5,0/40,0-0-8
+tournament_t4_10,t;c;a;t;g;c@atccgt + a;t;c;c;g;t@tcatgc + a;t;c@gat,3,10,0/5,0/5,0/5,0/5,0/5,0/5,0/5,0/5,0/40,0-0-8
+total_guess_10,,,10,57/75,35/75,15/75,38/75,43/75,21/75,25/75,14/75,248/600,
+total_mutagen_10,,,10,11-2-2,7-0-8,1-5-9,7-1-7,8-1-6,4-1-10,5-0-10,2-1-12,,45-11-64
+g1_tournament_5,c;a;t@tag + g@3,2,5,5/5,0/5,0/2,0/5,1/1,0/5,0/5,0/5,,
+g2_tournament_5,a;ca;g;tc@ct1a + a;c;t;g@gattaca + c;a;t@tac,3,5,5/5,3/5,0/2,0/5,0/0,0/5,0/5,0/5,,
+g3_tournament_5,c;ct;a;t@0a23g + ac;t;actg;ag;ct@c12t4,2,5,5/5,5/5,0/2,5/5,0/0,0/5,0/5,0/5,,
+g4_tournament_5,c;a;g;t@atata + ac;a;ac;a@0gg,2,5,5/5,5/5,0/2,5/5,0/0,5/5,0/5,0/5,,
+g5_tournament_5,a;g;c@cgt + a@5,2,5,5/5,0/5,0/2,0/5,0/0,0/5,0/5,0/5,,
+g6_tournament_5,ct;ac;t@agt0 + ga;at;t@gattaca,2,5,0/5,0/5,1/2,4/5,0/0,4/5,0/5,0/5,,
+g7_tournament_5,c;a;t;g@tatc + t;a;g@gat,2,5,5/5,5/5,0/1,5/5,0/0,5/5,5/5,0/5,,
+g8_tournament_5,c;acg;t@11g,1,5,5/5,0/5,1/1,5/5,0/0,2/5,5/5,0/5,,
+tournament_simple_5,a@t + g@c,2,5,5/5,5/5,0/1,5/5,0/0,0/5,5/5,5/5,,
+tournament_single_5,ac;gt;g@tcc,1,5,5/5,5/5,1/1,5/5,0/0,5/5,5/5,5/5,,
+tournament_single2_5,a;acgt;c;acgt;g@987atc,1,5,5/5,0/5,1/1,0/5,0/0,0/5,0/5,0/5,,
+tournament_t1_5,c;c@tt + c@t,2,5,5/5,5/5,0/1,5/5,0/0,0/5,5/5,5/5,,
+tournament_t2_5,acg;cgt;agt;act@tacgg + t;a;c;g;g@gtacg,2,5,5/5,0/5,0/1,2/5,0/0,0/5,0/5,0/5,,
+tournament_t3_5,t;c;a;t;g@atccg + a;t;c;c;g@tcatg + a;t;c@g98,3,5,0/5,0/5,0/1,0/5,0/0,0/5,0/5,0/5,,
+tournament_t4_5,t;c;a;t;g;c@atccgt + a;t;c;c;g;t@tcatgc + a;t;c@gat,3,5,0/5,3/5,0/1,0/5,0/0,0/5,0/5,0/5,,
+total_guess_5,,,5,60/75,36/75,,41/75,,21/75,25/75,15/75,,
+total_mutagen_5,,,5,12-0-3,6-2-7,,7-2-6,,3-2-10,5-0-10,3-0-12,,
+g1_tournament_15,c;a;t@tag + g@3,2,15,5/5,0/2,0/0,0/5,0/0,0/5,0/5,0/5,,
+g2_tournament_15,a;ca;g;tc@ct1a + a;c;t;g@gattaca + c;a;t@tac,3,15,5/5,2/2,0/0,0/5,0/0,0/5,0/5,0/5,,
+g3_tournament_15,c;ct;a;t@0a23g + ac;t;actg;ag;ct@c12t4,2,15,5/5,2/2,0/0,5/5,0/0,0/5,0/5,0/5,,
+g4_tournament_15,c;a;g;t@atata + ac;a;ac;a@0gg,2,15,5/5,2/2,0/0,5/5,0/0,5/5,0/5,0/5,,
+g5_tournament_15,a;g;c@cgt + a@5,2,15,5/5,0/2,0/0,0/5,0/0,0/5,0/5,0/5,,
+g6_tournament_15,ct;ac;t@agt0 + ga;at;t@gattaca,2,15,0/5,0/1,0/0,5/5,0/0,5/5,0/5,0/5,,
+g7_tournament_15,c;a;t;g@tatc + t;a;g@gat,2,15,5/5,1/1,0/0,5/5,0/0,5/5,1/5,0/5,,
+g8_tournament_15,c;acg;t@11g,1,15,5/5,0/1,0/0,5/5,0/0,1/5,5/5,0/5,,
+tournament_simple_15,a@t + g@c,2,15,5/5,1/1,0/0,5/5,0/0,0/5,5/5,5/5,,
+tournament_single_15,ac;gt;g@tcc,1,15,5/5,1/1,0/0,5/5,0/0,5/5,5/5,5/5,,
+tournament_single2_15,a;acgt;c;acgt;g@987atc,1,15,5/5,0/1,0/0,0/5,0/0,0/5,0/5,0/5,,
+tournament_t1_15,c;c@tt + c@t,2,15,5/5,1/1,0/0,5/5,0/0,0/5,5/5,5/5,,
+tournament_t2_15,acg;cgt;agt;act@tacgg + t;a;c;g;g@gtacg,2,15,0/5,0/1,0/0,0/5,0/0,0/5,0/5,0/5,,
+tournament_t3_15,t;c;a;t;g@atccg + a;t;c;c;g@tcatg + a;t;c@g98,3,15,0/5,0/1,0/0,0/5,0/0,0/5,0/0,0/5,,
+tournament_t4_15,t;c;a;t;g;c@atccgt + a;t;c;c;g;t@tcatgc + a;t;c@gat,3,15,0/5,0/1,0/0,0/5,0/0,0/5,0/0,0/5,,
+total_guess_15,,,15,55/75,,,40/75,,21/75,,15/75,,
+total_mutagen_15,,,15,11-0-4,,,8-0-7,,4-1-10,,3-0-12,,
